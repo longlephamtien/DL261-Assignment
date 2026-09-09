@@ -1,0 +1,41 @@
+---
+import { ArrowRight, FolderGit2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { course, group } from "@/data/site";
+import { groupLabel } from "@/lib/content";
+---
+
+<section class="border-b bg-canvas">
+  <div class="shell py-16 sm:py-20">
+    <p class="eyebrow">Overview</p>
+
+    <h1 class="h-display mt-4">{course.name}</h1>
+    
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      <Badge variant="secondary">{course.code}</Badge>
+      <Badge variant="secondary">{course.semester}</Badge>
+      <Badge variant="outline">{groupLabel()}</Badge>
+    </div>
+
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="#assignments" class={buttonVariants({ size: "lg" })}>
+        Assignments
+        <ArrowRight />
+      </a>
+      {
+        group.repository && (
+          <a
+            href={group.repository}
+            target="_blank"
+            rel="noreferrer"
+            class={buttonVariants({ variant: "outline", size: "lg" })}
+          >
+            <FolderGit2 />
+            Repository
+          </a>
+        )
+      }
+    </div>
+  </div>
+</section>

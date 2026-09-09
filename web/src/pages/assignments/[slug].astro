@@ -1,0 +1,63 @@
+---
+import type { GetStaticPaths } from "astro";
+import AssignmentHero from "@/components/assignment/AssignmentHero.astro";
+import SectionNav from "@/components/assignment/SectionNav.astro";
+import { Blocks } from "@/components/content/Blocks";
+import { DisclosureCard } from "@/components/content/DisclosureCard";
+import { MemberGrid } from "@/components/content/MemberGrid";
+import { ResourceGrid } from "@/components/content/ResourceGrid";
+import Section from "@/components/layout/Section.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { assignments } from "@/data/assignments";
+import { resolveSections } from "@/data/sections";
+import { group } from "@/data/site";
+
+export const getStaticPaths = (() =>
+  assignments.map((assignment) => ({
+    params: { slug: assignment.slug },
+    props: { assignment },
+  }))) satisfies GetStaticPaths;
+
+const { assignment } = Astro.props;
+const sections = resolveSections(assignment);
+
+const navItems = [
+  ...sections.map(({ id, title }) => ({ id, title })),
+  { id: "resources", title: "Resources" },
+  { id: "members", title: "Members" },
+  { id: "ai-usage", title: "AI usage" },
+];
+---
+
+<BaseLayout title={`Assignment ${assignment.number}`} description={assignment.abstract}>
+  <AssignmentHero assignment={assignment} />
+
+  <div class="shell grid gap-10 py-14 lg:grid-cols-[14rem_1fr] lg:gap-14">
+    <SectionNav items={navItems} />
+
+    <div class="min-w-0 space-y-12">
+      {
+        sections.map((section) => (
+          <Section id={section.id} title={section.title}>
+            <Blocks blocks={section.blocks} />
+          </Section>
+        ))
+      }
+
+      <Section id="resources" title="Resources">
+        <ResourceGrid resources={assignment.resources} />
+      </Section>
+
+      <Section id="members" title="Members">
+        <MemberGrid members={group.members} />
+      </Section>
+
+      <Section id="ai-usage" title="AI usage disclosure">
+        <DisclosureCard
+          title={`Assignment ${assignment.number}`}
+          disclosure={assignment.aiDisclosure}
+        />
+      </Section>
+    </div>
+  </div>
+</BaseLayout>

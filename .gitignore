@@ -1,0 +1,17 @@
+.DS_Store
+node_modules/
+dist/
+.astro/
+
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.h5
+*.safetensors

@@ -1,0 +1,65 @@
+---
+import { AssignmentGrid } from "@/components/content/AssignmentGrid";
+import { DisclosureCard } from "@/components/content/DisclosureCard";
+import { FactList } from "@/components/content/FactList";
+import { MemberGrid } from "@/components/content/MemberGrid";
+import HomeHero from "@/components/home/HomeHero.astro";
+import Section from "@/components/layout/Section.astro";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { assignments } from "@/data/assignments";
+import { course, courseAiDisclosure, group, institution, site } from "@/data/site";
+import { assignmentUrl } from "@/lib/paths";
+
+const institutionFacts = [
+  { label: "University", value: institution.university },
+  { label: "Faculty", value: institution.faculty },
+];
+
+const courseFacts = [
+  { label: "Course name", value: course.name },
+  { label: "Course code", value: course.code },
+  { label: "Semester", value: course.semester },
+  { label: "Instructor", value: course.instructor },
+];
+
+const groupFacts = [
+  { label: "Group name", value: group.name },
+  { label: "Group ID", value: group.id },
+  { label: "Code repository", value: group.repository, href: group.repository },
+];
+
+const items = assignments.map((assignment) => ({
+  assignment,
+  href: assignmentUrl(assignment.slug),
+}));
+---
+
+<BaseLayout title={site.title}>
+  <HomeHero />
+
+  <div class="shell space-y-14 py-16">
+    <Section id="institution" title="Institutional information">
+      <FactList facts={institutionFacts} />
+    </Section>
+
+    <Section id="course" title="Course information">
+      <FactList facts={courseFacts} />
+    </Section>
+
+    <Section id="group" title="Group information">
+      <FactList facts={groupFacts} />
+      <div class="mt-8">
+        <p class="eyebrow mb-3">Members</p>
+        <MemberGrid members={group.members} />
+      </div>
+    </Section>
+
+    <Section id="assignments" title="Assignment index">
+      <AssignmentGrid items={items} />
+    </Section>
+
+    <Section id="ai-usage" title="AI usage disclosure">
+      <DisclosureCard title="Across all three projects" disclosure={courseAiDisclosure} />
+    </Section>
+  </div>
+</BaseLayout>

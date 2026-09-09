@@ -1,0 +1,46 @@
+---
+import { ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { course } from "@/data/site";
+import { STATUS_LABEL, groupLabel, videoTitle } from "@/lib/content";
+import { url } from "@/lib/paths";
+import type { Assignment } from "@/data/types";
+
+interface Props {
+  assignment: Assignment;
+}
+
+const { assignment } = Astro.props;
+---
+
+<section class="border-b bg-canvas">
+  <div class="shell py-12 sm:py-16">
+    <a href={url("/")} class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <ArrowLeft className="size-3.5" />
+      Overview
+    </a>
+
+    <div class="mt-5 flex flex-wrap items-center gap-2">
+      <Badge>Assignment {assignment.number}</Badge>
+      <Badge variant="secondary">{STATUS_LABEL[assignment.status]}</Badge>
+    </div>
+
+    <h1 class="h-page mt-3">{assignment.title}</h1>
+    <p class="lead mt-3 max-w-2xl">{assignment.topic}</p>
+
+    <dl class="mt-8 grid gap-5 border-t pt-6 sm:grid-cols-3">
+      <div>
+        <dt class="eyebrow">Group</dt>
+        <dd class="mt-1 text-sm">{groupLabel()}</dd>
+      </div>
+      <div>
+        <dt class="eyebrow">Instructor</dt>
+        <dd class="mt-1 text-sm">{course.instructor}</dd>
+      </div>
+      <div>
+        <dt class="eyebrow">Video title</dt>
+        <dd class="mt-1 text-sm">{videoTitle(assignment)}</dd>
+      </div>
+    </dl>
+  </div>
+</section>

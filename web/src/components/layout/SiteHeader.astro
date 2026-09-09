@@ -1,0 +1,64 @@
+---
+import { FolderGit2 } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
+import { MobileNav } from "@/components/layout/MobileNav";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { assignments } from "@/data/assignments";
+import { group, site } from "@/data/site";
+import { assignmentUrl, url } from "@/lib/paths";
+
+const pathname = Astro.url.pathname.replace(/\/$/, "");
+const home = url("/");
+
+const items = [
+  { label: "Overview", href: home },
+  ...assignments.map((assignment) => ({
+    label: `Assignment ${assignment.number}`,
+    href: assignmentUrl(assignment.slug),
+  })),
+].map((item) => ({ ...item, current: pathname === item.href.replace(/\/$/, "") }));
+---
+
+<header class="sticky top-0 z-40 border-b bg-background/85 backdrop-blur-md">
+  <div class="shell flex h-14 items-center gap-4">
+    <a href={home} class="flex items-center gap-2.5">
+      <img src={url("/logo.svg")} alt="" width="28" height="28" />
+      <span class="text-sm font-semibold tracking-tight">{site.name}</span>
+    </a>
+
+    <nav class="ml-auto hidden items-center gap-1 md:flex">
+      {
+        items.map((item) => (
+          <a
+            href={item.href}
+            aria-current={item.current ? "page" : undefined}
+            class:list={[
+              "rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
+              item.current ? "bg-muted font-medium text-foreground" : "text-muted-foreground",
+            ]}
+          >
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="ml-auto flex items-center gap-1 md:ml-0">
+      {
+        group.repository && (
+          <a
+            href={group.repository}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Code repository"
+            class={buttonVariants({ variant: "ghost", size: "icon" })}
+          >
+            <FolderGit2 />
+          </a>
+        )
+      }
+      <ThemeToggle client:load />
+      <MobileNav client:load items={items} title={site.name} />
+    </div>
+  </div>
+</header>

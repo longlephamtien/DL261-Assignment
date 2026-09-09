@@ -1,0 +1,26 @@
+---
+import { assignments } from "@/data/assignments";
+import { course, institution } from "@/data/site";
+import { assignmentUrl, url } from "@/lib/paths";
+---
+
+<footer class="mt-20 border-t bg-canvas">
+  <div class="shell flex flex-col gap-6 py-10 sm:flex-row sm:items-start sm:justify-between">
+    <div class="space-y-1 text-sm">
+      <p class="font-medium">{institution.university}</p>
+      <p class="text-muted-foreground">{institution.faculty}</p>
+      <p class="text-muted-foreground">{course.code} · {course.semester}</p>
+    </div>
+
+    <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      <a href={url("/")} class="text-muted-foreground hover:text-foreground">Overview</a>
+      {
+        assignments.map((assignment) => (
+          <a href={assignmentUrl(assignment.slug)} class="text-muted-foreground hover:text-foreground">
+            Assignment {assignment.number}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</footer>

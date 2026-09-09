@@ -1,0 +1,16 @@
+---
+import { buttonVariants } from "@/components/ui/button";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { url } from "@/lib/paths";
+---
+
+<BaseLayout title="Page not found">
+  <div class="shell flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
+    <p class="eyebrow">404</p>
+    <h1 class="text-3xl sm:text-4xl">This page does not exist</h1>
+    <p class="max-w-prose text-muted-foreground">
+      The link may be out of date, or the page has not been published yet.
+    </p>
+    <a href={url("/")} class={buttonVariants()}>Back to the course overview</a>
+  </div>
+</BaseLayout>
