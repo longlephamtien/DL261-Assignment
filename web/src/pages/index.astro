@@ -6,9 +6,10 @@ import { MemberGrid } from "@/components/content/MemberGrid";
 import HomeHero from "@/components/home/HomeHero.astro";
 import Section from "@/components/layout/Section.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { assignments } from "@/data/assignments";
 import { course, courseAiDisclosure, group, institution, site } from "@/data/site";
-import { assignmentUrl } from "@/lib/paths";
+import { listAssignments } from "@/lib/assignments";
+
+const assignments = await listAssignments();
 
 const institutionFacts = [
   { label: "University", value: institution.university },
@@ -28,10 +29,6 @@ const groupFacts = [
   { label: "Code repository", value: group.repository, href: group.repository },
 ];
 
-const items = assignments.map((assignment) => ({
-  assignment,
-  href: assignmentUrl(assignment.slug),
-}));
 ---
 
 <BaseLayout title={site.title}>
@@ -55,7 +52,7 @@ const items = assignments.map((assignment) => ({
     </Section>
 
     <Section id="assignments" title="Assignment index">
-      <AssignmentGrid items={items} />
+      <AssignmentGrid items={assignments} />
     </Section>
 
     <Section id="ai-usage" title="AI usage disclosure">

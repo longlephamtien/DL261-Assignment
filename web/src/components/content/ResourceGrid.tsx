@@ -6,16 +6,13 @@ import type { ResourceLink } from "@/data/types";
 function ResourceBody({ resource }: { resource: ResourceLink }) {
   return (
     <Card className="h-full">
-      <CardContent className="flex h-full flex-col gap-1.5">
-        <div className="flex items-center justify-between gap-3">
-          <span className="h-card">{resource.label}</span>
-          {resource.href ? (
-            <SquareArrowOutUpRight className="size-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <PendingBadge label="Pending" />
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground">{resource.description}</p>
+      <CardContent className="flex h-full items-center justify-between gap-3">
+        <span className="h-card">{resource.label}</span>
+        {resource.href ? (
+          <SquareArrowOutUpRight className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <PendingBadge label="Pending" />
+        )}
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { course, group } from "@/data/site";
-import type { Assignment, AssignmentStatus } from "@/data/types";
+import type { AssignmentStatus } from "@/data/types";
 
 export function isPending(value: string | null | undefined): boolean {
   return !value || value.trim() === "";
@@ -21,10 +21,10 @@ export function githubAvatar(profile: string | null | undefined): string | null 
   }
 }
 
-export function videoTitle(assignment: Assignment): string {
+export function videoTitle(assignmentNumber: number): string {
   const id = displayValue(group.id) ?? "[ID]";
   const semester = course.semester.trim().replace(/\s+/g, "-");
-  return `${course.code}-${semester} – Group ${id} – Assignment ${assignment.number}`;
+  return `${course.code}-${semester} – Group ${id} – Assignment ${assignmentNumber}`;
 }
 
 export function groupLabel(): string {

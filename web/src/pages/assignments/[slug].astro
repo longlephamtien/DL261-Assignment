@@ -1,51 +1,59 @@
 ---
 import type { GetStaticPaths } from "astro";
+import { getCollection, render } from "astro:content";
 import AssignmentHero from "@/components/assignment/AssignmentHero.astro";
 import SectionNav from "@/components/assignment/SectionNav.astro";
-import { Blocks } from "@/components/content/Blocks";
 import { DisclosureCard } from "@/components/content/DisclosureCard";
 import { MemberGrid } from "@/components/content/MemberGrid";
+import { ReferenceList } from "@/components/content/ReferenceList";
 import { ResourceGrid } from "@/components/content/ResourceGrid";
 import Section from "@/components/layout/Section.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { assignments } from "@/data/assignments";
-import { resolveSections } from "@/data/sections";
 import { group } from "@/data/site";
+import "katex/dist/katex.min.css";
 
-export const getStaticPaths = (() =>
-  assignments.map((assignment) => ({
-    params: { slug: assignment.slug },
-    props: { assignment },
-  }))) satisfies GetStaticPaths;
+export const getStaticPaths = (async () => {
+  const entries = await getCollection("assignments");
+  return entries
+    .sort((a, b) => a.data.number - b.data.number)
+    .map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}) satisfies GetStaticPaths;
 
-const { assignment } = Astro.props;
-const sections = resolveSections(assignment);
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+const { references } = entry.data;
 
 const navItems = [
-  ...sections.map(({ id, title }) => ({ id, title })),
+  ...headings.filter((heading) => heading.depth === 2).map(({ slug, text }) => ({ id: slug, title: text })),
+  ...(references.length > 0 ? [{ id: "references", title: "References" }] : []),
   { id: "resources", title: "Resources" },
   { id: "members", title: "Members" },
   { id: "ai-usage", title: "AI usage" },
 ];
 ---
 
-<BaseLayout title={`Assignment ${assignment.number}`} description={assignment.abstract}>
-  <AssignmentHero assignment={assignment} />
+<BaseLayout title={`Assignment ${entry.data.number}`} description={entry.data.abstract}>
+  <AssignmentHero assignment={entry.data} />
 
   <div class="shell grid gap-10 py-14 lg:grid-cols-[14rem_1fr] lg:gap-14">
     <SectionNav items={navItems} />
 
     <div class="min-w-0 space-y-12">
+      <article class="prose max-w-none">
+        <Content />
+      </article>
+
       {
-        sections.map((section) => (
-          <Section id={section.id} title={section.title}>
-            <Blocks blocks={section.blocks} />
+        references.length > 0 && (
+          <Section id="references" title="References">
+            <ReferenceList references={references} />
           </Section>
-        ))
+        )
       }
 
       <Section id="resources" title="Resources">
-        <ResourceGrid resources={assignment.resources} />
+        <ResourceGrid resources={entry.data.resources} />
       </Section>
 
       <Section id="members" title="Members">
@@ -54,8 +62,8 @@ const navItems = [
 
       <Section id="ai-usage" title="AI usage disclosure">
         <DisclosureCard
-          title={`Assignment ${assignment.number}`}
-          disclosure={assignment.aiDisclosure}
+          title={`Assignment ${entry.data.number}`}
+          disclosure={entry.data.aiDisclosure}
         />
       </Section>
     </div>

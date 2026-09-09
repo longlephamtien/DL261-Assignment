@@ -3,18 +3,19 @@ import { FolderGit2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { assignments } from "@/data/assignments";
 import { group, site } from "@/data/site";
-import { assignmentUrl, url } from "@/lib/paths";
+import { listAssignments } from "@/lib/assignments";
+import { url } from "@/lib/paths";
 
 const pathname = Astro.url.pathname.replace(/\/$/, "");
 const home = url("/");
+const assignments = await listAssignments();
 
 const items = [
   { label: "Overview", href: home },
   ...assignments.map((assignment) => ({
     label: `Assignment ${assignment.number}`,
-    href: assignmentUrl(assignment.slug),
+    href: assignment.href,
   })),
 ].map((item) => ({ ...item, current: pathname === item.href.replace(/\/$/, "") }));
 ---

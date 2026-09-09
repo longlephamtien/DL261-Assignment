@@ -15,3 +15,5 @@ checkpoints/
 *.pth
 *.h5
 *.safetensors
+
+EXAMPLE.mdx

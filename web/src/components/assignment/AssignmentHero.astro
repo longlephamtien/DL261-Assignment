@@ -1,13 +1,13 @@
 ---
+import type { CollectionEntry } from "astro:content";
 import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { course } from "@/data/site";
 import { STATUS_LABEL, groupLabel, videoTitle } from "@/lib/content";
 import { url } from "@/lib/paths";
-import type { Assignment } from "@/data/types";
 
 interface Props {
-  assignment: Assignment;
+  assignment: CollectionEntry<"assignments">["data"];
 }
 
 const { assignment } = Astro.props;
@@ -39,7 +39,7 @@ const { assignment } = Astro.props;
       </div>
       <div>
         <dt class="eyebrow">Video title</dt>
-        <dd class="mt-1 text-sm">{videoTitle(assignment)}</dd>
+        <dd class="mt-1 text-sm">{videoTitle(assignment.number)}</dd>
       </div>
     </dl>
   </div>

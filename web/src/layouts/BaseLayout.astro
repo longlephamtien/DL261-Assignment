@@ -39,9 +39,9 @@ const pageTitle = title === site.title ? title : `${title} · ${site.title}`;
       })();
     </script>
   </head>
-  <body class="min-h-dvh">
+  <body class="flex min-h-dvh flex-col">
     <SiteHeader />
-    <main>
+    <main class="flex-1">
       <slot />
     </main>
     <SiteFooter />
