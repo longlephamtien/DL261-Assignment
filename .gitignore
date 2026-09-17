@@ -17,3 +17,4 @@ checkpoints/
 *.safetensors
 
 EXAMPLE.mdx
+tools/

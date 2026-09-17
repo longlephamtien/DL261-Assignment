@@ -13,8 +13,8 @@ export const course: Course = {
 };
 
 export const group: Group = {
-  id: null,
-  name: null,
+  id: "18",
+  name: "DeepDive",
   repository: "https://github.com/longlephamtien/DL261-Assignment",
   members: [
     {
@@ -47,6 +47,6 @@ export const courseAiDisclosure: AiDisclosure = {
 
 export const site = {
   name: "DL261-Assignment",
-  title: `${course.code} — ${course.name}`,
+  title: `${course.code}: ${course.name}`,
   description: `Course project website for ${course.name} (${course.code}), ${course.semester}, ${institution.university}.`,
 };

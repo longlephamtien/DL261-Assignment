@@ -30,7 +30,7 @@ export function videoTitle(assignmentNumber: number): string {
 export function groupLabel(): string {
   const name = displayValue(group.name);
   const id = displayValue(group.id);
-  if (name && id) return `${name} · Group ${id}`;
+  if (name && id) return `${name}, Group ${id}`;
   return name ?? (id ? `Group ${id}` : "Group details pending");
 }
 
