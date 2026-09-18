@@ -20,29 +20,28 @@ export const group: Group = {
     {
       name: "Lê Phạm Tiến Long",
       studentId: "2352688",
-      role: null,
+      role: "Data analysis and delivery: EDA, dataset proposals, repository, website, reports, and submissions",
       github: "https://github.com/longlephamtien",
     },
     {
       name: "Ngô Tiểu Nghi",
       studentId: "2352799",
-      role: null,
+      role: "Data and training pipeline: loaders, preprocessing, splits, training, fine-tuning, and experiment runs",
       github: "http://github.com/nghingo169",
     },
     {
       name: "Hồ Minh Nhật",
       studentId: "2352858",
-      role: null,
+      role: "Models and evaluation: architectures, fusion, metrics, ablations, and error analysis",
       github: "https://github.com/henries05",
     },
   ],
 };
 
 export const courseAiDisclosure: AiDisclosure = {
+  noAiUsed: false,
   summary: null,
-  tools: [],
-  usedFor: [],
-  verification: null,
+  entries: [],
 };
 
 export const site = {
