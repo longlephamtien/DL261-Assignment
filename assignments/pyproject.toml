@@ -1,0 +1,23 @@
+[project]
+name = "shared"
+version = "0.1.0"
+description = "Shared code for the CO3133 course project assignments"
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub==1.32.0",
+    "matplotlib==3.11.2",
+    "numpy==2.5.3",
+    "python-dotenv==1.2.3",
+    "pyyaml==6.0.3",
+    "scikit-learn==1.9.1",
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "tqdm==4.70.1",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["shared"]

@@ -14,6 +14,9 @@ web/                         Astro + Tailwind site
   src/lib/                   markdown plugins and helpers
   src/styles/global.css      colour tokens, type scale, prose styles
   public/assignments/<slug>/ figures
+assignments/                 one Python environment for all assignments
+  shared/                    code shared by every assignment
+  assignment-1/              Fashion-MNIST pipeline, models, and experiments
 docs/                        course specification
 AI_USAGE.md                  AI disclosure log
 .github/workflows/           GitHub Pages deployment
@@ -28,6 +31,8 @@ npm run dev        # http://localhost:4321/DL261-Assignment
 npm run build      # static output in web/dist
 npm run check      # types, links, content schema
 ```
+
+The assignment code is separate: [assignments/README.md](assignments/README.md) covers the environment and credentials, each assignment README covers its own workflow.
 
 ## Edit the landing page
 

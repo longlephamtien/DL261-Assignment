@@ -1,0 +1,41 @@
+seed: 0
+
+dataset:
+  name: fashion-mnist
+  source: torchvision.datasets.FashionMNIST
+  root: data
+  download: true
+  val_size: 6000
+  stratified: true
+  split_file: splits/fashion-mnist-seed0.json
+
+hub:
+  repo_id: null
+  assignment: assignment-1
+  private: false
+
+input:
+  representation: image      # image | rows | columns | patches
+  patch_size: 4
+
+loader:
+  batch_size: 128
+  num_workers: 4
+  augment: true
+
+train:
+  epochs: 30
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 0.05
+  scheduler: cosine
+  label_smoothing: 0.0
+  early_stopping_patience: 5
+  checkpoint_metric: val_macro_f1
+  checkpoint_mode: max
+
+model:
+  name: linear
+  args: {}
+
+output_dir: results/runs
