@@ -92,7 +92,3 @@ The split is committed rather than regenerated, because every model must use exa
 ## Protocol
 
 Fixed across all five models: one split file, one seed list, identical preprocessing and augmentation, and the same checkpoint rule, by default best `val_macro_f1`. The test split is evaluated once, after all model selection is finished.
-
-## Status
-
-Scaffold only. Stubs name their issue: #12 configuration and run tracking, #13 split, #14 Dataset and DataLoaders, #16 training loop, #17 linear, #18 MLP, #39 Hub upload.

@@ -86,10 +86,20 @@ def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def select_device() -> torch.device:
+    """CUDA if available, else Apple Silicon MPS, else CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 def describe_hardware() -> str:
     """One-line device description recorded in every run summary."""
-    if torch.cuda.is_available():
+    device = select_device()
+    if device.type == "cuda":
         return f"cuda: {torch.cuda.get_device_name(0)}"
-    if torch.backends.mps.is_available():
+    if device.type == "mps":
         return "mps: Apple Silicon"
     return "cpu"
