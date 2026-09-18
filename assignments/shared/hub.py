@@ -54,16 +54,18 @@ def checksums(run_dir: Path) -> dict[str, str]:
 
 
 def upload_run(run_dir: Path, assignment: str, repo_id: str | None = None, private: bool = False) -> str:
-    """Upload one run directory and return the commit revision to cite.
-    Issue #39.
-"""
+    """Upload one run directory and return the commit revision to cite. Issue #39."""
     env.load(run_dir)
     repo_id = env.repo_id(repo_id)
     raise NotImplementedError("issue #39")
 
 
 def download_checkpoint(assignment: str, run_id: str, repo_id: str | None = None, revision: str = "main") -> Path:
-    """Fetch one checkpoint into the local cache and return its path. Issue #39."""
+    """Fetch one checkpoint into the local cache and return its path.
+
+    Load it with `torch.load(path, map_location=interfaces.select_device())`, since a
+    checkpoint saved on CUDA fails to load on a machine without CUDA otherwise. Issue #39.
+    """
     env.load()
     repo_id = env.repo_id(repo_id)
     raise NotImplementedError("issue #39")

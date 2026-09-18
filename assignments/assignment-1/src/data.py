@@ -49,7 +49,10 @@ def build_dataloaders(config: dict) -> dict[str, DataLoader]:
     """Loaders keyed by 'train', 'val', and 'test', yielding batches per `interfaces.Batch`.
 
     Augmentation applies to the training loader only and is identical for every model.
-    Issue #14.
+    `pin_memory` should follow `interfaces.select_device().type == "cuda"`, since it only
+    speeds up CUDA transfers and MPS does not support it. `num_workers` > 0 needs the
+    `if __name__ == "__main__":` guard on Windows, already present in every CLI entry point
+    here. Issue #14.
     """
     raise NotImplementedError("issue #14")
 

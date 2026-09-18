@@ -17,7 +17,8 @@ def fit(config: dict) -> Path:
 
     Appends an `EpochRecord` to `history.json` after every epoch, keeps the checkpoint
     selected by `train.checkpoint_metric`, and writes `summary.json` at the end. The loop
-    contains no model-specific branches. Issue #16.
+    contains no model-specific branches. Move the model and every batch to
+    `interfaces.select_device()`; never hardcode `"cuda"` or `"mps"`. Issue #16.
     """
     raise NotImplementedError("issue #16")
 
