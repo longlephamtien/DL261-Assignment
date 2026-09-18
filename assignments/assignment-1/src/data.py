@@ -2,7 +2,7 @@
 
     python -m src.data --config configs/base.yaml
 
-Implemented by #13 (split), #14 (Dataset, transforms, DataLoaders).
+Split is implemented (#13). Download, DataLoaders, and sequence adapters: #14.
 """
 
 from __future__ import annotations
@@ -10,10 +10,15 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
+import torchvision
+from sklearn.model_selection import train_test_split
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from .interfaces import Representation, SplitFile
+from shared import io as shared_io
+
+from .interfaces import CLASS_NAMES, Representation, SplitFile
 
 
 def prepare_dataset(config: dict) -> Path:
@@ -26,18 +31,44 @@ def prepare_dataset(config: dict) -> Path:
 
 
 def build_split(data_dir: Path, seed: int, val_size: int, stratified: bool = True) -> SplitFile:
-    """Partition the official training set into train and validation indices. Issue #13."""
-    raise NotImplementedError("issue #13")
+    """Partition the official 60,000-image training set into train and validation indices.
+
+    `data_dir` must already hold the downloaded training set; see `prepare_dataset`.
+    """
+    labels = np.array(torchvision.datasets.FashionMNIST(root=str(data_dir), train=True).targets)
+    indices = np.arange(len(labels))
+    train_idx, val_idx = train_test_split(
+        indices,
+        test_size=val_size,
+        random_state=seed,
+        stratify=labels if stratified else None,
+    )
+
+    assert set(train_idx) & set(val_idx) == set()
+    assert set(train_idx) | set(val_idx) == set(indices.tolist())
+
+    return SplitFile(
+        dataset="fashion-mnist",
+        seed=seed,
+        stratified=stratified,
+        train=sorted(train_idx.tolist()),
+        val=sorted(val_idx.tolist()),
+        counts={"train": _class_counts(labels[train_idx]), "val": _class_counts(labels[val_idx])},
+    )
+
+
+def _class_counts(labels: np.ndarray) -> dict[str, int]:
+    return {CLASS_NAMES[label]: int(count) for label, count in zip(*np.unique(labels, return_counts=True))}
 
 
 def write_split(split: SplitFile, path: Path) -> None:
     """Write a split file to `splits/`; committed so every model shares one partition."""
-    raise NotImplementedError("issue #13")
+    shared_io.write_json(path, split)
 
 
 def load_split(path: Path) -> SplitFile:
     """Read a committed split file."""
-    raise NotImplementedError("issue #13")
+    return shared_io.read_json(path)
 
 
 def normalization_stats(data_dir: Path, split: SplitFile) -> tuple[float, float]:
