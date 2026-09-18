@@ -3,12 +3,26 @@ export interface ResourceLink {
   href: string | null;
 }
 
-export interface AiDisclosure {
-  summary: string | null;
-  tools: string[];
-  usedFor: string[];
-  verification: string | null;
+export interface AiToolUse {
+  tool: string;
+  usedBy: string;
+  task: string;
+  promptSummary: string;
+  promptLog: string | null;
+  aiContribution: string;
+  studentVerification: string;
+  affectedSections: string[];
+  responsibleMember: string;
 }
+
+export interface AiDisclosure {
+  noAiUsed: boolean;
+  summary: string | null;
+  entries: AiToolUse[];
+}
+
+export const NO_AI_DECLARATION =
+  "The group declares that no generative AI tool was used in this assignment.";
 
 export interface Member {
   name: string;

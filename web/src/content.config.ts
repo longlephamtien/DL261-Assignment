@@ -25,12 +25,29 @@ const assignments = defineCollection({
         })
       )
       .default([]),
-    aiDisclosure: z.object({
-      summary: z.string().nullable(),
-      tools: z.array(z.string()),
-      usedFor: z.array(z.string()),
-      verification: z.string().nullable(),
-    }),
+    aiDisclosure: z
+      .object({
+        noAiUsed: z.boolean().default(false),
+        summary: z.string().nullable().default(null),
+        entries: z
+          .array(
+            z.object({
+              tool: z.string(),
+              usedBy: z.string(),
+              task: z.string(),
+              promptSummary: z.string(),
+              promptLog: z.url().nullable().default(null),
+              aiContribution: z.string(),
+              studentVerification: z.string(),
+              affectedSections: z.array(z.string()).min(1),
+              responsibleMember: z.string(),
+            })
+          )
+          .default([]),
+      })
+      .refine((value) => !value.noAiUsed || value.entries.length === 0, {
+        message: "noAiUsed cannot be true while entries are listed",
+      }),
   }),
 });
 

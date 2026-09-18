@@ -15,6 +15,7 @@ web/                         Astro + Tailwind site
   src/styles/global.css      colour tokens, type scale, prose styles
   public/assignments/<slug>/ figures
 docs/                        course specification
+AI_USAGE.md                  AI disclosure log
 .github/workflows/           GitHub Pages deployment
 ```
 
@@ -38,8 +39,6 @@ One file per assignment: `web/src/content/assignments/assignment-N.mdx`.
 
 Frontmatter holds the metadata, the body holds the write-up. Keep the eight `##` headings - the handbook requires them, and the page navigation is generated from them. An empty section renders a "Not written yet" badge.
 
-**`web/src/content/EXAMPLE.mdx` demonstrates every element below.** It sits outside the `assignments/` folder, so it is never built as a page.
-
 ### Body syntax
 
 | Element | Syntax |
@@ -48,10 +47,10 @@ Frontmatter holds the metadata, the body holds the write-up. Keep the eight `##`
 | Display math | `$$ ... $$` on its own lines |
 | Code | fenced block with a language tag |
 | Plain table | Markdown pipe table |
-| Numbered table | `:::table{label="tab:x"}` … `:::` |
-| Numbered figure | `:::figure{label="fig:x"}` … `:::` |
-| Cross-reference | `:ref[tab:x]` → "Table 1", linked |
-| Citation | `:cite[key]` → "[1]", linked |
+| Numbered table | `:::table{label="tab:x"}` ... `:::` |
+| Numbered figure | `:::figure{label="fig:x"}` ... `:::` |
+| Cross-reference | `:ref[tab:x]`, renders as "Table 1", linked |
+| Citation | `:cite[key]`, renders as "[1]", linked |
 
 Inside a `:::table` or `:::figure` block, the **last paragraph is the caption**. Numbering is automatic and independent per kind, so inserting a figure renumbers the ones after it. Captions sit above tables and below figures.
 
@@ -77,3 +76,32 @@ Put files in `web/public/assignments/<slug>/` and reference them with the site p
 ```
 
 Export plots from matplotlib as PNG or SVG. Math is rendered at build time by KaTeX, so no JavaScript is shipped for it.
+
+### AI disclosure
+
+```yaml
+aiDisclosure:
+  noAiUsed: false
+  summary: One or two sentences covering AI use in this assignment.
+  entries:
+    - tool: Name and version or model
+      usedBy: Member name
+      task: What it was used for
+      promptSummary: Representative prompt
+      promptLog: null
+      aiContribution: What the tool produced or suggested
+      studentVerification: How the output was edited and checked
+      affectedSections: [Affected file, report section]
+      responsibleMember: Member responsible for final verification
+```
+
+If no AI tool was used, set `noAiUsed: true` and leave `entries` empty. The build rejects `noAiUsed: true` together with listed entries.
+
+## Conventions
+
+- One branch per issue, named `<type>/<short-topic>`.
+- Commit subjects use the same types as issue titles: `feat`, `fix`, `chore`, `refactor`.
+- Reference the issue from the pull request, and close it from the commit that finishes the work with `Closes #N`.
+- A second member reviews changes to shared pipeline code before merging to `main`.
+- Freeze each milestone submission with an annotated tag: `a1-m1-draft`, `a1-final`, and so on.
+- Run `npm run check` in `web/` before opening a pull request.
