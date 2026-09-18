@@ -4,10 +4,14 @@ dist/
 .astro/
 
 __pycache__/
+*.egg-info/
 *.py[cod]
 .ipynb_checkpoints/
 .venv/
 venv/
+
+.env
+!.env.example
 
 checkpoints/
 *.ckpt
