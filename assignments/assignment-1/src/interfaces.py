@@ -81,6 +81,24 @@ class RunSummary(TypedDict):
     hardware: str
 
 
+class EvaluationReport(TypedDict):
+    """Contents of `results/evaluation/<run_id>.json`, one per model in the comparison."""
+
+    run_id: str
+    model: str
+    representation: Representation
+    split: Split
+    accuracy: float
+    macro_f1: float
+    per_class_precision: dict[str, float]
+    per_class_recall: dict[str, float]
+    per_class_f1: dict[str, float]
+    confusion_matrix: list[list[int]]
+    parameters: int
+    training_seconds: float
+    inference_ms_per_image: dict[str, float]
+
+
 def count_parameters(model: nn.Module) -> int:
     """Number of trainable parameters, reported for every model in the comparison."""
     return sum(p.numel() for p in model.parameters() if p.requires_grad)

@@ -29,10 +29,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="config override; repeatable")
     args = parser.parse_args(argv)
 
-    from .utils import load_config, set_seed
+    from .utils import load_config, resolve_path, set_seed
 
     overrides = dict(item.split("=", 1) for item in args.set)
-    config = load_config(args.config, overrides)
+    config = load_config(resolve_path(args.config), overrides)
+    if not config.get("model", {}).get("name"):
+        parser.error(f"{args.config} declares no model.name; pass a model config such as configs/linear.yaml")
     set_seed(config["seed"])
     run_dir = fit(config)
     print(run_dir)

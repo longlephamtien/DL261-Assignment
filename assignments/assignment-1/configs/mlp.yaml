@@ -1,0 +1,6 @@
+model:
+  name: mlp
+  args:
+    hidden_sizes: [512, 256]
+    activation: relu
+    dropout: 0.2

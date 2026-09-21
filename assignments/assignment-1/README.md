@@ -10,18 +10,25 @@ Set up the environment and credentials first, see [assignments](../README.md). T
 # 0. chore: change directory to this assignment path
 cd assignment-1
 
-# 1. data: download Fashion-MNIST and write the shared split
+# 1. data: download Fashion-MNIST, write the shared split, export an example batch
 python -m src.data --config configs/base.yaml
 
-# 2. train: one run directory per invocation
+# 2. train: one model config per invocation
 python -m src.train --config configs/linear.yaml
+python -m src.train --config configs/mlp.yaml
+
+# repeat each model across the seed list to measure run-to-run variance
 python -m src.train --config configs/mlp.yaml --set seed=1
+python -m src.train --config configs/mlp.yaml --set seed=2
+
+# override any key for a single run, dotted and repeatable
+python -m src.train --config configs/mlp.yaml --set train.lr=1e-3 --set model.args.dropout=0.5
 
 # 3. publish the selected run to the Hugging Face Hub
 python -m src.publish results/runs/<run_id>
 ```
 
-Step 1 runs once per split; steps 2 and 3 run per model and seed.
+Step 1 runs once per split; steps 2 and 3 run per model and seed. Each model config carries only its architecture and inherits the split, seed, optimizer, and evaluation protocol from `configs/base.yaml`, which keeps the comparison fair. `configs/cnn.yaml`, `configs/rnn.yaml`, and `configs/transformer.yaml` arrive with those models in Milestone 2.
 
 ## Layout
 
@@ -83,6 +90,8 @@ checkpoint.pt      selected by train.checkpoint_metric
 | Split indices | `splits/<dataset>-seed<seed>.json` | yes |
 | Run directory | `results/runs/<run_id>/` | no |
 | Selected checkpoints | Hugging Face, see [shared](../shared/README.md) | no |
+| Evaluation reports | `results/evaluation/<run_id>.json` | yes |
+| Correct and incorrect predictions | `results/examples/<run_id>/` | yes |
 | Figures and metric tables | `results/figures/`, `results/eda/` | yes |
 
 The split is committed rather than regenerated, because every model must use exactly the same partition and regenerating from a seed would tie it to specific NumPy and PyTorch versions.
