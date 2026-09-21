@@ -18,6 +18,13 @@ from shared import io as shared_io
 
 from .interfaces import describe_hardware, select_device
 
+ASSIGNMENT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str | Path) -> Path:
+    """Resolve a config path against the assignment folder, so the working directory never matters."""
+    return ASSIGNMENT_ROOT / path
+
 
 def load_config(path: Path, overrides: dict[str, str] | None = None) -> dict:
     """Merge `base.yaml` with a per-model file, then apply dotted `key=value` overrides."""
