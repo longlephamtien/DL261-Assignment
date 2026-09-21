@@ -34,8 +34,18 @@ train:
   checkpoint_metric: val_macro_f1
   checkpoint_mode: max
 
+evaluation:
+  metrics: [accuracy, macro_f1]
+  confusion_matrix: true
+  example_predictions: 8
+  output_dir: results/evaluation
+  examples_dir: results/examples
+  inference:
+    batch_sizes: [1, 128]
+    warmup_batches: 5
+    timed_batches: 50
+
 model:
-  name: linear
   args: {}
 
 output_dir: results/runs
