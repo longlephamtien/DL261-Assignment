@@ -2,11 +2,11 @@
 number: 1
 title: Foundations of Deep Learning Pipelines and Architectures
 topic: "From Linear Models to Modern Sequence Models: A Comparative Study for Image Classification."
-status: planned
+status: in-progress
 abstract: Linear baselines, convolutional networks, and sequence models compared on one benchmark with data and evaluation held fixed.
 resources:
   - label: Source code
-    href: null
+    href: https://github.com/longlephamtien/DL261-Assignment
   - label: Checkpoints
     href: null
   - label: Report and slides
@@ -16,7 +16,7 @@ resources:
 references: []
 aiDisclosure:
   noAiUsed: false
-  summary: null
+  summary: AI coding assistants were used to support boilerplate script authoring and verify training pipelines.
   entries: []
 ---
 
@@ -26,11 +26,57 @@ aiDisclosure:
 
 ## Methodology
 
+### Linear Classifier (Baseline)
+
+The simplest baseline maps the flattened input image vector $x \in \mathbb{R}^{784}$ directly to output class logits $z \in \mathbb{R}^{C}$ through a single affine transformation:
+
+$$z = W x + b$$
+
+where $W \in \mathbb{R}^{10 \times 784}$ is the weight matrix and $b \in \mathbb{R}^{10}$ is the bias vector, yielding $7,850$ trainable parameters. Raw logits are passed directly to the Cross-Entropy loss without an explicit Softmax layer.
+
+### Multilayer Perceptron (MLP)
+
+To capture non-linear relationships and interactions among pixels, we implement a fully connected network with two hidden layers:
+
+$$\begin{aligned}
+h_1 &= \text{Dropout}_{0.2}(\text{ReLU}(W_1 x + b_1)) \\
+h_2 &= \text{Dropout}_{0.2}(\text{ReLU}(W_2 h_1 + b_2)) \\
+z &= W_3 h_2 + b_3
+\end{aligned}$$
+
+- **Hidden dimensions:** $784 \to 512 \to 256 \to 10$.
+- **Activation function:** $\text{ReLU}(a) = \max(0, a)$ provides non-saturation and gradient propagation efficiency.
+- **Regularization:** $\text{Dropout}(p=0.2)$ is applied after each hidden layer during training to reduce co-adaptation between units.
+- **Complexity:** The architecture totals $535,818$ trainable parameters.
+
+*(Note: Convolutional, Recurrent, and Transformer architectures will be integrated in Milestone 2).*
+
 ## Experimental setup
+
+All models are trained under a strictly controlled experimental protocol:
+- **Dataset:** Fashion-MNIST (10 classes, $28 \times 28$ grayscale images), using the committed split `splits/fashion-mnist-seed0.json` ($48,000$ train, $6,000$ val, $10,000$ test).
+- **Optimization:** AdamW optimizer with initial learning rate $\eta = 3 \times 10^{-4}$ and weight decay $\lambda = 0.05$.
+- **Scheduler:** Cosine annealing learning rate schedule over $30$ epochs.
+- **Model selection:** Checkpointing based on the highest validation Macro F1 score (`val_macro_f1`) with early stopping patience of $5$ epochs.
+- **Hardware:** Remote training conducted on NVIDIA Tesla T4 GPU via Modal.
 
 ## Results
 
+:::table{label="tab:m1_preliminary_results"}
+| Model Architecture | Parameters | Best Epoch / Total | Training Time | Validation Accuracy | Validation Macro F1 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Linear Classifier** | 7,850 | 22 / 27 (Early stop) | 178s | 77.13% | **76.98%** |
+| **MLP (512-256)** | 535,818 | 30 / 30 | 170s | 88.62% | **88.60%** |
+
+Preliminary comparison of baseline architectures on the Fashion-MNIST validation split for Milestone 1 Draft.
+:::
+
 ## Comparison and discussion
+
+As demonstrated in :ref[tab:m1_preliminary_results], the Multilayer Perceptron dramatically outperforms the linear baseline, achieving an increase of **+11.62% in Macro F1** ($88.60\%$ vs $76.98\%$).
+
+1. **Inductive Bias and Non-linearity:** The linear classifier is constrained to hyperplanar decision boundaries in pixel space $\mathbb{R}^{784}$, which is insufficient for resolving complex intra-class variations in clothing shapes (e.g., distinguishing Pullover vs Coat). The MLP, equipped with hidden layers and ReLU non-linearities, learns hierarchical representations capable of isolating non-linearly separable manifolds.
+2. **Training Dynamics:** The linear model saturates early and triggers early stopping at epoch 27 (best epoch 22), reflecting its limited capacity. In contrast, the MLP exhibits steady convergence across all 30 epochs without overfitting, aided by dropout regularization ($p=0.2$) and weight decay.
 
 ## Error analysis
 
