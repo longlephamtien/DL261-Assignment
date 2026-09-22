@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import platform
+import subprocess
 from typing import Literal, Protocol, TypedDict
 
+import psutil
 import torch
 from torch import Tensor, nn
 
@@ -114,10 +117,34 @@ def select_device() -> torch.device:
 
 
 def describe_hardware() -> str:
-    """One-line device description recorded in every run summary."""
+    """One-line device description recorded in every run summary.
+
+    Training and inference times are only comparable across models when they come from the
+    same machine, so the string names the accelerator, the host processor, and its memory.
+    """
     device = select_device()
+    host = f"{_processor()}, {psutil.cpu_count(logical=False)} cores, {_gigabytes(psutil.virtual_memory().total)} RAM"
     if device.type == "cuda":
-        return f"cuda: {torch.cuda.get_device_name(0)}"
+        properties = torch.cuda.get_device_properties(0)
+        return f"cuda: {properties.name}, {_gigabytes(properties.total_memory)} VRAM; host {host}"
     if device.type == "mps":
-        return "mps: Apple Silicon"
-    return "cpu"
+        return f"mps: {host}"
+    return f"cpu: {host}"
+
+
+def _gigabytes(size: int) -> str:
+    return f"{size / 1024 ** 3:.0f} GB"
+
+
+def _processor() -> str:
+    """Chip name, which `platform.processor()` reports only as the architecture on macOS."""
+    if platform.system() == "Darwin":
+        result = subprocess.run(
+            ["sysctl", "-n", "machdep.cpu.brand_string"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    return platform.processor() or platform.machine()
