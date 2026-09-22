@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from shared import io as shared_io
 
 from .data import build_dataloaders
+from .figures import plot_curves
 from .interfaces import EpochRecord, RunSummary, count_parameters, select_device
 from .models import build_model
 from .utils import create_run_dir, load_config, resolve_path, set_seed
@@ -87,22 +88,17 @@ def _evaluate(
 def fit(config: dict) -> Path:
     """Train one model, write the run directory, and return its path.
 
-    Appends an `EpochRecord` to `history.json` after every epoch, keeps the checkpoint
-    selected by `train.checkpoint_metric`, and writes `summary.json` at the end. The loop
-    contains no model-specific branches. Move the model and every batch to
-    `interfaces.select_device()`; never hardcode `"cuda"` or `"mps"`. Issue #16.
+    Loaders are built before the run directory so the normalization statistics they compute
+    are recorded in `config.yaml`.
     """
     device = select_device()
+    loaders = build_dataloaders(config)
+    model = build_model(config["model"]["name"], **config["model"].get("args", {})).to(device)
+
     output_root = resolve_path(config.get("output_dir", "results/runs"))
     run_dir = create_run_dir(config, output_root)
     env = shared_io.read_json(run_dir / "environment.json")
 
-    #Tải dữ liệu & khởi tạo model
-    loaders = build_dataloaders(config)
-    model = build_model(config["model"]["name"], **config["model"].get("args", {})).to(device)
-
-
-    #Cấu hình hyperparameter
     train_cfg = config.get("train", {})
     epochs = int(train_cfg.get("epochs", 30))
     lr = float(train_cfg.get("lr", 3e-4))
@@ -148,13 +144,13 @@ def fit(config: dict) -> Path:
 
         record: EpochRecord = {
             "epoch": epoch,
-            "train_loss": round(train_loss, 4),
-            "train_accuracy": round(train_acc, 4),
-            "train_macro_f1": round(train_f1, 4),
-            "val_loss": round(val_loss, 4),
-            "val_accuracy": round(val_acc, 4),
-            "val_macro_f1": round(val_f1, 4),
-            "seconds": round(time.time() - epoch_start, 2),
+            "train_loss": train_loss,
+            "train_accuracy": train_acc,
+            "train_macro_f1": train_f1,
+            "val_loss": val_loss,
+            "val_accuracy": val_acc,
+            "val_macro_f1": val_f1,
+            "seconds": time.time() - epoch_start,
             "learning_rate": current_lr,
         }
         history.append(record)
@@ -164,7 +160,7 @@ def fit(config: dict) -> Path:
             f"Epoch {epoch:02d}/{epochs:02d} | "
             f"train loss: {train_loss:.4f} acc: {train_acc:.4f} f1: {train_f1:.4f} | "
             f"val loss: {val_loss:.4f} acc: {val_acc:.4f} f1: {val_f1:.4f} | "
-            f"{record['seconds']}s"
+            f"{record['seconds']:.1f}s"
         )
 
         metric_val = record[checkpoint_metric]
@@ -190,11 +186,12 @@ def fit(config: dict) -> Path:
         "best_epoch": best_epoch,
         "checkpoint_metric": checkpoint_metric,
         "checkpoint_value": float(best_val),
-        "training_seconds": round(time.time() - start_time, 2),
+        "training_seconds": time.time() - start_time,
         "commit": env.get("commit", "unknown"),
         "hardware": env.get("hardware", "unknown"),
     }
     shared_io.write_json(run_dir / "summary.json", summary)
+    plot_curves({summary["model"]: history}, run_dir / "curves")
     return run_dir
 
 
