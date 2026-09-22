@@ -6,7 +6,7 @@ status: in-progress
 abstract: Linear baselines, convolutional networks, and sequence models compared on one benchmark with data and evaluation held fixed.
 resources:
   - label: Source code
-    href: https://github.com/longlephamtien/DL261-Assignment
+    href: https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-1
   - label: Checkpoints
     href: null
   - label: Report and slides
@@ -22,61 +22,142 @@ aiDisclosure:
 
 ## Problem statement
 
+Single-label image classification, one prediction per image. The input is a grayscale image
+$x \in \mathbb{R}^{1 \times 28 \times 28}$, the output is one of ten garment classes. Each model
+returns raw logits $z \in \mathbb{R}^{10}$ and predicts $\hat{y} = \arg\max_i z_i$.
+
+The aim is a controlled comparison of architecture families on one split under one protocol,
+so that differences trace to the architecture rather than to the data. Macro-F1 is the
+primary metric because it weights every class equally.
+
 ## Dataset and EDA
+
+Fashion-MNIST: 70,000 grayscale images of $28 \times 28$ pixels, one channel, `uint8` in
+$[0, 255]$, ten classes. The official 60,000 training images are split once, stratified by
+class, with seed 0. Those indices are fixed and reused by every model; the official test set
+is held out.
+
+:::table{label="tab:splits"}
+| Subset | Images | Per class |
+| :--- | ---: | ---: |
+| Train | 54,000 | 5,400 |
+| Validation | 6,000 | 600 |
+| Test | 10,000 | 1,000 |
+
+Split sizes. The max-to-min per-class ratio is 1.000 in every subset, so the classes are
+balanced and accuracy and macro-F1 are not distorted by class priors.
+:::
+
+Half of all training pixels are exactly zero and the garment is centred, so most of the 784
+flattened features carry no signal. :ref[fig:samples] shows the variation within each class:
+footwear and bags are distinctive, while the upper-body garments share a silhouette.
+
+:::figure{label="fig:samples"}
+![A grid of eight training examples for each of the ten Fashion-MNIST classes, one class per row](/DL261-Assignment/assignments/assignment-1/sample_grid.png)
+
+Eight training examples per class.
+:::
+
+Class overlap is measurable before any training. Cosine similarity between class mean images
+exceeds $0.98$ for Coat/Shirt, Pullover/Coat and Pullover/Shirt. A nearest-class-mean
+classifier on raw pixels reaches $68.4\%$ validation accuracy, with recall $0.220$ for Shirt
+against $0.872$ for Ankle boot: a floor the trained models must clear, and a prediction of
+where they will fail. :ref[fig:overlap] shows both measurements.
+
+:::figure{label="fig:overlap"}
+![Two heatmaps: on the left, cosine similarity between the ten class mean images; on the right, the confusion matrix of a nearest-class-mean classifier on the validation split](/DL261-Assignment/assignments/assignment-1/class_similarity.svg)
+
+Class mean similarity and the nearest-class-mean confusion matrix. Both isolate the same
+upper-body garment cluster.
+:::
+
+The flattened view is highly redundant: ten principal components explain $72.1\%$ of pixel
+variance and one hundred explain $91.4\%$. Pixel correlation falls from $0.747$ at a distance
+of one pixel to $0.159$ at ten and $0.093$ at twenty, the local structure a convolution
+exploits and a flattened view discards.
+
+The same image also supports three sequence views, which the recurrent and Transformer
+models will consume. Rows and columns give 28 timesteps of 28 features; $4 \times 4$ patches
+give 49 tokens of 16. :ref[fig:sequences] shows how unevenly each view spreads its signal.
+
+:::figure{label="fig:sequences"}
+![On the left, standard deviation per timestep for row and column sequences, both rising from the image border towards the centre; on the right, a 7 by 7 heatmap of standard deviation per 4 by 4 patch token](/DL261-Assignment/assignments/assignment-1/sequence_profiles.svg)
+
+Signal per timestep. No row falls below a quarter of peak signal, against one column and
+three patch tokens, so patch tokenisation isolates background into a few weak tokens while
+row and column sequences spread it across every step.
+:::
 
 ## Methodology
 
-### Linear Classifier (Baseline)
+:::figure{label="fig:pipeline"}
+![Pipeline from the dataset through the fixed split and preprocessing to the training loop and a run record](/DL261-Assignment/assignments/assignment-1/pipeline.svg)
 
-The simplest baseline maps the flattened input image vector $x \in \mathbb{R}^{784}$ directly to output class logits $z \in \mathbb{R}^{C}$ through a single affine transformation:
+Overview of the pipeline.
+:::
 
-$$z = W x + b$$
+:ref[fig:pipeline] shows the path from the dataset to a trained checkpoint. Normalization
+statistics are computed on the training split alone and recorded with each run. Augmentation, a random crop with edge padding of 2 pixels followed by a horizontal
+flip, is applied to training data only, so validation stays deterministic.
 
-where $W \in \mathbb{R}^{10 \times 784}$ is the weight matrix and $b \in \mathbb{R}^{10}$ is the bias vector, yielding $7,850$ trainable parameters. Raw logits are passed directly to the Cross-Entropy loss without an explicit Softmax layer.
+**Linear classifier.** The image is flattened and mapped to logits by one affine layer:
 
-### Multilayer Perceptron (MLP)
+$$
+z = W x + b
+$$
 
-To capture non-linear relationships and interactions among pixels, we implement a fully connected network with two hidden layers:
+with $W \in \mathbb{R}^{10 \times 784}$ and $b \in \mathbb{R}^{10}$, $7{,}850$ parameters. The logits go directly to cross-entropy loss; no softmax is applied first.
 
-$$\begin{aligned}
+**Multilayer perceptron.** Two hidden layers, $784 \to 512 \to 256 \to 10$, $535{,}818$ parameters:
+
+$$
+\begin{aligned}
 h_1 &= \text{Dropout}_{0.2}(\text{ReLU}(W_1 x + b_1)) \\
 h_2 &= \text{Dropout}_{0.2}(\text{ReLU}(W_2 h_1 + b_2)) \\
 z &= W_3 h_2 + b_3
-\end{aligned}$$
+\end{aligned}
+$$
 
-- **Hidden dimensions:** $784 \to 512 \to 256 \to 10$.
-- **Activation function:** $\text{ReLU}(a) = \max(0, a)$ provides non-saturation and gradient propagation efficiency.
-- **Regularization:** $\text{Dropout}(p=0.2)$ is applied after each hidden layer during training to reduce co-adaptation between units.
-- **Complexity:** The architecture totals $535,818$ trainable parameters.
-
-*(Note: Convolutional, Recurrent, and Transformer architectures will be integrated in Milestone 2).*
+ReLU does not saturate for positive inputs, which keeps gradients from vanishing across the hidden layers. Dropout at $p = 0.2$ after each hidden layer, with weight decay $0.05$, is the only regularization; both target co-adaptation in a model holding $68$ times the capacity of the linear baseline.
 
 ## Experimental setup
 
-All models are trained under a strictly controlled experimental protocol:
-- **Dataset:** Fashion-MNIST (10 classes, $28 \times 28$ grayscale images), using the committed split `splits/fashion-mnist-seed0.json` ($48,000$ train, $6,000$ val, $10,000$ test).
-- **Optimization:** AdamW optimizer with initial learning rate $\eta = 3 \times 10^{-4}$ and weight decay $\lambda = 0.05$.
-- **Scheduler:** Cosine annealing learning rate schedule over $30$ epochs.
-- **Model selection:** Checkpointing based on the highest validation Macro F1 score (`val_macro_f1`) with early stopping patience of $5$ epochs.
-- **Hardware:** Remote training conducted on NVIDIA Tesla T4 GPU via Modal.
+- **Data:** the split of :ref[tab:splits], seed 0.
+- **Preprocessing:** normalization with training-split statistics, mean $0.2858$, standard deviation $0.3529$.
+- **Optimization:** AdamW, $\eta = 3 \times 10^{-4}$, weight decay $0.05$, batch size 128.
+- **Schedule:** cosine annealing over 30 epochs, early stopping after 5 epochs without improvement.
+- **Checkpoint rule:** highest validation macro-F1. The test split is not evaluated in this milestone.
+- **Hardware:** Apple M4 Pro, 14 cores, 48 GB unified memory, MPS backend.
+- **Software:** Python 3.12.0, PyTorch 2.14.0, torchvision 0.29.0, scikit-learn 1.9.1.
+
+Accuracy and macro-F1 depend only on the seed and the fixed split, so they reproduce anywhere; times do not, so both models were trained back to back on an idle machine.
 
 ## Results
 
-:::table{label="tab:m1_preliminary_results"}
-| Model Architecture | Parameters | Best Epoch / Total | Training Time | Validation Accuracy | Validation Macro F1 |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Linear Classifier** | 7,850 | 22 / 27 (Early stop) | 178s | 77.13% | **76.98%** |
-| **MLP (512-256)** | 535,818 | 30 / 30 | 170s | 88.62% | **88.60%** |
+:::table{label="tab:baselines"}
+| Model | Parameters | Best epoch | Epochs | Total time | Seconds per epoch | Validation accuracy | Validation macro-F1 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Linear | 7,850 | 22 | 27, early stopped | 281s | 10.4 | 77.13% | 76.98% |
+| MLP, 512-256 | 535,818 | 26 | 30 | 339s | 11.3 | 88.62% | 88.59% |
 
-Preliminary comparison of baseline architectures on the Fashion-MNIST validation split for Milestone 1 Draft.
+Validation results.
+:::
+
+:::figure{label="fig:curves"}
+![On the left, cross-entropy loss against epoch; on the right, macro-F1 against epoch; solid lines for training and dashed for validation, for both the linear and MLP models](/DL261-Assignment/assignments/assignment-1/learning_curves.svg)
+
+Learning curves, solid for training and dashed for validation.
 :::
 
 ## Comparison and discussion
 
-As demonstrated in :ref[tab:m1_preliminary_results], the Multilayer Perceptron dramatically outperforms the linear baseline, achieving an increase of **+11.62% in Macro F1** ($88.60\%$ vs $76.98\%$).
+In :ref[tab:baselines] the MLP gains $11.61$ macro-F1 points over the linear baseline, for $68$ times the parameters and $1.09$ times the cost per epoch.
 
-1. **Inductive Bias and Non-linearity:** The linear classifier is constrained to hyperplanar decision boundaries in pixel space $\mathbb{R}^{784}$, which is insufficient for resolving complex intra-class variations in clothing shapes (e.g., distinguishing Pullover vs Coat). The MLP, equipped with hidden layers and ReLU non-linearities, learns hierarchical representations capable of isolating non-linearly separable manifolds.
-2. **Training Dynamics:** The linear model saturates early and triggers early stopping at epoch 27 (best epoch 22), reflecting its limited capacity. In contrast, the MLP exhibits steady convergence across all 30 epochs without overfitting, aided by dropout regularization ($p=0.2$) and weight decay.
+**Capacity is the binding constraint.** The nearest-class-mean floor of $68.4\%$ and the linear model's $76.98\%$ sit closer to each other than either does to the MLP, so the linear model extracts little beyond class-mean templates. Hidden layers are what separate the Shirt, Coat and Pullover cluster.
+
+**Validation scores exceed training scores for both models** in :ref[fig:curves]. This is not leakage: augmentation and dropout are active during training only, so training metrics are measured on a harder version of the task. Neither model overfits, and the MLP is still improving when the epoch budget ends.
+
+**Parameter count is a poor proxy for cost at this scale.** Both models are dominated by data loading rather than by their matrix multiplications, which is why a $68\times$ larger model costs $9\%$ more per epoch. Inference latency will separate the architectures more sharply.
 
 ## Error analysis
 
