@@ -1,0 +1,26 @@
+[
+  {
+    "model": "linear",
+    "parameters": 7850,
+    "best_epoch": 22,
+    "epochs_trained": 27,
+    "training_seconds": 280.5,
+    "seconds_per_epoch": 10.4,
+    "val_accuracy": 0.7713,
+    "val_macro_f1": 0.7698,
+    "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+    "torch_threads": 10
+  },
+  {
+    "model": "mlp",
+    "parameters": 535818,
+    "best_epoch": 26,
+    "epochs_trained": 30,
+    "training_seconds": 338.6,
+    "seconds_per_epoch": 11.3,
+    "val_accuracy": 0.8862,
+    "val_macro_f1": 0.8859,
+    "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+    "torch_threads": 10
+  }
+]
