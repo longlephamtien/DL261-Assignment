@@ -1,6 +1,8 @@
+"""Multilayer perceptron: the same flattened input as the linear model, plus hidden layers."""
+
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import torch
 from torch import Tensor, nn
@@ -16,6 +18,8 @@ ACTIVATIONS: dict[str, type[nn.Module]] = {
 
 
 class MLPClassifier(nn.Module):
+    """Depth, width, activation, and dropout all come from configuration."""
+
     def __init__(
         self,
         in_features: int = 784,
@@ -25,26 +29,24 @@ class MLPClassifier(nn.Module):
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
-        act_cls = ACTIVATIONS.get(activation.lower())
-        if act_cls is None:
-            raise ValueError(f"unsupported activation: {activation}")
+        if not hidden_sizes:
+            raise ValueError("an MLP needs at least one hidden layer")
+        if activation.lower() not in ACTIVATIONS:
+            raise ValueError(f"unsupported activation '{activation}'; expected one of {', '.join(ACTIVATIONS)}")
 
+        build_activation = ACTIVATIONS[activation.lower()]
         layers: list[nn.Module] = []
-        prev_dim = in_features
-        for hidden_dim in hidden_sizes:
-            layers.append(nn.Linear(prev_dim, hidden_dim))
-            layers.append(act_cls())
+        width = in_features
+        for hidden in hidden_sizes:
+            layers += [nn.Linear(width, hidden), build_activation()]
             if dropout > 0.0:
                 layers.append(nn.Dropout(dropout))
-            prev_dim = hidden_dim
-
-        layers.append(nn.Linear(prev_dim, num_classes))
+            width = hidden
+        layers.append(nn.Linear(width, num_classes))
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: Tensor) -> Tensor:
-        if x.ndim > 2:
-            x = torch.flatten(x, 1)
-        return self.net(x)
+        return self.net(torch.flatten(x, 1))
 
 
 @register("mlp")
@@ -54,7 +56,6 @@ def build_mlp(
     num_classes: int = 10,
     activation: str = "relu",
     dropout: float = 0.0,
-    **kwargs,
 ) -> nn.Module:
     return MLPClassifier(
         in_features=in_features,
