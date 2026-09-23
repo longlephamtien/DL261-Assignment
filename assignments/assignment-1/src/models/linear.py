@@ -16,7 +16,9 @@ class LinearClassifier(nn.Module):
         self.fc = nn.Linear(in_features, num_classes)
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.fc(torch.flatten(x, 1))
+        if x.ndim > 2:
+            x = torch.flatten(x, 1)
+        return self.fc(x)
 
 
 @register("linear")

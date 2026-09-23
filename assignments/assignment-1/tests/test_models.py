@@ -42,6 +42,14 @@ def test_mlp_parameter_count() -> None:
 
 
 @pytest.mark.parametrize("name", ["linear", "mlp"])
+@pytest.mark.parametrize("shape", [(BATCH, *IMAGE_SHAPE), (BATCH, 784), (784,)])
+def test_accepts_image_flat_and_unbatched_input(name: str, shape: tuple[int, ...]) -> None:
+    """An unbatched sample keeps its rank, so the flatten stays guarded by `ndim`."""
+    logits = build_model(name)(torch.randn(*shape))
+    assert logits.shape == ((NUM_CLASSES,) if len(shape) == 1 else (BATCH, NUM_CLASSES))
+
+
+@pytest.mark.parametrize("name", ["linear", "mlp"])
 def test_config_builds(name: str, images: torch.Tensor) -> None:
     config = load_config(resolve_path(f"configs/{name}.yaml"))
     model = build_model(config["model"]["name"], **config["model"].get("args", {}))

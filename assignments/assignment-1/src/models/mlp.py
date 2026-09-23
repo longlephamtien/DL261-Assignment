@@ -46,7 +46,9 @@ class MLPClassifier(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.net(torch.flatten(x, 1))
+        if x.ndim > 2:
+            x = torch.flatten(x, 1)
+        return self.net(x)
 
 
 @register("mlp")
