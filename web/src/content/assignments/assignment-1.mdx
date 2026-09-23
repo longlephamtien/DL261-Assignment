@@ -96,19 +96,21 @@ row and column sequences spread it across every step.
 Overview of the pipeline.
 :::
 
-:ref[fig:pipeline] shows the path from the dataset to a trained checkpoint. Normalization
-statistics are computed on the training split alone and recorded with each run. Augmentation, a random crop with edge padding of 2 pixels followed by a horizontal
-flip, is applied to training data only, so validation stays deterministic.
+:ref[fig:pipeline] shows the path from the dataset to a trained checkpoint. Normalization statistics are computed on the training split alone and recorded with each run. Augmentation, a random crop with edge padding of 2 pixels followed by a horizontal flip, is applied to training data only, so validation stays deterministic.
 
-**Linear classifier.** The image is flattened and mapped to logits by one affine layer:
+### Linear Classifier (Baseline)
+
+The simplest baseline maps the flattened input image vector $x \in \mathbb{R}^{784}$ directly to output class logits $z \in \mathbb{R}^{C}$ through a single affine transformation:
 
 $$
 z = W x + b
 $$
 
-with $W \in \mathbb{R}^{10 \times 784}$ and $b \in \mathbb{R}^{10}$, $7{,}850$ parameters. The logits go directly to cross-entropy loss; no softmax is applied first.
+where $W \in \mathbb{R}^{10 \times 784}$ is the weight matrix and $b \in \mathbb{R}^{10}$ is the bias vector, yielding $7,850$ trainable parameters. Raw logits are passed directly to the Cross-Entropy loss without an explicit Softmax layer.
 
-**Multilayer perceptron.** Two hidden layers, $784 \to 512 \to 256 \to 10$, $535{,}818$ parameters:
+### Multilayer Perceptron (MLP)
+
+To capture non-linear relationships and interactions among pixels, we implement a fully connected network with two hidden layers:
 
 $$
 \begin{aligned}
@@ -118,29 +120,35 @@ z &= W_3 h_2 + b_3
 \end{aligned}
 $$
 
-ReLU does not saturate for positive inputs, which keeps gradients from vanishing across the hidden layers. Dropout at $p = 0.2$ after each hidden layer, with weight decay $0.05$, is the only regularization; both target co-adaptation in a model holding $68$ times the capacity of the linear baseline.
+- **Hidden dimensions:** $784 \to 512 \to 256 \to 10$.
+- **Activation function:** $\text{ReLU}(a) = \max(0, a)$ provides non-saturation and gradient propagation efficiency.
+- **Regularization:** $\text{Dropout}(p=0.2)$ is applied after each hidden layer during training to reduce co-adaptation between units.
+- **Complexity:** The architecture totals $535,818$ trainable parameters.
+
+*(Note: Convolutional, Recurrent, and Transformer architectures will be integrated in Milestone 2).*
 
 ## Experimental setup
 
-- **Data:** the split of :ref[tab:splits], seed 0.
-- **Preprocessing:** normalization with training-split statistics, mean $0.2858$, standard deviation $0.3529$.
-- **Optimization:** AdamW, $\eta = 3 \times 10^{-4}$, weight decay $0.05$, batch size 128.
-- **Schedule:** cosine annealing over 30 epochs, early stopping after 5 epochs without improvement.
-- **Checkpoint rule:** highest validation macro-F1. The test split is not evaluated in this milestone.
+All models are trained under a strictly controlled experimental protocol:
+- **Dataset:** Fashion-MNIST (10 classes, $28 \times 28$ grayscale images), using the committed split of :ref[tab:splits] ($54,000$ train, $6,000$ val, $10,000$ test) with seed $0$.
+- **Preprocessing:** Normalization with training-split statistics, mean $0.2858$ and standard deviation $0.3529$; random crop and horizontal flip on the training loader only.
+- **Optimization:** AdamW optimizer with initial learning rate $\eta = 3 \times 10^{-4}$, weight decay $\lambda = 0.05$, and batch size $128$.
+- **Scheduler:** Cosine annealing learning rate schedule over $30$ epochs.
+- **Model selection:** Checkpointing based on the highest validation Macro F1 score (`val_macro_f1`) with early stopping patience of $5$ epochs. The test split is not evaluated in this milestone.
 - **Hardware:** Apple M4 Pro, 14 cores, 48 GB unified memory, MPS backend.
 - **Software:** Python 3.12.0, PyTorch 2.14.0, torchvision 0.29.0, scikit-learn 1.9.1.
 
-Accuracy and macro-F1 depend only on the seed and the fixed split, so they reproduce anywhere; times do not, so both models were trained back to back on an idle machine.
+Accuracy and Macro F1 depend only on the seed and the fixed split, so they reproduce anywhere; times do not, so both models were trained back to back on an idle machine.
 
 ## Results
 
-:::table{label="tab:baselines"}
-| Model | Parameters | Best epoch | Epochs | Total time | Seconds per epoch | Validation accuracy | Validation macro-F1 |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Linear | 7,850 | 22 | 27, early stopped | 281s | 10.4 | 77.13% | 76.98% |
-| MLP, 512-256 | 535,818 | 26 | 30 | 339s | 11.3 | 88.62% | 88.59% |
+:::table{label="tab:m1_preliminary_results"}
+| Model Architecture | Parameters | Best Epoch / Total | Training Time | Validation Accuracy | Validation Macro F1 |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Linear Classifier** | 7,850 | 22 / 27 (Early stop) | 281s (10.4 s/epoch) | 77.13% | **76.98%** |
+| **MLP (512-256)** | 535,818 | 26 / 30 | 339s (11.3 s/epoch) | 88.62% | **88.59%** |
 
-Validation results.
+Preliminary comparison of baseline architectures on the Fashion-MNIST validation split for Milestone 1 Draft.
 :::
 
 :::figure{label="fig:curves"}
@@ -151,13 +159,12 @@ Learning curves, solid for training and dashed for validation.
 
 ## Comparison and discussion
 
-In :ref[tab:baselines] the MLP gains $11.61$ macro-F1 points over the linear baseline, for $68$ times the parameters and $1.09$ times the cost per epoch.
+As demonstrated in :ref[tab:m1_preliminary_results], the Multilayer Perceptron outperforms the linear baseline, achieving an increase of **+11.61% in Macro F1** ($88.59\%$ vs $76.98\%$) for $68$ times the parameters and $1.09$ times the cost per epoch.
 
-**Capacity is the binding constraint.** The nearest-class-mean floor of $68.4\%$ and the linear model's $76.98\%$ sit closer to each other than either does to the MLP, so the linear model extracts little beyond class-mean templates. Hidden layers are what separate the Shirt, Coat and Pullover cluster.
-
-**Validation scores exceed training scores for both models** in :ref[fig:curves]. This is not leakage: augmentation and dropout are active during training only, so training metrics are measured on a harder version of the task. Neither model overfits, and the MLP is still improving when the epoch budget ends.
-
-**Parameter count is a poor proxy for cost at this scale.** Both models are dominated by data loading rather than by their matrix multiplications, which is why a $68\times$ larger model costs $9\%$ more per epoch. Inference latency will separate the architectures more sharply.
+1. **Inductive Bias and Non-linearity:** The linear classifier is constrained to hyperplanar decision boundaries in pixel space $\mathbb{R}^{784}$, which is insufficient for resolving complex intra-class variations in clothing shapes (e.g., distinguishing Pullover vs Coat). The MLP, equipped with hidden layers and ReLU non-linearities, learns hierarchical representations capable of isolating non-linearly separable manifolds. The nearest-class-mean floor of $68.4\%$ and the linear model's $76.98\%$ sit closer to each other than either does to the MLP, so the linear model extracts little beyond class-mean templates.
+2. **Training Dynamics:** The linear model saturates early and triggers early stopping at epoch 27 (best epoch 22), reflecting its limited capacity. In contrast, the MLP exhibits steady convergence across all 30 epochs without overfitting, aided by dropout regularization ($p=0.2$) and weight decay.
+3. **Validation above Training:** In :ref[fig:curves] the validation scores exceed the training scores for both models. This is not leakage: augmentation and dropout are active during training only, so the training metrics are measured on a harder version of the task.
+4. **Cost:** Parameter count is a poor proxy for cost at this scale, since both models are dominated by data loading rather than by their matrix multiplications. Inference latency will separate the architectures more sharply.
 
 ## Error analysis
 
