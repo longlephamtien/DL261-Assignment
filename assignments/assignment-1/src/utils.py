@@ -110,6 +110,7 @@ def _environment() -> dict:
         "numpy": np.__version__,
         "scikit_learn": sklearn.__version__,
         "hardware": describe_hardware(),
+        "torch_threads": torch.get_num_threads(),
     }
 
 

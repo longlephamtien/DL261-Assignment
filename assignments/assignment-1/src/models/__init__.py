@@ -41,3 +41,6 @@ def build_model(name: str, **kwargs) -> nn.Module:
 
 def list_models() -> list[str]:
     return sorted(_REGISTRY)
+
+
+from . import linear, mlp  # noqa: E402, F401  imported for their registration side effect

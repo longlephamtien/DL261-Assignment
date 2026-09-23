@@ -24,11 +24,20 @@ python -m src.train --config configs/mlp.yaml --set seed=2
 # override any key for a single run, dotted and repeatable
 python -m src.train --config configs/mlp.yaml --set train.lr=1e-3 --set model.args.dropout=0.5
 
-# 3. publish the selected run to the Hugging Face Hub
+# 3. figures: compare finished runs; each run already holds its own curves
+python -m src.figures results/runs/<linear_run> results/runs/<mlp_run>
+
+# 4. publish the selected run to the Hugging Face Hub
 python -m src.publish results/runs/<run_id>
 ```
 
-Step 1 runs once per split; steps 2 and 3 run per model and seed. Each model config carries only its architecture and inherits the split, seed, optimizer, and evaluation protocol from `configs/base.yaml`, which keeps the comparison fair. `configs/cnn.yaml`, `configs/rnn.yaml`, and `configs/transformer.yaml` arrive with those models in Milestone 2.
+Tests cover the model contract and run in a second:
+
+```sh
+python -m pytest tests/ -q
+```
+
+Step 1 runs once per split; steps 2 and 4 run per model and seed, step 3 runs once per comparison.
 
 ## Layout
 
@@ -36,12 +45,14 @@ Step 1 runs once per split; steps 2 and 3 run per model and seed. Each model con
 configs/      base.yaml plus one file per model
 notebooks/    exploratory data analysis
 splits/       committed split indices
+tests/        model contract tests
 results/      runs/ (ignored), figures/, eda/
 src/
   interfaces.py   shared types, constants, and schemas
   data.py         split, Dataset, DataLoader, sequence adapters
   models/         registry; one module per architecture
   train.py        training entry point
+  figures.py      learning curves and the comparison table
   publish.py      upload a run to the Hub
   utils.py        configuration, seeding, run tracking
 ```
@@ -76,10 +87,11 @@ Every model returns **raw logits** `(N, 10)`. Never apply softmax; `CrossEntropy
 
 ```
 config.yaml        resolved configuration
-environment.json   commit hash, library versions, hardware
+environment.json   commit hash, library versions, hardware, thread count
 history.json       one EpochRecord per epoch
 summary.json       RunSummary, written once
 checkpoint.pt      selected by train.checkpoint_metric
+curves.png         loss and macro-F1
 ```
 
 ## Artifacts
