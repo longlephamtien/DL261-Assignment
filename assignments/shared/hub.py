@@ -8,15 +8,6 @@ selected runs are uploaded to one Hub repository that holds all three assignment
       assignment-2/runs/<run_id>/...
       assignment-3/runs/<run_id>/...
 
-A run is uploaded with its configuration, environment record, and history, so reported
-numbers stay traceable to the exact weights and to how they were produced. Upload returns
-the commit revision, which the report and the assignment page cite.
-
-Text files (config, environment, history, summary) are read and written through
-`shared.io`, so a run produced on macOS or Linux and one produced on Windows are byte-
-identical. `checkpoint.pt` is binary and read with `Path.open("rb")` directly.
-
-Implemented by #39.
 """
 
 from __future__ import annotations
@@ -24,11 +15,14 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
-from . import env
+from huggingface_hub import HfApi, hf_hub_download
+
+from . import env, io as shared_io
 
 ASSIGNMENTS = ("assignment-1", "assignment-2", "assignment-3")
 
 CHECKPOINT_NAME = "checkpoint.pt"
+CHECKSUM_NAME = "checksums.json"
 RUN_FILES = (CHECKPOINT_NAME, "config.yaml", "environment.json", "history.json", "summary.json")
 
 
@@ -53,19 +47,45 @@ def checksums(run_dir: Path) -> dict[str, str]:
     return {name: sha256(run_dir / name) for name in RUN_FILES if (run_dir / name).is_file()}
 
 
-def upload_run(run_dir: Path, assignment: str, repo_id: str | None = None, private: bool = False) -> str:
-    """Upload one run directory and return the commit revision to cite. Issue #39."""
+def upload_run(
+    run_dir: Path,
+    assignment: str,
+    repo_id: str | None = None,
+    private: bool = False,
+    message: str | None = None,
+) -> str:
+    """Upload one run directory with its checksums and return the commit revision to cite."""
+    run_dir = Path(run_dir)
+    missing = [name for name in RUN_FILES if not (run_dir / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"{run_dir} is missing {', '.join(missing)}")
+
     env.load(run_dir)
     repo_id = env.repo_id(repo_id)
-    raise NotImplementedError("issue #39")
+    token = env.token()
+    api = HfApi(token=token)
+
+    api.create_repo(repo_id, repo_type="model", private=private, exist_ok=True)
+
+    shared_io.write_json(run_dir / CHECKSUM_NAME, checksums(run_dir))
+    commit = api.upload_folder(
+        repo_id=repo_id,
+        folder_path=str(run_dir),
+        path_in_repo=run_path(assignment, run_dir.name),
+        allow_patterns=[*RUN_FILES, CHECKSUM_NAME],
+        commit_message=message or f"Add {assignment} run {run_dir.name}",
+    )
+    return commit.oid
 
 
 def download_checkpoint(assignment: str, run_id: str, repo_id: str | None = None, revision: str = "main") -> Path:
-    """Fetch one checkpoint into the local cache and return its path.
-
-    Load it with `torch.load(path, map_location=interfaces.select_device())`, since a
-    checkpoint saved on CUDA fails to load on a machine without CUDA otherwise. Issue #39.
-    """
+    """Fetch one checkpoint into the local cache and return its path."""
     env.load()
-    repo_id = env.repo_id(repo_id)
-    raise NotImplementedError("issue #39")
+    return Path(
+        hf_hub_download(
+            repo_id=env.repo_id(repo_id),
+            filename=f"{run_path(assignment, run_id)}/{CHECKPOINT_NAME}",
+            revision=revision,
+            token=env.token(),
+        )
+    )

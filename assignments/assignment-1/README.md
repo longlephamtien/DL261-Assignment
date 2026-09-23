@@ -27,8 +27,8 @@ python -m src.train --config configs/mlp.yaml --set train.lr=1e-3 --set model.ar
 # 3. figures: compare finished runs; each run already holds its own curves
 python -m src.figures results/runs/<linear_run> results/runs/<mlp_run>
 
-# 4. publish the selected run to the Hugging Face Hub
-python -m src.publish results/runs/<run_id>
+# 4. publish the selected run to the Hugging Face Hub, see ../shared/README.md
+python -m src.publish results/runs/<run_id> --message "Selected MLP baseline for the M1 draft"
 ```
 
 Tests cover the model contract and run in a second:
