@@ -40,8 +40,52 @@ export const group: Group = {
 
 export const courseAiDisclosure: AiDisclosure = {
   noAiUsed: false,
-  summary: null,
-  entries: [],
+  summary:
+    "This only disclouses shared site. Assignment-specific use is disclosed on each assignment page.",
+  entries: [
+    {
+      tool: "Claude Opus 5",
+      usedBy: "Lê Phạm Tiến Long",
+      task: "Choosing a framework for the GitHub Pages landing page",
+      promptSummary:
+        "Asked which static site framework suits a GitHub Pages course site hosting one landing page and three assignment pages.",
+      promptLog: null,
+      aiContribution:
+        "Compared the candidates and recommended Astro with Tailwind, with content collections for the assignment pages.",
+      studentVerification:
+        "Built the site locally, deployed it to GitHub Pages, and confirmed the output is fully static.",
+      affectedSections: ["Site framework", "Deployment workflow"],
+      responsibleMember: "Lê Phạm Tiến Long",
+    },
+    {
+      tool: "Claude Opus 5",
+      usedBy: "Lê Phạm Tiến Long",
+      task: "Rendering LaTeX formulas in the page UI",
+      promptSummary:
+        "Asked whether a tool exists to convert LaTeX formulas into the page UI, and how the mapping works.",
+      promptLog: null,
+      aiContribution:
+        "Recommended remark-math with rehype-katex so formulas render at build time, and explained how inline and display delimiters map to the output.",
+      studentVerification:
+        "Wrote formulas into an assignment page and inspected the built HTML to confirm KaTeX markup is produced and no JavaScript is shipped for it.",
+      affectedSections: ["Markdown pipeline", "Assignment pages"],
+      responsibleMember: "Lê Phạm Tiến Long",
+    },
+    {
+      tool: "Claude Opus 5",
+      usedBy: "Lê Phạm Tiến Long",
+      task: "Debugging cross-references from MDX to the rendered page",
+      promptSummary:
+        "Asked why figure and table labels written in MDX did not resolve to the right numbers and links in the UI.",
+      promptLog: null,
+      aiContribution:
+        "Traced the problem to the directive parsing stage and drafted the plugins that number the floats and resolve each reference to its target.",
+      studentVerification:
+        "Built the site and checked in the generated HTML that every label renders as a numbered float and every reference points at an existing one.",
+      affectedSections: ["Markdown pipeline", "Assignment pages"],
+      responsibleMember: "Lê Phạm Tiến Long",
+    },
+  ],
 };
 
 export const site = {
