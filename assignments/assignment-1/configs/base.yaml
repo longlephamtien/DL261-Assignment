@@ -39,7 +39,6 @@ evaluation:
   confusion_matrix: true
   example_predictions: 8
   output_dir: results/evaluation
-  examples_dir: results/examples
   inference:
     batch_sizes: [1, 128]
     warmup_batches: 5

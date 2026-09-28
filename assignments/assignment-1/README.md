@@ -24,20 +24,27 @@ python -m src.train --config configs/mlp.yaml --set seed=2
 # override any key for a single run, dotted and repeatable
 python -m src.train --config configs/mlp.yaml --set train.lr=1e-3 --set model.args.dropout=0.5
 
-# 3. figures: compare finished runs; each run already holds its own curves
-python -m src.figures results/runs/<linear_run> results/runs/<mlp_run>
+# 3. evaluate: metrics, latency, and prediction examples for one run
+python -m src.evaluate <run_id>
+python -m src.evaluate <run_id> --split test                # once the run is selected
 
-# 4. publish the selected run to the Hugging Face Hub, see ../shared/README.md
-python -m src.publish results/runs/<run_id> --message "Selected MLP baseline for the M1 draft"
+# 4. figures: compare evaluated runs; each run already holds its own curves
+python -m src.figures <run_id> <other_run_id>
+python -m src.figures results/runs/*-seed0-* --name architectures
+python -m src.figures <run_id> --split test                 # after model selection
+
+# 5. publish: upload the run with every report and example it has
+python -m src.publish <run_id> --dry-run                    # list the files, upload nothing
+python -m src.publish <run_id> --message "Selected MLP baseline for the M1 draft"
 ```
 
-Tests cover the model contract and run in a second:
+Tests cover the model, evaluation, and comparison contracts, and run in a few seconds:
 
 ```sh
 python -m pytest tests/ -q
 ```
 
-Step 1 runs once per split; steps 2 and 4 run per model and seed, step 3 runs once per comparison.
+Step 1 runs once per split; steps 2, 3 and 5 run per model and seed; step 4 runs once per comparison. Steps 4 and 5 read the reports written by step 3, so a run is always evaluated before it is compared or published.
 
 ## Layout
 
@@ -46,16 +53,17 @@ EXPERIMENTS.md  the experiment plan and fairness protocol
 configs/      base.yaml plus one file per model
 notebooks/    exploratory data analysis
 splits/       committed split indices
-tests/        model contract tests
-results/      runs/ (ignored), figures/, eda/
+tests/        tests for the models, the evaluation, and the comparison
+results/      figures/, eda/; runs/ and evaluation/ are ignored
 src/
   interfaces.py   shared types, constants, and schemas
   data.py         split, Dataset, DataLoader, sequence adapters
   models/         registry; one module per architecture
   train.py        training entry point
+  evaluate.py     metrics, latency, and prediction examples
   figures.py      learning curves and the comparison table
   publish.py      upload a run to the Hub
-  utils.py        configuration, seeding, run tracking
+  utils.py        configuration, seeding, run tracking, result paths
 ```
 
 ## Interfaces
@@ -102,10 +110,9 @@ curves.png         loss and macro-F1
 | Fashion-MNIST download | `data/` | no, public and re-downloadable |
 | Split indices | `splits/<dataset>-seed<seed>.json` | yes |
 | Run directory | `results/runs/<run_id>/` | no |
-| Selected checkpoints | Hugging Face, see [shared](../shared/README.md) | no |
-| Evaluation reports | `results/evaluation/<run_id>.json` | yes |
-| Correct and incorrect predictions | `results/examples/<run_id>/` | yes |
-| Figures and metric tables | `results/figures/`, `results/eda/` | yes |
+| Reports and prediction examples | `results/evaluation/<run_id>/<split>/` | no |
+| Published runs, reports and examples | Hugging Face, see [shared](../shared/README.md) | no |
+| Figures and metric tables | `results/figures/<comparison>/`, `results/eda/` | yes |
 
 The split is committed rather than regenerated, because every model must use exactly the same partition and regenerating from a seed would tie it to specific NumPy and PyTorch versions.
 
