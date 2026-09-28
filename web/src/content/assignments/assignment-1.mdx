@@ -16,7 +16,7 @@ resources:
 references: []
 aiDisclosure:
   noAiUsed: false
-  summary: "Claude and Gemini were used to decide what the exploratory analysis should cover, to design and scaffold the MLP, to review the training code, and to write the model tests."
+  summary: "Claude and Gemini were used to decide what the exploratory analysis should cover, to design and scaffold the MLP, to review the training code, to write the model tests, and to draft the experiment plan."
   entries:
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
@@ -84,6 +84,17 @@ aiDisclosure:
       affectedSections:
         - src/
       responsibleMember: Hồ Minh Nhật
+    - tool: Claude Opus 5
+      usedBy: Lê Phạm Tiến Long
+      task: Drafting the experiment plan and fairness protocol
+      promptSummary: "Asked for an experiment plan fixing the shared protocol, the seed count, the tuning budget, and a quantitative rule for deciding when one model is better."
+      promptLog: null
+      aiContribution: "Drafted the plan, proposed the non-overlap rule on mean plus or minus one standard deviation across seeds, and pointed out that the handbook requires this content in the report rather than as a repository file."
+      studentVerification: "Checked every protocol value against the base configuration and the committed split, confirmed the per-epoch timings against the recorded runs, and confirmed each experiment maps to an existing backlog issue."
+      affectedSections:
+        - EXPERIMENTS.md
+        - Experimental setup
+      responsibleMember: Lê Phạm Tiến Long
 ---
 
 ## Problem statement
