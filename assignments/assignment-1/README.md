@@ -16,6 +16,7 @@ python -m src.data --config configs/base.yaml
 # 2. train: one model config per invocation
 python -m src.train --config configs/linear.yaml
 python -m src.train --config configs/mlp.yaml
+python -m src.train --config configs/transformer.yaml
 
 # repeat each model across the seed list to measure run-to-run variance
 python -m src.train --config configs/mlp.yaml --set seed=1
@@ -82,6 +83,8 @@ Every model returns **raw logits** `(N, 10)`. Never apply softmax; `CrossEntropy
 | --- | --- |
 | `rows`, `columns` | `(N, 28, 28)` |
 | `patches` | `(N, (28 / patch_size) ** 2, patch_size ** 2)` |
+
+A sequence model receives the same image batch as every other model and calls `to_sequence` itself, so the trainer stays free of model-specific branches. The representation and patch size live in the model's own config under `model.args`, and `configs/<model>.yaml` repeats them under `input` so each run records which representation produced it.
 
 **Run directory.** One per run, under `results/runs/<run_id>/`.
 
