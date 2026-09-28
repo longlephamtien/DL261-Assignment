@@ -76,13 +76,14 @@ def normalization_stats(data_dir: Path, split: SplitFile) -> tuple[float, float]
 
 
 def build_dataloaders(config: dict) -> dict[str, DataLoader]:
-    """Loaders for 'train', 'val', and 'test'; stores train-split stats in `dataset.normalization`."""
+    """Loaders for 'train', 'val', and 'test'; normalization already in the config is reused."""
     dataset = config["dataset"]
     loader = config["loader"]
     data_dir = resolve_path(dataset["root"])
     split = load_split(resolve_path(dataset["split_file"]))
 
-    mean, std = normalization_stats(data_dir, split)
+    recorded = dataset.get("normalization")
+    mean, std = (recorded["mean"], recorded["std"]) if recorded else normalization_stats(data_dir, split)
     dataset["normalization"] = {"mean": mean, "std": std}
 
     normalize = [transforms.ToTensor(), transforms.Normalize((mean,), (std,))]
