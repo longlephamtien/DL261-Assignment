@@ -43,6 +43,7 @@ Step 1 runs once per split; steps 2 and 4 run per model and seed, step 3 runs on
 ## Layout
 
 ```
+EXPERIMENTS.md  the experiment plan and fairness protocol
 configs/      base.yaml plus one file per model
 notebooks/    exploratory data analysis
 splits/       committed split indices
@@ -115,4 +116,6 @@ The split is committed rather than regenerated, because every model must use exa
 
 ## Protocol
 
-Fixed across all five models: one split file, one seed list, identical preprocessing and augmentation, and the same checkpoint rule, by default best `val_macro_f1`. The test split is evaluated once, after all model selection is finished.
+All five models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_macro_f1`. The test split is evaluated once, after model selection concludes.
+
+[EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the seed count and tuning budget, what each experiment varies, and the rule that decides when one model counts as better than another.
