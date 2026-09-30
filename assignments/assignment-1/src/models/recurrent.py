@@ -3,9 +3,11 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 
-from ..data import to_sequence
+from ..data import to_sequence, token_shape
 from ..interfaces import NUM_CLASSES, Representation
 from . import register
+
+CELLS: dict[str, type[nn.RNNBase]] = {"gru": nn.GRU, "lstm": nn.LSTM}
 
 
 class RecurrentClassifier(nn.Module):
@@ -21,6 +23,9 @@ class RecurrentClassifier(nn.Module):
         num_classes: int = NUM_CLASSES,
     ) -> None:
         super().__init__()
+        if cell_type.lower() not in CELLS:
+            raise ValueError(f"unsupported cell_type '{cell_type}'; expected one of {', '.join(CELLS)}")
+
         self.cell_type = cell_type.lower()
         self.representation = representation
         self.patch_size = patch_size
@@ -28,19 +33,9 @@ class RecurrentClassifier(nn.Module):
         self.num_layers = num_layers
         self.bidirectional = bidirectional
 
-        if representation in ("rows", "columns"):
-            self.input_size = 28
-            self.sequence_length = 28
-        elif representation == "patches":
-            if 28 % patch_size != 0:
-                raise ValueError(f"28x28 image not divisible by patch_size {patch_size}")
-            self.input_size = patch_size * patch_size
-            self.sequence_length = (28 // patch_size) ** 2
-        else:
-            raise ValueError(f"Unsupported representation: '{representation}'")
+        self.sequence_length, self.input_size = token_shape(representation, patch_size)
 
-        rnn_cls = nn.LSTM if self.cell_type == "lstm" else nn.GRU
-        self.rnn = rnn_cls(
+        self.rnn = CELLS[self.cell_type](
             input_size=self.input_size,
             hidden_size=hidden_size,
             num_layers=num_layers,

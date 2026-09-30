@@ -111,6 +111,12 @@ def test_recurrent_output_shape(cell_type: str, representation: str, images: tor
     assert logits.dtype == torch.float32
 
 
+def test_recurrent_rejects_unknown_cell_type() -> None:
+    """A silent fallback would make the GRU-versus-LSTM experiment compare GRU with itself."""
+    with pytest.raises(ValueError, match="unsupported cell_type"):
+        build_model("recurrent", cell_type="gruu")
+
+
 @pytest.mark.parametrize("cell_type", ["lstm", "gru"])
 def test_recurrent_parameter_count(cell_type: str) -> None:
     model = build_model("recurrent", cell_type=cell_type, representation="rows", hidden_size=128)
