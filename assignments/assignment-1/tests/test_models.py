@@ -7,7 +7,7 @@ import torch
 
 from src.interfaces import IMAGE_SHAPE, NUM_CLASSES, count_parameters
 from src.models import build_model, list_models
-from src.models.transformer import token_shape
+from src.data import token_shape
 from src.utils import load_config, resolve_path
 
 BATCH = 4
@@ -167,11 +167,20 @@ def test_transformer_requires_batched_images() -> None:
         build_model("transformer")(torch.randn(784))
 
 
-def test_transformer_config_agrees_with_the_input_block() -> None:
-    config = load_config(resolve_path("configs/transformer.yaml"))
+@pytest.mark.parametrize("model", ["transformer", "recurrent"])
+def test_sequence_config_agrees_with_the_input_block(model: str) -> None:
+    """`input` labels the run and `model.args` drives the forward pass; a mismatch misreports it."""
+    config = load_config(resolve_path(f"configs/{model}.yaml"))
     args = config["model"]["args"]
     assert args["representation"] == config["input"]["representation"]
     assert args["patch_size"] == config["input"]["patch_size"]
+
+
+@pytest.mark.parametrize("model", ["linear", "mlp", "transformer", "recurrent"])
+def test_config_leaves_the_shared_training_protocol_alone(model: str) -> None:
+    """Every model trains under one protocol; tuning varies `model.args` only."""
+    base = load_config(resolve_path("configs/base.yaml"))["train"]
+    assert load_config(resolve_path(f"configs/{model}.yaml"))["train"] == base
 
 
 def available_devices() -> list[torch.device]:

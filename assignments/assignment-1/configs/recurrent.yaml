@@ -10,8 +10,3 @@ model:
 
 input:
   representation: rows
-
-train:
-  epochs: 15
-  lr: 0.001
-  optimizer: adamw
