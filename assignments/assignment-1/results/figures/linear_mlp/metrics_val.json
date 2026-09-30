@@ -1,0 +1,67 @@
+{
+  "split": "val",
+  "runs": [
+    {
+      "run_id": "linear-seed0-20260922-215714",
+      "model": "linear",
+      "representation": "image",
+      "seed": 0,
+      "parameters": 7850,
+      "best_epoch": 22,
+      "epochs_trained": 27,
+      "training_seconds": 280.4547140598297,
+      "seconds_per_epoch": 10.386148964917219,
+      "accuracy": 0.7713333368301392,
+      "macro_f1": 0.7698337328527953,
+      "inference_ms_per_image": {
+        "1": 0.03806081978837028,
+        "128": 0.000530930938111851
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "mlp-seed0-20260922-220156",
+      "model": "mlp",
+      "representation": "image",
+      "seed": 0,
+      "parameters": 535818,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 338.5748269557953,
+      "seconds_per_epoch": 11.283702580134074,
+      "accuracy": 0.8861666917800903,
+      "macro_f1": 0.8858550048615219,
+      "inference_ms_per_image": {
+        "1": 0.12252584012458101,
+        "128": 0.0022409765620068356
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    }
+  ],
+  "configurations": [
+    {
+      "model": "linear",
+      "representation": "image",
+      "seeds": [
+        0
+      ],
+      "parameters": 7850,
+      "macro_f1_mean": 0.7698337328527953,
+      "macro_f1_sd": 0.0,
+      "accuracy_mean": 0.7713333368301392
+    },
+    {
+      "model": "mlp",
+      "representation": "image",
+      "seeds": [
+        0
+      ],
+      "parameters": 535818,
+      "macro_f1_mean": 0.8858550048615219,
+      "macro_f1_sd": 0.0,
+      "accuracy_mean": 0.8861666917800903
+    }
+  ]
+}

@@ -28,6 +28,9 @@ CLASS_NAMES = (
 Split = Literal["train", "val", "test"]
 Representation = Literal["image", "rows", "columns", "patches"]
 
+EVALUATION_SPLITS: tuple[Split, ...] = ("val", "test")
+"""Splits a finished run is scored on. Training data is never reported as a result."""
+
 Batch = tuple[Tensor, Tensor]
 """Images of shape (N, 1, 28, 28) as float32, and labels of shape (N,) as int64.
 
@@ -85,7 +88,7 @@ class RunSummary(TypedDict):
 
 
 class EvaluationReport(TypedDict):
-    """Contents of `results/evaluation/<run_id>.json`, one per model in the comparison."""
+    """Contents of `results/evaluation/<run_id>/<split>/report.json`."""
 
     run_id: str
     model: str

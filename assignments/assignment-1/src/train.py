@@ -20,69 +20,45 @@ from torch.utils.data import DataLoader
 from shared import io as shared_io
 
 from .data import build_dataloaders
-from .figures import plot_curves
+from .figures import label, plot_curves
 from .interfaces import EpochRecord, RunSummary, count_parameters, select_device
 from .models import build_model
-from .utils import create_run_dir, load_config, resolve_path, set_seed
+from .utils import RUNS_ROOT, create_run_dir, load_config, resolve_path, set_seed
 
 
-def _train_epoch(
-    model: nn.Module,
-    loader: DataLoader,
-    criterion: nn.Module,
-    optimizer: torch.optim.Optimizer,
-    device: torch.device,
-) -> tuple[float, float, float]:
-    model.train()
-    total_loss = 0.0
-    all_preds: list[int] = []
-    all_targets: list[int] = []
-
-    for images, labels in loader:
-        images, labels = images.to(device), labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item() * len(labels)
-        preds = outputs.argmax(dim=1)
-        all_preds.extend(preds.detach().cpu().tolist())
-        all_targets.extend(labels.detach().cpu().tolist())
-
-    avg_loss = total_loss / len(all_targets)
-    acc = accuracy_score(all_targets, all_preds)
-    f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
-    return avg_loss, float(acc), float(f1)
-
-
-@torch.no_grad()
-def _evaluate(
+def run_epoch(
     model: nn.Module,
     loader: DataLoader,
     criterion: nn.Module,
     device: torch.device,
+    optimizer: torch.optim.Optimizer | None = None,
 ) -> tuple[float, float, float]:
-    model.eval()
+    """Mean loss, accuracy, and macro-F1 over one pass; passing an optimizer trains."""
+    training = optimizer is not None
+    model.train(training)
     total_loss = 0.0
-    all_preds: list[int] = []
-    all_targets: list[int] = []
+    predictions: list[int] = []
+    targets: list[int] = []
 
-    for images, labels in loader:
-        images, labels = images.to(device), labels.to(device)
-        outputs = model(images)
-        loss = criterion(outputs, labels)
+    with torch.set_grad_enabled(training):
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            if optimizer is not None:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-        total_loss += loss.item() * len(labels)
-        preds = outputs.argmax(dim=1)
-        all_preds.extend(preds.cpu().tolist())
-        all_targets.extend(labels.cpu().tolist())
+            total_loss += loss.item() * len(labels)
+            predictions.extend(outputs.argmax(dim=1).detach().cpu().tolist())
+            targets.extend(labels.cpu().tolist())
 
-    avg_loss = total_loss / len(all_targets)
-    acc = accuracy_score(all_targets, all_preds)
-    f1 = f1_score(all_targets, all_preds, average="macro", zero_division=0)
-    return avg_loss, float(acc), float(f1)
+    return (
+        total_loss / len(targets),
+        float(accuracy_score(targets, predictions)),
+        float(f1_score(targets, predictions, average="macro", zero_division=0)),
+    )
 
 
 def fit(config: dict) -> Path:
@@ -95,7 +71,7 @@ def fit(config: dict) -> Path:
     loaders = build_dataloaders(config)
     model = build_model(config["model"]["name"], **config["model"].get("args", {})).to(device)
 
-    output_root = resolve_path(config.get("output_dir", "results/runs"))
+    output_root = resolve_path(config.get("output_dir", RUNS_ROOT))
     run_dir = create_run_dir(config, output_root)
     env = shared_io.read_json(run_dir / "environment.json")
 
@@ -123,8 +99,10 @@ def fit(config: dict) -> Path:
     sched_name = train_cfg.get("scheduler", "cosine").lower()
     if sched_name == "cosine":
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    else:
+    elif sched_name == "none":
         scheduler = None
+    else:
+        raise ValueError(f"unsupported scheduler: {sched_name}")
 
     history: list[EpochRecord] = []
     best_val = -float("inf") if checkpoint_mode == "max" else float("inf")
@@ -136,8 +114,8 @@ def fit(config: dict) -> Path:
         epoch_start = time.time()
         current_lr = float(optimizer.param_groups[0]["lr"])
 
-        train_loss, train_acc, train_f1 = _train_epoch(model, loaders["train"], criterion, optimizer, device)
-        val_loss, val_acc, val_f1 = _evaluate(model, loaders["val"], criterion, device)
+        train_loss, train_acc, train_f1 = run_epoch(model, loaders["train"], criterion, device, optimizer)
+        val_loss, val_acc, val_f1 = run_epoch(model, loaders["val"], criterion, device)
 
         if scheduler is not None:
             scheduler.step()
@@ -191,7 +169,7 @@ def fit(config: dict) -> Path:
         "hardware": env.get("hardware", "unknown"),
     }
     shared_io.write_json(run_dir / "summary.json", summary)
-    plot_curves({summary["model"]: history}, run_dir / "curves")
+    plot_curves({label(summary): history}, run_dir / "curves")
     return run_dir
 
 
