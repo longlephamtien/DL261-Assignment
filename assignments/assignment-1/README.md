@@ -17,6 +17,7 @@ python -m src.data --config configs/base.yaml
 python -m src.train --config configs/linear.yaml
 python -m src.train --config configs/mlp.yaml
 python -m src.train --config configs/transformer.yaml
+python -m src.train --config configs/recurrent.yaml
 
 # repeat each model across the seed list to measure run-to-run variance
 python -m src.train --config configs/mlp.yaml --set seed=1
