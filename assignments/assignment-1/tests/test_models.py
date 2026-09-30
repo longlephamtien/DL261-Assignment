@@ -74,3 +74,27 @@ def test_unknown_model_is_reported() -> None:
 def test_unknown_argument_is_reported() -> None:
     with pytest.raises(TypeError):
         build_model("linear", hidden_sizes=[512])
+
+
+# --- Recurrent Tests ---
+@pytest.mark.parametrize("cell_type", ["lstm", "gru"])
+@pytest.mark.parametrize("representation", ["rows", "columns", "patches"])
+def test_recurrent_output_shape(cell_type: str, representation: str, images: torch.Tensor) -> None:
+    model = build_model(
+        "recurrent",
+        cell_type=cell_type,
+        representation=representation,
+        patch_size=4,
+        hidden_size=64,
+        num_layers=1,
+    )
+    logits = model(images)
+    assert logits.shape == (BATCH, NUM_CLASSES)
+    assert logits.dtype == torch.float32
+
+@pytest.mark.parametrize("cell_type", ["lstm", "gru"])
+def test_recurrent_parameter_count(cell_type: str) -> None:
+    model = build_model("recurrent", cell_type=cell_type, representation="rows", hidden_size=128)
+    params = count_parameters(model)
+    assert params > 0
+    print(f"\n[REPORT] Trainable parameters for {cell_type.upper()}: {params:,}")

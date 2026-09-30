@@ -1,0 +1,17 @@
+model:
+  name: recurrent
+  args:
+    cell_type: gru
+    representation: rows
+    patch_size: 4
+    hidden_size: 128
+    num_layers: 1
+    bidirectional: false
+
+input:
+  representation: rows
+
+train:
+  epochs: 15
+  lr: 0.001
+  optimizer: adamw
