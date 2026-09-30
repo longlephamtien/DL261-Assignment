@@ -7,12 +7,13 @@ import torch
 
 from src.interfaces import IMAGE_SHAPE, NUM_CLASSES, count_parameters
 from src.models import build_model, list_models
-from src.models.transformer import token_shape
+from src.data import token_shape
 from src.utils import load_config, resolve_path
 
 BATCH = 4
 LINEAR_PARAMETERS = 784 * NUM_CLASSES + NUM_CLASSES
 MLP_PARAMETERS = (784 * 512 + 512) + (512 * 256 + 256) + (256 * NUM_CLASSES + NUM_CLASSES)
+ALL_MODELS = ["linear", "mlp", "transformer", "recurrent"]
 
 
 def transformer_parameters(tokens: int, features: int, d_model: int, ff_dim: int, layers: int) -> int:
@@ -35,12 +36,12 @@ def images() -> torch.Tensor:
     return torch.randn(BATCH, *IMAGE_SHAPE)
 
 
-@pytest.mark.parametrize("name", ["linear", "mlp", "transformer"])
+@pytest.mark.parametrize("name", ALL_MODELS)
 def test_registered(name: str) -> None:
     assert name in list_models()
 
 
-@pytest.mark.parametrize("name", ["linear", "mlp", "transformer"])
+@pytest.mark.parametrize("name", ALL_MODELS)
 def test_returns_logits(name: str, images: torch.Tensor) -> None:
     logits = build_model(name)(images)
     assert logits.shape == (BATCH, NUM_CLASSES)
@@ -64,7 +65,7 @@ def test_accepts_image_flat_and_unbatched_input(name: str, shape: tuple[int, ...
     assert logits.shape == ((NUM_CLASSES,) if len(shape) == 1 else (BATCH, NUM_CLASSES))
 
 
-@pytest.mark.parametrize("name", ["linear", "mlp", "transformer"])
+@pytest.mark.parametrize("name", ALL_MODELS)
 def test_config_builds(name: str, images: torch.Tensor) -> None:
     config = load_config(resolve_path(f"configs/{name}.yaml"))
     model = build_model(config["model"]["name"], **config["model"].get("args", {}))
@@ -91,6 +92,38 @@ def test_unknown_argument_is_reported() -> None:
     with pytest.raises(TypeError):
         build_model("linear", hidden_sizes=[512])
 
+
+# --- Recurrent Tests ---
+
+@pytest.mark.parametrize("cell_type", ["lstm", "gru"])
+@pytest.mark.parametrize("representation", ["rows", "columns", "patches"])
+def test_recurrent_output_shape(cell_type: str, representation: str, images: torch.Tensor) -> None:
+    model = build_model(
+        "recurrent",
+        cell_type=cell_type,
+        representation=representation,
+        patch_size=4,
+        hidden_size=64,
+        num_layers=1,
+    )
+    logits = model(images)
+    assert logits.shape == (BATCH, NUM_CLASSES)
+    assert logits.dtype == torch.float32
+
+
+def test_recurrent_rejects_unknown_cell_type() -> None:
+    """A silent fallback would make the GRU-versus-LSTM experiment compare GRU with itself."""
+    with pytest.raises(ValueError, match="unsupported cell_type"):
+        build_model("recurrent", cell_type="gruu")
+
+
+@pytest.mark.parametrize("cell_type", ["lstm", "gru"])
+def test_recurrent_parameter_count(cell_type: str) -> None:
+    model = build_model("recurrent", cell_type=cell_type, representation="rows", hidden_size=128)
+    params = count_parameters(model)
+    assert params > 0
+
+# --- Transformer Tests ---
 
 @pytest.mark.parametrize(
     ("representation", "tokens", "features"),
@@ -140,11 +173,20 @@ def test_transformer_requires_batched_images() -> None:
         build_model("transformer")(torch.randn(784))
 
 
-def test_transformer_config_agrees_with_the_input_block() -> None:
-    config = load_config(resolve_path("configs/transformer.yaml"))
+@pytest.mark.parametrize("model", ["transformer", "recurrent"])
+def test_sequence_config_agrees_with_the_input_block(model: str) -> None:
+    """`input` labels the run and `model.args` drives the forward pass; a mismatch misreports it."""
+    config = load_config(resolve_path(f"configs/{model}.yaml"))
     args = config["model"]["args"]
     assert args["representation"] == config["input"]["representation"]
     assert args["patch_size"] == config["input"]["patch_size"]
+
+
+@pytest.mark.parametrize("model", ["linear", "mlp", "transformer", "recurrent"])
+def test_config_leaves_the_shared_training_protocol_alone(model: str) -> None:
+    """Every model trains under one protocol; tuning varies `model.args` only."""
+    base = load_config(resolve_path("configs/base.yaml"))["train"]
+    assert load_config(resolve_path(f"configs/{model}.yaml"))["train"] == base
 
 
 def available_devices() -> list[torch.device]:
@@ -157,7 +199,7 @@ def available_devices() -> list[torch.device]:
     return devices
 
 
-@pytest.mark.parametrize("name", ["linear", "mlp", "transformer"])
+@pytest.mark.parametrize("name", ALL_MODELS)
 def test_runs_on_every_available_device(name: str, images: torch.Tensor) -> None:
     for device in available_devices():
         model = build_model(name).to(device)

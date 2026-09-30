@@ -5,6 +5,7 @@ Usage:
     modal run modal_train.py --config configs/mlp.yaml
     modal run modal_train.py --config configs/linear.yaml
     modal run modal_train.py --config configs/mlp.yaml --set-arg "seed=1"
+    modal run modal_train.py --config configs/recurrent.yaml
 """
 
 from __future__ import annotations

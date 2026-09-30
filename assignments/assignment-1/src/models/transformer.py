@@ -5,28 +5,11 @@ from __future__ import annotations
 import torch
 from torch import Tensor, nn
 
-from ..data import to_sequence
-from ..interfaces import IMAGE_SHAPE, NUM_CLASSES, Representation
+from ..data import to_sequence, token_shape
+from ..interfaces import NUM_CLASSES, Representation
 from . import register
 
-SEQUENCE_REPRESENTATIONS = ("rows", "columns", "patches")
 POOLINGS = ("cls", "mean")
-
-
-def token_shape(representation: Representation, patch_size: int) -> tuple[int, int]:
-    """Tokens per image and features per token, for one image of `interfaces.IMAGE_SHAPE`."""
-    _, height, width = IMAGE_SHAPE
-    if representation == "rows":
-        return height, width
-    if representation == "columns":
-        return width, height
-    if representation == "patches":
-        if height % patch_size or width % patch_size:
-            raise ValueError(f"{height}x{width} images are not divisible by patch_size {patch_size}")
-        return (height // patch_size) * (width // patch_size), patch_size * patch_size
-    raise ValueError(
-        f"'{representation}' is not a sequence; expected one of {', '.join(SEQUENCE_REPRESENTATIONS)}"
-    )
 
 
 class TransformerClassifier(nn.Module):
