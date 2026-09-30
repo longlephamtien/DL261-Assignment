@@ -17,8 +17,10 @@ from torchvision import transforms
 
 from shared import io as shared_io
 
-from .interfaces import CLASS_NAMES, Representation, SplitFile, select_device
+from .interfaces import CLASS_NAMES, IMAGE_SHAPE, Representation, SplitFile, select_device
 from .utils import load_config, resolve_path
+
+SEQUENCE_REPRESENTATIONS = ("rows", "columns", "patches")
 
 
 def prepare_dataset(config: dict) -> Path:
@@ -145,6 +147,20 @@ def to_sequence(images: Tensor, representation: Representation, patch_size: int 
         patches = images.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
         return patches.contiguous().view(n, -1, patch_size * patch_size)
     raise ValueError(f"unknown representation '{representation}'")
+
+
+def token_shape(representation: Representation, patch_size: int) -> tuple[int, int]:
+    """Tokens per image and features per token, for one image of `interfaces.IMAGE_SHAPE`."""
+    _, height, width = IMAGE_SHAPE
+    if representation == "rows":
+        return height, width
+    if representation == "columns":
+        return width, height
+    if representation == "patches":
+        if height % patch_size or width % patch_size:
+            raise ValueError(f"{height}x{width} images are not divisible by patch_size {patch_size}")
+        return (height // patch_size) * (width // patch_size), patch_size * patch_size
+    raise ValueError(f"'{representation}' is not a sequence; expected one of {', '.join(SEQUENCE_REPRESENTATIONS)}")
 
 
 def main(argv: list[str] | None = None) -> int:
