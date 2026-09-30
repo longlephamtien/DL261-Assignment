@@ -132,6 +132,18 @@ Copy the template into the section for the assignment you are working on and fil
 - **Responsible member:** Hồ Minh Nhật
 - **Sources used for verification:** The assignment handbook, sections 11.1 and 11.3; the model test suite
 
+### Drafting the experiment plan and fairness protocol
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 1, Milestone 2 final
+- **Prompt summary:** Asked for an experiment plan fixing the shared protocol, the seed count, the tuning budget, and a quantitative rule for deciding when one model is better
+- **AI contribution:** Drafted `EXPERIMENTS.md`, proposed the non-overlap rule on mean plus or minus one standard deviation across seeds, and pointed out that the handbook requires this content in the report rather than as a repository file
+- **Student verification:** Checked every protocol value against `configs/base.yaml` and the committed split, confirmed the per-epoch timings against the recorded runs, and confirmed each experiment maps to an existing backlog issue
+- **Affected files/sections:** `assignments/assignment-1/EXPERIMENTS.md`, `README.md`; report Methodology
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The assignment handbook, sections 1.5, 3.2, 12.1 and 12.2; run artifacts under `results/runs/`
+
 ## Assignment 2
 
 No entries yet.

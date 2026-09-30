@@ -16,6 +16,7 @@ python -m src.data --config configs/base.yaml
 # 2. train: one model config per invocation
 python -m src.train --config configs/linear.yaml
 python -m src.train --config configs/mlp.yaml
+python -m src.train --config configs/transformer.yaml
 
 # repeat each model across the seed list to measure run-to-run variance
 python -m src.train --config configs/mlp.yaml --set seed=1
@@ -42,6 +43,7 @@ Step 1 runs once per split; steps 2 and 4 run per model and seed, step 3 runs on
 ## Layout
 
 ```
+EXPERIMENTS.md  the experiment plan and fairness protocol
 configs/      base.yaml plus one file per model
 notebooks/    exploratory data analysis
 splits/       committed split indices
@@ -83,6 +85,8 @@ Every model returns **raw logits** `(N, 10)`. Never apply softmax; `CrossEntropy
 | `rows`, `columns` | `(N, 28, 28)` |
 | `patches` | `(N, (28 / patch_size) ** 2, patch_size ** 2)` |
 
+A sequence model receives the same image batch as every other model and calls `to_sequence` itself, so the trainer stays free of model-specific branches. The representation and patch size live in the model's own config under `model.args`, and `configs/<model>.yaml` repeats them under `input` so each run records which representation produced it.
+
 **Run directory.** One per run, under `results/runs/<run_id>/`.
 
 ```
@@ -112,4 +116,6 @@ The split is committed rather than regenerated, because every model must use exa
 
 ## Protocol
 
-Fixed across all five models: one split file, one seed list, identical preprocessing and augmentation, and the same checkpoint rule, by default best `val_macro_f1`. The test split is evaluated once, after all model selection is finished.
+All five models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_macro_f1`. The test split is evaluated once, after model selection concludes.
+
+[EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the seed count and tuning budget, what each experiment varies, and the rule that decides when one model counts as better than another.
