@@ -1,0 +1,91 @@
+{
+  "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+  "batch_size": 8,
+  "epochs": 40,
+  "steps_per_epoch": 301,
+  "configurations": {
+    "U-Net, base width 32, depth 4 @512": {
+      "crop": 512,
+      "trainable": 7766579,
+      "seconds_per_step": 0.7292051832002471,
+      "minutes_per_epoch": 3.6581793357212393,
+      "hours_per_run": 2.43878622381416,
+      "inference_ms_per_image": {
+        "1": 22.879983299935702,
+        "8": 22.515054687482916
+      }
+    },
+    "U-Net, base width 32, depth 4 @384": {
+      "crop": 384,
+      "trainable": 7766579,
+      "seconds_per_step": 0.4126386083997204,
+      "minutes_per_epoch": 2.0700703521385972,
+      "hours_per_run": 1.3800469014257315,
+      "inference_ms_per_image": {
+        "1": 13.697791649974533,
+        "8": 12.511542187485247
+      }
+    },
+    "U-Net, base width 64, depth 4 @512": {
+      "crop": 512,
+      "trainable": 31044691,
+      "seconds_per_step": 2.049210341599246,
+      "minutes_per_epoch": 10.280205213689552,
+      "hours_per_run": 6.853470142459701,
+      "inference_ms_per_image": {
+        "1": 70.41974374988058,
+        "8": 69.58039479372928
+      }
+    },
+    "DeepLabV3-MobileNetV3-Large @512": {
+      "crop": 512,
+      "trainable": 11024963,
+      "seconds_per_step": 0.2460714417989948,
+      "minutes_per_epoch": 1.234458399691624,
+      "hours_per_run": 0.8229722664610827,
+      "inference_ms_per_image": {
+        "1": 14.873912499751896,
+        "8": 8.06857526249587
+      }
+    },
+    "DeepLabV3-MobileNetV3-Large @384": {
+      "crop": 384,
+      "trainable": 11024963,
+      "seconds_per_step": 0.14917748320003738,
+      "minutes_per_epoch": 0.7483737073868542,
+      "hours_per_run": 0.4989158049245695,
+      "inference_ms_per_image": {
+        "1": 11.862895850208588,
+        "8": 5.434838806240805
+      }
+    },
+    "DeepLabV3-ResNet50 @512": {
+      "crop": 512,
+      "trainable": 39638355,
+      "seconds_per_step": 1.7255026333994465,
+      "minutes_per_epoch": 8.656271544220557,
+      "hours_per_run": 5.7708476961470385,
+      "inference_ms_per_image": {
+        "1": 73.0306229001144,
+        "8": 71.611110681215
+      }
+    },
+    "DeepLabV3-ResNet50, backbone frozen @512": {
+      "crop": 512,
+      "trainable": 16130323,
+      "seconds_per_step": 0.8145410416007508,
+      "minutes_per_epoch": 4.086280892030433,
+      "hours_per_run": 2.724187261353622,
+      "inference_ms_per_image": {
+        "1": 72.72178955026902,
+        "8": 71.25394114373194
+      }
+    }
+  },
+  "planned_budget_hours": {
+    "U-Net, 3 seeds": 7.3163586714424795,
+    "DeepLabV3-MobileNetV3, 3 seeds": 2.468916799383248,
+    "freeze vs fine-tune, 1 seed": 0.8229722664610827,
+    "ResNet50 backbone, 1 seed": 5.7708476961470385
+  }
+}

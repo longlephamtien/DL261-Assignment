@@ -2,6 +2,6 @@ model:
   name: unet
   args:
     in_channels: 3
-    base_width: 64
+    base_width: 32
     depth: 4
     dropout: 0.0
