@@ -3,10 +3,10 @@
 Models are registered by name and built from configuration, so the trainer never
 imports a model module directly.
 
-    @register("linear")
-    def build_linear(**kwargs) -> nn.Module: ...
+    @register("unet")
+    def build_unet(**kwargs) -> nn.Module: ...
 
-    model = build_model("linear", **config["model"]["args"])
+    model = build_model("unet", **config["model"]["args"])
 """
 
 from __future__ import annotations
@@ -26,12 +26,9 @@ def register(name: str) -> Callable[[ModelFactory], ModelFactory]:
 
 
 def build_model(name: str, **kwargs) -> nn.Module:
-    """Build a registered model that maps images to raw logits of shape (N, 10)."""
+    """Build a registered model that maps images to per-pixel logits of shape (N, 19, H, W)."""
     return _REGISTRY.build(name, **kwargs)
 
 
 def list_models() -> list[str]:
     return _REGISTRY.names()
-
-
-from . import linear, mlp, recurrent, transformer  # noqa: E402, F401  imported for their registration side effect

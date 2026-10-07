@@ -19,6 +19,7 @@ from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
 from shared import io as shared_io
+from shared.device import synchronize
 
 from .data import build_dataloaders
 from .interfaces import (
@@ -33,14 +34,6 @@ from .interfaces import (
 )
 from .models import build_model
 from .utils import evaluation_dir, report_path, run_dir as resolve_run
-
-
-def synchronize(device: torch.device) -> None:
-    """Wait for queued work, so a timer measures the device rather than the dispatch queue."""
-    if device.type == "cuda":
-        torch.cuda.synchronize()
-    elif device.type == "mps":
-        torch.mps.synchronize()
 
 
 def load_checkpoint(run_dir: Path) -> tuple[dict, RunSummary, nn.Module]:

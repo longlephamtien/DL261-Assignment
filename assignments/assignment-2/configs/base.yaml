@@ -1,0 +1,52 @@
+seed: 0
+
+dataset:
+  name: cityscapes
+  source: https://www.cityscapes-dataset.com
+  packages: [leftImg8bit_trainvaltest, gtFine_trainvaltest]
+  root: data
+  split_unit: city
+  val_cities: 3
+  split_file: splits/cityscapes-seed0.json
+  ignore_index: 255
+
+hub:
+  repo_id: null
+  assignment: assignment-2
+  private: false
+
+input:
+  height: 512
+  width: 1024
+  crop: [512, 512]
+
+loader:
+  batch_size: 8
+  num_workers: 4
+  augment: true
+
+train:
+  epochs: 40
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 0.05
+  scheduler: cosine
+  loss: cross_entropy
+  early_stopping_patience: 8
+  checkpoint_metric: val_miou
+  checkpoint_mode: max
+
+evaluation:
+  metrics: [miou, dice]
+  confusion_matrix: true
+  example_predictions: 6
+  output_dir: results/evaluation
+  inference:
+    batch_sizes: [1, 8]
+    warmup_batches: 5
+    timed_batches: 20
+
+model:
+  args: {}
+
+output_dir: results/runs

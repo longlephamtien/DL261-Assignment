@@ -13,12 +13,12 @@ from statistics import mean, stdev
 import matplotlib.pyplot as plt
 
 from shared import io as shared_io
+from shared.figures import COLOURS, save
 
 from .interfaces import EVALUATION_SPLITS, EpochRecord, EvaluationReport, RunSummary, Split
 from .utils import report_path, resolve_path, run_dir as resolve_run
 
 FIGURES = "results/figures"
-COLOURS = ("#1488D8", "#030391", "#C1440E", "#2E7D32", "#6A1B9A")
 
 
 def load_run(run_dir: Path) -> tuple[dict, RunSummary, list[EpochRecord]]:
@@ -57,16 +57,6 @@ def plot_curves(runs: dict[str, list[EpochRecord]], path: Path) -> None:
         ax.legend(fontsize=8)
     fig.suptitle("Learning curves, solid train and dashed validation")
     save(fig, path)
-
-
-def save(fig: plt.Figure, path: Path) -> None:
-    """PNG for the repository, SVG and PDF for the site and the report."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(path.with_suffix(".png"), dpi=200)
-    for suffix in (".svg", ".pdf"):
-        fig.savefig(path.with_suffix(suffix), dpi=300)
-    plt.close(fig)
 
 
 def describe(summary: RunSummary, history: list[EpochRecord], report: EvaluationReport, environment: dict) -> dict:

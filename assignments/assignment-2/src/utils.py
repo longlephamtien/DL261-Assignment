@@ -1,4 +1,4 @@
-"""Paths, configuration, seeding, and per-run directories for Assignment 1."""
+"""Paths, configuration, seeding, and per-run directories for Assignment 2."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def run_dir(run: str | Path) -> Path:
 
 
 def evaluation_dir(config: dict, run_id: str, split: Split) -> Path:
-    """Report and example grids of one run and split; also the layout published to the Hub."""
+    """Report and prediction overlays of one run and split; also the layout published to the Hub."""
     return resolve_path(config["evaluation"]["output_dir"]) / run_id / split
 
 

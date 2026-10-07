@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import platform
-import subprocess
 from typing import Literal, Protocol, TypedDict
 
-import psutil
-import torch
-from torch import Tensor, nn
+from torch import Tensor
+
+from shared.device import count_parameters, describe_hardware, select_device  # noqa: F401  re-exported
 
 NUM_CLASSES = 10
 IMAGE_SHAPE = (1, 28, 28)
@@ -103,51 +101,3 @@ class EvaluationReport(TypedDict):
     parameters: int
     training_seconds: float
     inference_ms_per_image: dict[str, float]
-
-
-def count_parameters(model: nn.Module) -> int:
-    """Number of trainable parameters, reported for every model in the comparison."""
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
-def select_device() -> torch.device:
-    """CUDA if available, else Apple Silicon MPS, else CPU."""
-    if torch.cuda.is_available():
-        return torch.device("cuda")
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
-
-
-def describe_hardware() -> str:
-    """One-line device description recorded in every run summary.
-
-    Training and inference times are only comparable across models when they come from the
-    same machine, so the string names the accelerator, the host processor, and its memory.
-    """
-    device = select_device()
-    host = f"{_processor()}, {psutil.cpu_count(logical=False)} cores, {_gigabytes(psutil.virtual_memory().total)} RAM"
-    if device.type == "cuda":
-        properties = torch.cuda.get_device_properties(0)
-        return f"cuda: {properties.name}, {_gigabytes(properties.total_memory)} VRAM; host {host}"
-    if device.type == "mps":
-        return f"mps: {host}"
-    return f"cpu: {host}"
-
-
-def _gigabytes(size: int) -> str:
-    return f"{size / 1024 ** 3:.0f} GB"
-
-
-def _processor() -> str:
-    """Chip name, which `platform.processor()` reports only as the architecture on macOS."""
-    if platform.system() == "Darwin":
-        result = subprocess.run(
-            ["sysctl", "-n", "machdep.cpu.brand_string"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    return platform.processor() or platform.machine()

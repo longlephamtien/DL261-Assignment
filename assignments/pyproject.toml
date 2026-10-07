@@ -1,10 +1,12 @@
 [project]
 name = "shared"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shared code for the CO3133 course project assignments"
 requires-python = ">=3.12"
 dependencies = [
+    "cityscapesscripts==2.3.0",
     "huggingface-hub==1.32.0",
+    "requests==2.34.2",
     "ipykernel==7.3.0",
     "jupyterlab==4.6.3",
     "matplotlib==3.11.2",
