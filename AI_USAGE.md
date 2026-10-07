@@ -146,7 +146,17 @@ Copy the template into the section for the assignment you are working on and fil
 
 ## Assignment 2
 
-No entries yet.
+### Checking the candidate datasets against the handbook thresholds
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 1 proposal
+- **Prompt summary:** Asked whether the six proposed datasets met the section 19 thresholds for their tracks, and which to choose
+- **AI contribution:** Extracted the thresholds from the handbook, checked each candidate against them, found that NYU Depth V2 falls short of the 5,000-pair floor with 1,449 labelled pairs, and that the Cityscapes link pointed at a resized subset rather than the official release
+- **Student verification:** Re-read section 19 for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation
+- **Affected files/sections:** `assignments/assignment-2/PROPOSAL.md`; report Problem statement
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The assignment handbook, sections 17, 18 and 19; the Cityscapes and NYU Depth dataset pages
 
 ## Assignment 3
 
