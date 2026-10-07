@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 
 REPO_ID = "HF_REPO_ID"
 TOKEN = "HF_TOKEN"
+CITYSCAPES_USERNAME = "CITYSCAPES_USERNAME"
+CITYSCAPES_PASSWORD = "CITYSCAPES_PASSWORD"
 
 
 def find_env(start: Path | None = None) -> Path | None:
@@ -45,3 +47,12 @@ def repo_id(configured: str | None = None) -> str:
 def token() -> str | None:
     """Access token, or None to fall back to the huggingface-cli login cache."""
     return os.environ.get(TOKEN) or None
+
+
+def cityscapes() -> tuple[str, str]:
+    """Cityscapes account, because the dataset download is gated behind a login."""
+    username = os.environ.get(CITYSCAPES_USERNAME)
+    password = os.environ.get(CITYSCAPES_PASSWORD)
+    if not (username and password):
+        raise RuntimeError(f"set {CITYSCAPES_USERNAME} and {CITYSCAPES_PASSWORD} in .env")
+    return username, password

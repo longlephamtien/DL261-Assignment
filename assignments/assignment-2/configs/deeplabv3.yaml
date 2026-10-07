@@ -1,0 +1,6 @@
+model:
+  name: deeplabv3
+  args:
+    backbone: resnet50
+    pretrained: true
+    freeze_backbone: false
