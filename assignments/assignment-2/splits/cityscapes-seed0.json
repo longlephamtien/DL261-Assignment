@@ -1,0 +1,61 @@
+{
+  "dataset": "cityscapes",
+  "seed": 0,
+  "split_unit": "city",
+  "train": [
+    "aachen",
+    "bochum",
+    "darmstadt",
+    "dusseldorf",
+    "erfurt",
+    "hamburg",
+    "hanover",
+    "jena",
+    "monchengladbach",
+    "strasbourg",
+    "stuttgart",
+    "tubingen",
+    "ulm",
+    "weimar",
+    "zurich"
+  ],
+  "val": [
+    "bremen",
+    "cologne",
+    "krefeld"
+  ],
+  "cities": {
+    "train": [
+      "aachen",
+      "bochum",
+      "darmstadt",
+      "dusseldorf",
+      "erfurt",
+      "hamburg",
+      "hanover",
+      "jena",
+      "monchengladbach",
+      "strasbourg",
+      "stuttgart",
+      "tubingen",
+      "ulm",
+      "weimar",
+      "zurich"
+    ],
+    "val": [
+      "bremen",
+      "cologne",
+      "krefeld"
+    ],
+    "test": [
+      "frankfurt",
+      "lindau",
+      "munster"
+    ]
+  },
+  "counts": {
+    "train": 2406,
+    "val": 569,
+    "test": 500
+  }
+}
