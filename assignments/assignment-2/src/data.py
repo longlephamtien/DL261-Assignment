@@ -11,12 +11,13 @@ import argparse
 import zipfile
 from pathlib import Path
 
+import numpy as np
 import requests
 from cityscapesscripts.download.downloader import download_packages
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from shared import env
+from shared import env, io as shared_io
 
 from .interfaces import SplitFile
 from .utils import load_config, resolve_path
@@ -62,13 +63,48 @@ def prepare_dataset(config: dict) -> Path:
 
 
 def build_split(data_dir: Path, seed: int, val_cities: int) -> SplitFile:
-    """Hold out whole cities, so no street scene reaches two partitions. Implemented by #61."""
-    raise NotImplementedError("#61 implements the leakage-controlled split")
+    """Hold out whole cities from the official train split for model selection.
+
+    The official validation split becomes our test set, because Cityscapes withholds the test
+    labels. Selecting a checkpoint on the reported split would be selection on the test set,
+    so the cities that choose it have to come out of train.
+    """
+    cities = sorted(p.name for p in (data_dir / "leftImg8bit" / "train").iterdir() if p.is_dir())
+    if not 0 < val_cities < len(cities):
+        raise ValueError(f"val_cities must be between 1 and {len(cities) - 1}, got {val_cities}")
+
+    held_out = sorted(np.random.default_rng(seed).permutation(cities)[:val_cities])
+    partitions = {
+        "train": [city for city in cities if city not in held_out],
+        "val": held_out,
+        "test": sorted(p.name for p in (data_dir / "leftImg8bit" / "val").iterdir() if p.is_dir()),
+    }
+
+    split = SplitFile(
+        dataset="cityscapes",
+        seed=seed,
+        split_unit="city",
+        train=partitions["train"],
+        val=partitions["val"],
+        cities=partitions,
+        counts={name: _count_images(data_dir, name, members) for name, members in partitions.items()},
+    )
+    verify_split(split)
+    return split
+
+
+def _count_images(data_dir: Path, partition: str, cities: list[str]) -> int:
+    source = "val" if partition == "test" else "train"
+    return sum(len(list((data_dir / "leftImg8bit" / source / city).glob("*.png"))) for city in cities)
 
 
 def verify_split(split: SplitFile) -> None:
-    """Fail if any city appears in more than one partition. Implemented by #61."""
-    raise NotImplementedError("#61 implements the split verification")
+    """Fail if any city appears in more than one partition."""
+    partitions = split["cities"]
+    for left, right in (("train", "val"), ("train", "test"), ("val", "test")):
+        shared_cities = set(partitions[left]) & set(partitions[right])
+        if shared_cities:
+            raise ValueError(f"{left} and {right} share {sorted(shared_cities)}; the split unit is the city")
 
 
 def normalization_stats(data_dir: Path, split: SplitFile) -> tuple[list[float], list[float]]:
@@ -96,11 +132,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config(resolve_path(args.config))
+    dataset = config["dataset"]
     root = prepare_dataset(config)
     print(root)
     if args.download_only:
         return 0
-    raise NotImplementedError("#61 implements the split written by this entry point")
+
+    split = build_split(root, config["seed"], dataset["val_cities"])
+    shared_io.write_json(resolve_path(dataset["split_file"]), split)
+    for partition, cities in split["cities"].items():
+        print(f"{partition:<6} {len(cities):>2} cities  {split['counts'][partition]:>5} images  {', '.join(cities)}")
+    return 0
 
 
 if __name__ == "__main__":

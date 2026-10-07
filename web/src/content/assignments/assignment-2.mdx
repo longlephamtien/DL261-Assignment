@@ -2,11 +2,13 @@
 number: 2
 title: Deep Learning on Large-Scale Data and Specialized Tasks
 topic: Deep Learning on Large-Scale Data for Specialized Computer Vision or Language Tasks.
-status: planned
+status: in-progress
 abstract: Scaling a pipeline to a large dataset, with the throughput and memory trade-offs that only appear at scale.
 resources:
   - label: Source code
-    href: null
+    href: https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-2
+  - label: Dataset proposal
+    href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-2/PROPOSAL.md
   - label: Checkpoints
     href: null
   - label: Report and slides
@@ -16,13 +18,59 @@ resources:
 references: []
 aiDisclosure:
   noAiUsed: false
-  summary: null
-  entries: []
+  summary: "Claude was used to check the candidate datasets against the handbook thresholds."
+  entries:
+    - tool: Claude Opus 5
+      usedBy: Lê Phạm Tiến Long
+      task: Checking the candidate datasets against the handbook thresholds
+      promptSummary: "Asked whether the six proposed datasets met the section 19 thresholds for their tracks, and which to choose."
+      promptLog: null
+      aiContribution: "Checked each candidate against the thresholds, and found that one depth dataset falls short of the 5,000-pair floor and that a proposed Cityscapes link pointed at a resized subset rather than the official release."
+      studentVerification: "Re-read the requirements for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation."
+      affectedSections:
+        - Problem statement
+      responsibleMember: Lê Phạm Tiến Long
 ---
 
 ## Problem statement
 
+Semantic segmentation of urban street scenes: every pixel of a road-level photograph is assigned one of nineteen classes, from road and building down to traffic light and motorcycle. Being a dense prediction task, it requires a model to carry spatial detail through to the output rather than collapse the image into a vector.
+
+Two models are compared under one split and one evaluation protocol: a U-Net written from scratch, and a pretrained DeepLabV3 fine-tuned on this data. The question is how much of the gap between them comes from pretrained representations and how much from architecture.
+
 ## Dataset and EDA
+
+Cityscapes fine annotations: 5,000 frames at $1024 \times 2048$ recorded from a vehicle across 27 cities in Germany, France and Switzerland, annotated as per-pixel polygons. The dataset defines 34 labels and scores 19 of them; the rest, including void regions, the ego vehicle and the image border, carry an ignore label excluded from loss and metrics. They are $11.8\%$ of every frame. :ref[fig:samples] shows a frame and its annotation.
+
+:::figure{label="fig:samples"}
+![Three rows, each pairing a street scene photographed from a vehicle with the same scene under its colour-coded per-pixel annotation](/DL261-Assignment/assignments/assignment-2/samples.png)
+
+Three training frames and their label maps. The dark regions carry the ignore label: the bonnet of the recording vehicle along the bottom of every frame, and the rectification border at its edges.
+:::
+
+The partitions share no city, which is the property the comparison rests on: frames from one street cannot appear on both sides, so a model cannot score well by recognising a scene it has already trained on. The official test labels are withheld, so the official validation partition is reported here and the three cities that select a checkpoint are held out of training instead, as :ref[tab:splits] sets out.
+
+:::table{label="tab:splits"}
+| Partition | Cities | Images |
+| :--- | ---: | ---: |
+| Train | 15 | 2,406 |
+| Validation | 3 | 569 |
+| Test | 3 | 500 |
+
+Split sizes.
+:::
+
+The class distribution decides which metric is meaningful. Road, building and vegetation occupy $75.8\%$ of evaluated pixels, so predicting nothing but those three already reaches roughly $0.76$ pixel accuracy. Mean intersection over union averages across classes instead, which is why it is primary. :ref[fig:classes] shows the distribution, measured over all 2,406 training label maps rather than a sample.
+
+:::figure{label="fig:classes"}
+![Two stacked bar charts over the same nineteen classes: above, the share of evaluated pixels on a logarithmic axis descending from road at 37 percent to motorcycle at 0.1 percent; below, the percentage of whole images and of 512-pixel crops in which each class appears](/DL261-Assignment/assignments/assignment-2/class_distribution.svg)
+
+Pixel share and frequency per class. The upper axis is logarithmic because the classes span almost three orders of magnitude.
+:::
+
+Scarcity takes two forms that fail for different reasons. Poles occupy $1.17\%$ of pixels yet appear in $99\%$ of images and traffic signs $0.56\%$ in $94\%$: thin structures lost to boundary imprecision, not to a shortage of examples. Trains occupy $0.21\%$ in $4\%$ of images and buses $0.22\%$ in $9\%$, yet cover $0.91\%$ and $0.66\%$ of a frame when visible: large but rarely seen. A per-class table is reported alongside the mean, which alone cannot distinguish the two.
+
+Training on random crops sharpens the second form. A $512 \times 512$ window covers an eighth of the frame, so trains fall to $2\%$ of crops and buses to $4\%$. Sky is the clearest case, present in $90\%$ of images but $25\%$ of crops, because it occupies a band at the top. Cropping reshapes the class prior spatially, not only by area.
 
 ## Methodology
 

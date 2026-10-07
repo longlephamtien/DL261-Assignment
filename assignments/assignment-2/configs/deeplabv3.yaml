@@ -1,6 +1,6 @@
 model:
   name: deeplabv3
   args:
-    backbone: resnet50
+    backbone: mobilenet_v3_large
     pretrained: true
     freeze_backbone: false
