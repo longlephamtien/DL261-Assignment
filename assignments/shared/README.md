@@ -2,6 +2,19 @@
 
 Code used by every assignment, installed with the environment described in [assignments](../README.md).
 
+## Modules
+
+| Module | Contents |
+| --- | --- |
+| `io` | Text IO with one encoding and one newline on every platform |
+| `env` | `.env` values: the Hugging Face repository and token, the Cityscapes account |
+| `config` | `load_config`, merging `base.yaml` and applying dotted `key=value` overrides |
+| `runs` | `set_seed`, `run_id`, `create_run_dir`, `environment`, `git_commit` |
+| `device` | `select_device`, `synchronize`, `describe_hardware`, `count_parameters` |
+| `registry` | `Registry`, one instance per assignment, since model names are unique only within one |
+| `figures` | `save` to PNG, SVG and PDF, and the shared `COLOURS` |
+| `hub` | Checkpoint and report storage on the Hugging Face Hub |
+
 ## Publish
 
 Fill `.env` first, then upload a finished run from its assignment folder. Evaluate the run first; publishing refuses a run with no report, because the reports are not in git and the Hub commit is what a reported number is traced to:
