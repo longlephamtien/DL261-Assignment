@@ -13,7 +13,13 @@ from src.utils import load_config, resolve_path
 BATCH = 4
 LINEAR_PARAMETERS = 784 * NUM_CLASSES + NUM_CLASSES
 MLP_PARAMETERS = (784 * 512 + 512) + (512 * 256 + 256) + (256 * NUM_CLASSES + NUM_CLASSES)
-ALL_MODELS = ["linear", "mlp", "transformer", "recurrent"]
+CNN_PARAMETERS = (
+    (1 * 32 * 3 * 3 + 32)
+    + (32 * 64 * 3 * 3 + 64)
+    + (64 * 7 * 7 * 128 + 128)
+    + (128 * NUM_CLASSES + NUM_CLASSES)
+)
+ALL_MODELS = ["linear", "mlp", "cnn", "transformer", "recurrent"]
 
 
 def transformer_parameters(tokens: int, features: int, d_model: int, ff_dim: int, layers: int) -> int:
@@ -91,6 +97,37 @@ def test_unknown_model_is_reported() -> None:
 def test_unknown_argument_is_reported() -> None:
     with pytest.raises(TypeError):
         build_model("linear", hidden_sizes=[512])
+
+
+# --- CNN Tests ---
+
+def test_cnn_parameter_count() -> None:
+    model = build_model("cnn", channels=[32, 64], hidden_size=128, dropout=0.2)
+    assert count_parameters(model) == CNN_PARAMETERS
+
+
+@pytest.mark.parametrize(("channels", "size"), [([32], 14), ([32, 64], 7), ([16, 32, 64], 3)])
+def test_cnn_halves_the_map_at_every_stage(channels: list[int], size: int, images: torch.Tensor) -> None:
+    """Padding keeps each convolution at its input size, so only pooling shrinks the map."""
+    model = build_model("cnn", channels=channels)
+    assert model.features(images).shape == (BATCH, channels[-1], size, size)
+    assert model(images).shape == (BATCH, NUM_CLASSES)
+
+
+def test_cnn_rejects_empty_channels() -> None:
+    with pytest.raises(ValueError, match="at least one convolutional stage"):
+        build_model("cnn", channels=[])
+
+
+def test_cnn_rejects_more_stages_than_the_image_allows() -> None:
+    """Five poolings take 28 below 1; the head would be sized for an empty map."""
+    with pytest.raises(ValueError, match="below 1x1"):
+        build_model("cnn", channels=[8, 8, 8, 8, 8])
+
+
+def test_cnn_requires_batched_images() -> None:
+    with pytest.raises(ValueError, match=r"\(N, 1, 28, 28\)"):
+        build_model("cnn")(torch.randn(*IMAGE_SHAPE))
 
 
 # --- Recurrent Tests ---
@@ -182,7 +219,7 @@ def test_sequence_config_agrees_with_the_input_block(model: str) -> None:
     assert args["patch_size"] == config["input"]["patch_size"]
 
 
-@pytest.mark.parametrize("model", ["linear", "mlp", "transformer", "recurrent"])
+@pytest.mark.parametrize("model", ALL_MODELS)
 def test_config_leaves_the_shared_training_protocol_alone(model: str) -> None:
     """Every model trains under one protocol; tuning varies `model.args` only."""
     base = load_config(resolve_path("configs/base.yaml"))["train"]

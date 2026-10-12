@@ -1,0 +1,6 @@
+model:
+  name: cnn
+  args:
+    channels: [32, 64]
+    hidden_size: 128
+    dropout: 0.2
