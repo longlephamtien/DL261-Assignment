@@ -1,0 +1,139 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usefonttheme{structurebold}
+\usefonttheme[onlymath]{serif}
+
+\definecolor{BKTemplate}{rgb}{0.11765, 0.30588, 0.47451}
+\usecolortheme[named=BKTemplate]{structure}
+\setbeamercolor{title}{fg=BKTemplate,bg=} 
+\setbeamertemplate{caption}[numbered]
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{mathtools}
+\usepackage{multicol}
+\usepackage{comment}
+\usepackage{forest}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{graphicx}
+\usepackage{diagbox}
+\usepackage{tikz}
+\usepackage{subcaption}
+% \captionsetup[subfigure]{labelsep=space}
+\usepackage{pifont}
+\usepackage{amsmath}
+\usepackage{dsfont}
+\usepackage{stmaryrd}
+% \usepackage[style=authortitle,backend=bibtex]{biblatex}
+% \addbibresource{references.bib}
+
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{references.bib}
+
+% Avoid unsupported formatting commands in PDF bookmarks/metadata.
+\pdfstringdefDisableCommands{%
+  \def\\{ }%
+  \def\newline{ }%
+  \def\textsuperscript#1{#1}%
+  \def\ding#1{}%
+  \def\inst#1{}%
+}
+
+% Provide plain-text PDF metadata so hyperref does not parse formatted title macros.
+\hypersetup{
+  pdftitle={Foundations of Deep Learning Pipelines and Architectures},
+  pdfauthor={Le Pham Tien Long, Ngo Tieu Nghi, Ho Minh Nhat},
+  pdfsubject={CO3133 Semester 261 -- Assignment 1},
+  pdfcreator={LaTeX Beamer}
+}
+
+\renewcommand{\footnotesize}{\tiny}
+\newcommand{\mathbi}[1]{\boldsymbol{#1}}
+\newtheorem{proposition}{Proposition}
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+\usetikzlibrary{positioning}
+
+%----------------------------------------------------------
+% Title page
+\title[Assignment 1]
+{\texorpdfstring{\vspace*{0.8cm}\\{\tiny Deep Learning and Its Applications (CO3133) -- Assignment 1}\\[0.3cm]
+\textbf{\large Foundations of Deep Learning Pipelines and Architectures}\\[0.35cm]
+{\normalfont\small From Linear Models to Modern Sequence Models:}\\
+{\normalfont\small A Comparative Study for Image Classification}}{Foundations of Deep Learning Pipelines and Architectures}}
+
+\subtitle{}
+
+\author[DeepDive]{Le Pham Tien Long\inst{1,2}\textsuperscript{(\ding{41})} \and
+Ngo Tieu Nghi\inst{1,2} \and
+Ho Minh Nhat\inst{1,2}}
+
+\institute[HCMUT VNU-HCM]{\scriptsize
+  \textsuperscript{1} Faculty of Computer Science and Engineering, Ho Chi Minh City University of Technology (HCMUT), 268 Ly Thuong Kiet, Dien Hong Ward, Ho Chi Minh City, Vietnam.\\
+  \textsuperscript{2} Vietnam National University Ho Chi Minh City (VNU-HCM), Linh Xuan Ward, Ho Chi Minh City, Vietnam.\\
+  \textbf{Instructor:} Le Thanh Sach \quad \textbf{Semester:} 261 \quad \textbf{Group:} 18 -- DeepDive\\
+  \{long.lephamtien, nghi.ngotieu, nhat.hominh\}@hcmut.edu.vn
+}
+
+\date{}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\setbeamertemplate{background canvas}{
+	\includegraphics[width=\paperwidth,height=\paperheight]{images/FrontBackground.pdf}
+}
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\setbeamertemplate{background canvas}{
+	\includegraphics[width=\paperwidth,height=\paperheight]{images/Background.pdf}
+}
+
+\begin{frame}
+\frametitle{Table of Contents}
+\tableofcontents
+\end{frame}
+%----------------------------------------------------------
+\input{contents/1.problem-and-data}
+%----------------------------------------------------------
+\input{contents/2.method}
+%----------------------------------------------------------
+\input{contents/3.experimental-setup}
+%----------------------------------------------------------
+\input{contents/4.results}
+%----------------------------------------------------------
+\input{contents/5.error-analysis}
+%----------------------------------------------------------
+\input{contents/6.conclusion}
+%----------------------------------------------------------
+
+\begin{frame}
+    \centering
+    \vspace{1cm}
+    \textbf{\Huge{Thank You}}\\
+\end{frame}
+
+\begin{frame}[allowframebreaks]
+    \frametitle{References}
+    % Keeps biber working before the first real \cite appears; remove once the
+% content cites its references directly.
+\nocite{paszke2019pytorch}
+\printbibliography
+\end{frame}
+\end{document}
