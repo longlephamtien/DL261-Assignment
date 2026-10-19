@@ -16,6 +16,7 @@ python -m src.data --config configs/base.yaml
 # 2. train: one model config per invocation
 python -m src.train --config configs/linear.yaml
 python -m src.train --config configs/mlp.yaml
+python -m src.train --config configs/cnn.yaml
 python -m src.train --config configs/transformer.yaml
 python -m src.train --config configs/recurrent.yaml
 

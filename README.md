@@ -102,6 +102,86 @@ aiDisclosure:
 
 If no AI tool was used, set `noAiUsed: true` and leave `entries` empty. The build rejects `noAiUsed: true` together with listed entries.
 
+## Report and presentation
+
+Each assignment carries two LaTeX documents, `assignments/assignment-N/report/` and `.../presentation/`. Write content only in `contents/*.tex`; the main file holds the preamble and the title page, and its section order follows handbook section 3 for the report and section 2.3 for the slides. Every `\subsection` opens with a `% Required:` comment listing what the handbook expects there.
+
+### Floats
+
+Never leave a float unreferenced. A `\label` with no `\ref` pointing at it means the reader meets the float with no idea why it is there, and the handbook grades on evidence tied to claims. Pair them every time:
+
+```latex
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/class_distribution.png}
+\caption{Share of evaluated pixels per class.}
+\label{fig:class-distribution}
+\end{figure}
+
+Three classes hold 75.8\% of all pixels, as Figure~\ref{fig:class-distribution} shows.
+```
+
+Use `[H]` so the float stays where it is written, and `~\ref` so the number never wraps to a new line. Captions go **below** figures and **above** tables.
+
+### Figures
+
+| Source | How to import |
+| --- | --- |
+| PNG, JPEG | `\includegraphics[width=0.8\textwidth]{images/<name>.png}` |
+| PDF | `\includegraphics[width=0.8\textwidth]{images/<name>.pdf}` |
+| TikZ or PGF | `\resizebox{0.8\textwidth}{!}{\input{images/<name>.tex}}` |
+
+Scale with `width=<fraction>\textwidth`, never with absolute lengths, so a figure still fits when the layout changes. Vector sources beat raster: use PDF or PGF for plots and diagrams, PNG only for photographs and screenshots. `matplotlib` writes all three through `shared.figures.save`.
+
+`\resizebox` is for `\input`-ed TikZ and PGF only, because those carry their own dimensions. Applying it to `\includegraphics` distorts the aspect ratio.
+
+### Tables
+
+```latex
+\begin{table}[H]
+\centering
+\caption{Validation results across three seeds.}
+\label{tab:results}
+\begin{tabular}{lrr}
+\hline
+\textbf{Model} & \textbf{mIoU} & \textbf{Parameters} \\
+\hline
+U-Net        & 0.6123 & 7.8M  \\
+DeepLabV3    & 0.7045 & 11.0M \\
+\hline
+\end{tabular}
+\end{table}
+```
+
+Align text left and numbers right, `l` against `r`. For a column that must wrap, use `tabularx` with an `X` column and give the environment a width: `\begin{tabularx}{\textwidth}{|l|l|X|c|}`. Report every number at the precision it was measured at; do not round before averaging across seeds.
+
+### Listings
+
+The preamble loads `listings` with named styles, and `minted` where a build has Pygments. Prefer `listings` since it needs no external tool and no `--shell-escape`:
+
+```latex
+\begin{lstlisting}[language=Python, caption={Model registry.}, label={lst:registry}]
+@register("unet")
+def build_unet(**kwargs) -> nn.Module: ...
+\end{lstlisting}
+
+Models are built from configuration, as Listing~\ref{lst:registry} shows.
+```
+
+Keep listings to the few lines that carry the argument. A long listing belongs in the repository, which the report links from Code Availability.
+
+### Bullet points
+
+```latex
+\begin{itemize}
+    \item \textbf{Class imbalance:} road, building and vegetation hold 75.8\% of pixels.
+    \item \textbf{Two kinds of scarcity:} thin structures lost to boundary error, and
+          large objects that are rarely seen.
+\end{itemize}
+```
+
+Bold the lead phrase so a reader can scan. Nest at most two levels. Lists suit slides; in the report prefer prose, because the handbook rejects claims without evidence and a bullet rarely carries its own.
+
 ## Conventions
 
 - One branch per issue, named `<type>/<short-topic>`.

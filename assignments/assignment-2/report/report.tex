@@ -1,0 +1,401 @@
+\documentclass[a4paper]{article}
+\usepackage{a4wide,amssymb,epsfig,latexsym,array,hhline,fancyhdr}
+% \usepackage[utf8]{vietnam}
+\usepackage[normalem]{ulem}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage[normalem]{ulem}
+\useunder{\uline}{\ul}{}
+\usepackage{dirtytalk}
+\usepackage{minted}
+\usepackage[most]{tcolorbox}
+\definecolor{lightgrey}{rgb}{0.90, 0.90, 0.90}
+
+\setlength\parindent{0pt}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[makeroom]{cancel}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{multicol,longtable,amscd}
+\usepackage{diagbox}%Make diagonal lines in tables
+\usepackage{booktabs}
+\usepackage{alltt}
+\usepackage[framemethod=tikz]{mdframed}% For highlighting paragraph backgrounds
+\usepackage{caption,subcaption}
+\usepackage{algpseudocode}
+\usepackage{lastpage}
+\usepackage[lined,boxed,commentsnumbered]{algorithm2e}
+\usepackage{enumitem}
+\usepackage{color}
+\usepackage{graphicx}							% Standard graphics package
+\usepackage{array}
+\usepackage{tabularx, caption}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{rotating}
+\usepackage{graphics}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{epsfig}
+\usepackage{pgf}
+\usepackage{tikz}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{colortbl}
+\usetikzlibrary{arrows,backgrounds}
+\usepackage[unicode]{hyperref}
+% \hypersetup{linkcolor=black,citecolor=black,colorlinks=true} 
+%\usepackage{pstcol} 								% PSTricks with the standard color package
+
+\usepackage[normalem]{ulem}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% \lstdefinestyle{mystyle}{       
+%     backgroundcolor=\color{backcolour},   
+%     commentstyle=\color{codegreen},
+%     keywordstyle=\color{magenta},
+%     numberstyle=\tiny\color{codegray},
+%     stringstyle=\color{codepurple},
+%     basicstyle=\ttfamily\footnotesize,
+%     breakatwhitespace=false,         
+%     breaklines=true,                 
+%     captionpos=b,                    
+%     keepspaces=true,                 
+%     numbers=left,                    
+%     numbersep=5pt,                  
+%     showspaces=false,                
+%     showstringspaces=false,
+%     showtabs=false,                  
+%     tabsize=2
+% }
+% \lstset{style=mystyle}
+\usepackage{listings}
+\usetikzlibrary{positioning,arrows.meta,calc}
+% \lstset{
+%     language=bash,
+%     basicstyle=\ttfamily,
+%     breaklines=true
+% }
+% \lstdefinelanguage{bash}{
+%   keywords={if, then, else, fi, for, while, do, done, break, continue, case, esac, in, function, exit, echo, read, test, mapfile},
+%   morekeywords={[2]bc, awk, sed, printf, touch, cat},
+%   keywordstyle=\color{blue}\bfseries,
+%   keywordstyle=[2]\color{teal},
+%   morecomment=[l]{\#},
+%   commentstyle=\color{gray},
+%   morestring=[b]",
+%   morestring=[b]',
+%   stringstyle=\color{red},
+% }
+\lstdefinestyle{bashstyle}{
+  language=bash,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  escapeinside={(*@}{@*)}
+}
+\newcommand{\bashout}[1]{\textcolor{black}{\fontfamily{cmr}\selectfont #1}}
+% \newcommand{\bashout}[1]{\textcolor{gray}{\ttfamily #1}}
+\lstdefinestyle{makestyle}{
+  language=make,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{javastyle}{
+  language=Java,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{htmlstyle}{
+  language=HTML,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{sqlstyle}{
+  language=SQL,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{cstyle}{
+  language=C,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{infostyle}{
+  language=C,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  commentstyle=\color{PineGreen},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  frame=single, % Adds a border around the listing
+  framerule=1pt, % Border thickness
+  keywordstyle=\color{cyan}\bfseries,
+  stringstyle=\color{red},
+  commentstyle=\color{PineGreen},
+  rulecolor=\color{black}, % Border color
+  backgroundcolor=\color{white}, % Background color
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false
+}
+\newtheorem{theorem}{{\bf Định lý}}
+\newtheorem{property}{{\bf Tính chất}}
+\newtheorem{proposition}{{\bf Mệnh đề}}
+\newtheorem{corollary}[proposition]{{\bf Hệ quả}}
+\newtheorem{lemma}[proposition]{{\bf Bổ đề}}
+\theoremstyle{definition}
+\newtheorem{exer}{Bài toán}
+
+\def\thesislayout{	% A4: 210 × 297
+	\geometry{
+		a4paper,
+		total={160mm,240mm},  % fix over page
+		left=30mm,
+		top=30mm,
+	}
+}
+\thesislayout
+
+%\usepackage{fancyhdr}
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}
+\fancyhead{} % clear all header fields
+\fancyhead[L]{
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-8){\includegraphics[width=8mm, height=8mm]{images/hcmut.png}}
+    %\put(0,-8){\epsfig{width=10mm,figure=hcmut.eps}}
+   \end{picture}&
+	%\includegraphics[width=8mm, height=8mm]{images/hcmut.png} & %
+	\begin{tabular}{l}
+		\textbf{\bf \ttfamily Vietnam National University - Ho Chi Minh City}\\
+		\textbf{\bf \ttfamily Ho Chi Minh City University of Technology}
+	\end{tabular} 	
+ \end{tabular}
+}
+\fancyhead[R]{
+	\begin{tabular}{l}
+		\tiny \bf \\
+		\tiny \bf 
+	\end{tabular}  }
+\fancyfoot{} % clear all footer fields
+\fancyfoot[R]{\scriptsize \ttfamily Page {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+
+
+%%%
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\makeatletter
+\newcounter {subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection .\@alph\c@subsubsubsection}
+\newcommand\subsubsubsection{\@startsection{subsubsubsection}{4}{\z@}%
+                                     {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                     {1.5ex \@plus .2ex}%
+                                     {\normalfont\normalsize\bfseries}}
+\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*{\subsubsubsectionmark}[1]{}
+\makeatother
+
+\sloppy
+\captionsetup[figure]{labelfont={small,bf},textfont={small,it},belowskip=-2pt,aboveskip=5pt}
+
+\captionsetup[table]{labelfont={small,bf},textfont={small,it},belowskip=-2pt,aboveskip=5pt}
+
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{references.bib}
+
+\setlength{\floatsep}{5pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{5pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\thesislayout
+\begin{document}
+
+% TITLE PAGE
+\begin{titlepage}
+\begin{center}
+\textbf{\large VIETNAM NATIONAL UNIVERSITY HO CHI MINH CITY}\\[0.5cm]
+\textbf{\large Ho Chi Minh City University of Technology}\\[0.5cm]
+\large Faculty of Computer Science and Engineering\\[0.5cm]
+\end{center}
+
+\vspace{1cm}
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=3cm]{images/hcmut.png}
+\end{center}
+\end{figure}
+
+\vspace{1cm}
+
+\begin{center}
+\begin{tabular}{c}
+\multicolumn{1}{l}{\textbf{{\Large Deep Learning and Its Applications (CO3133)}}}\\
+~~\\
+\hline
+\\
+\multicolumn{1}{l}{\textbf{{\Large Assignment 2 Report}}}\\
+\\
+\textbf{{\LARGE Deep Learning on Large-Scale Data}}\\[0.25cm]
+\textbf{{\LARGE and Specialized Tasks}}\\[0.45cm]
+\textit{{\large Semantic Segmentation of Urban Street Scenes:}}\\[0.15cm]
+\textit{{\large A Baseline and a Pretrained Model Compared}}\\
+\\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{1cm}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{rl}
+\textbf{Instructor}: & Le Thanh Sach \\[10pt]
+\textbf{Semester}: & 261 \\
+\textbf{Group}: & 18 -- DeepDive \\
+\textbf{Students}:
+& Le Pham Tien Long -- 2352688 \\
+& Ngo Tieu Nghi -- 2352799 \\
+& Ho Minh Nhat -- 2352858 \\
+\end{tabular}
+\end{table}
+
+\vspace{3cm}
+
+\begin{center}
+HO CHI MINH CITY, 2026
+\end{center}
+\end{titlepage}
+
+\pagebreak
+\tableofcontents
+\pagebreak
+\listoffigures\addcontentsline{toc}{section}{\listfigurename}
+\listoftables\addcontentsline{toc}{section}{\listtablename}
+\pagebreak
+
+% MAIN CONTENT, following handbook section 3
+\section{Problem and Data Description}
+\label{sec:problem-and-data}
+\input{contents/1.problem-and-data}
+
+\section{Methodology}
+\label{sec:methodology}
+\input{contents/2.methodology}
+
+\section{Implementation Results}
+\label{sec:results}
+\input{contents/3.results}
+
+\section{AI Usage Disclosure}
+\label{sec:ai-usage}
+\input{contents/4.ai-usage}
+
+\section*{Code Availability}
+\addcontentsline{toc}{section}{Code Availability}
+The implementation, configurations and committed splits are available at
+\url{https://github.com/longlephamtien/DL261-Assignment}, and the assignment page at
+\url{https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-2/}.
+
+% Keeps biber working before the first real \cite appears; remove once the
+% content cites its references directly.
+\nocite{paszke2019pytorch}
+\printbibliography
+\addcontentsline{toc}{section}{References}
+
+\end{document}
