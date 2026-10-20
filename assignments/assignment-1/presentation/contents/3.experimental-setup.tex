@@ -1,7 +1,188 @@
 % Experimental Setup -- handbook section 2.3 requires this coverage
 % Split, protocol, metrics, hypotheses, and the decision criterion.
+% Values follow EXPERIMENTS.md and configs/base.yaml; change them there first.
 
 \section{Experimental Setup}
 
-\begin{frame}{Experimental Setup}
+%----------------------------------------------------------
+\begin{frame}{Data Split and Leakage Control}
+\begin{table}
+\centering
+\caption{The split shared by every model, stratified by class with seed 0.}
+\label{tab:split}
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Subset} & \textbf{Images} & \textbf{Per class} & \textbf{Source} \\
+\midrule
+Train      & 54{,}000 & 5{,}400 & official training set, 90\% \\
+Validation &  6{,}000 &    600  & official training set, 10\% \\
+Test       & 10{,}000 & 1{,}000 & official test set \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item \textbf{Fixed partition:} the split indices are committed in \texttt{splits/fashion-mnist-seed0.json} and
+          read by every run (Table~\ref{tab:split}), instead of being regenerated from a seed that depends on library versions.
+    \item \textbf{No information from validation or test in training:} normalization statistics come from the training
+          split only, and augmentation is applied to the training loader only.
+    \item \textbf{Single test evaluation:} checkpoints and configurations are chosen on validation; the test split is
+          evaluated once, after model selection concludes.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Training Protocol}
+\begin{table}
+\centering
+\caption{Training settings shared by all five models.}
+\label{tab:protocol}
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Loss          & cross-entropy on raw logits, no label smoothing \\
+Optimizer     & AdamW~\cite{loshchilov2019decoupled}, learning rate $3 \times 10^{-4}$, weight decay 0.05 \\
+Batch size    & 128 \\
+Schedule      & cosine annealing~\cite{loshchilov2017sgdr} over 30 epochs \\
+Early stopping & after 5 epochs without improvement in validation macro-F1 \\
+Checkpoint    & epoch with the highest validation macro-F1 \\
+Augmentation  & random crop with 2-pixel edge padding, horizontal flip \\
+Seeds         & 0, 1, 2 for every reported configuration \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% TODO: confirm the CNN, recurrent and Transformer runs used the same machine and versions.
+\small
+\begin{itemize}
+    \item \textbf{Environment:} Apple M4 Pro (14 cores, 48\,GB), PyTorch MPS backend; Python 3.12.0, PyTorch 2.14.0,
+          torchvision 0.29.0, scikit-learn 1.9.1.
+    \item \textbf{Run record:} each run stores its resolved configuration, commit hash, library versions and hardware,
+          so every row in the results can be traced to the settings in Table~\ref{tab:protocol}.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Metrics}
+\small
+\begin{itemize}
+    \item \textbf{Macro-F1 (primary):} the mean of the per-class F1 scores,
+          \[
+              \mathrm{F1}_c = \frac{2\,P_c R_c}{P_c + R_c}, \qquad
+              \text{Macro-F1} = \frac{1}{10} \sum_{c=1}^{10} \mathrm{F1}_c ,
+          \]
+          where $P_c$ and $R_c$ are the precision and recall of class $c$. A weak class lowers the score
+          even when overall accuracy is high.
+    \item \textbf{Accuracy:} the share of correctly classified images.
+    \item \textbf{Cost:}
+    \begin{itemize}
+        \item number of trainable parameters;
+        \item training time, in seconds per epoch and in total;
+        \item inference latency in milliseconds per image at batch sizes 1 and 128,
+              averaged over 50 timed batches after 5 warm-up batches.
+    \end{itemize}
+    \item \textbf{Qualitative evidence:} learning curves, the confusion matrix, and correct and incorrect
+          prediction examples for each run.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Seeds, Tuning Budget and Decision Rule}
+\begin{columns}[c]
+\begin{column}{0.56\textwidth}
+\begin{itemize}
+    \item \textbf{Repeated runs:} every reported configuration is trained with seeds 0, 1 and 2 and reported as
+          mean $\pm$ one standard deviation.
+    \item \textbf{Equal tuning budget:} at most six configurations per model, compared on validation macro-F1 at seed 0;
+          only the model's own arguments change.
+    \item \textbf{Decision rule:} model A is better than model B only if its mean validation macro-F1 is higher
+          \emph{and} the two intervals of mean $\pm$ one standard deviation do not overlap
+          (Figure~\ref{fig:decision-rule}). Otherwise the two are reported as indistinguishable.
+    \item \textbf{Accuracy alone never decides a comparison.}
+\end{itemize}
+\end{column}
+\begin{column}{0.42\textwidth}
+\begin{figure}
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm, font=\scriptsize]
+    \draw[-stealth, draw=gray] (0,0) -- (4.6,0) node[below left, font=\tiny] {validation macro-F1};
+
+    \node[anchor=west, font=\scriptsize\bfseries] at (0,2.55) {A better than B};
+    \draw[line width=1.6pt, draw=gray] (0.4,2.1) -- (1.7,2.1);
+    \fill (1.05,2.1) circle (1.6pt);
+    \node[left, font=\tiny] at (0.4,2.1) {B};
+    \draw[line width=1.6pt, draw=BKTemplate] (2.4,1.7) -- (3.8,1.7);
+    \fill[BKTemplate] (3.1,1.7) circle (1.6pt);
+    \node[right, font=\tiny] at (3.8,1.7) {A};
+
+    \node[anchor=west, font=\scriptsize\bfseries] at (0,1.15) {Indistinguishable};
+    \draw[line width=1.6pt, draw=gray] (0.9,0.7) -- (2.6,0.7);
+    \fill (1.75,0.7) circle (1.6pt);
+    \node[left, font=\tiny] at (0.9,0.7) {B};
+    \draw[line width=1.6pt, draw=BKTemplate] (2.0,0.35) -- (3.5,0.35);
+    \fill[BKTemplate] (2.75,0.35) circle (1.6pt);
+    \node[right, font=\tiny] at (3.5,0.35) {A};
+\end{tikzpicture}
+\caption{Mean $\pm$ one standard deviation over three seeds.}
+\label{fig:decision-rule}
+\end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Experiments and Hypotheses (1/2)}
+\begin{columns}[T]
+\begin{column}{0.49\textwidth}
+\begin{block}{E1: Architecture families}
+\small
+\textbf{Hypothesis:} models with a spatial prior outperform models that read the image as an unordered vector,
+at comparable capacity.\\[2pt]
+\textbf{Varies:} model family: Linear, MLP, CNN, GRU, Transformer.\\[2pt]
+\textbf{Fixed:} the training protocol and the tuning budget.\\[2pt]
+\textbf{Metrics:} validation macro-F1, accuracy, parameters, seconds per epoch, latency at batch 1 and 128.
+\end{block}
+\end{column}
+\begin{column}{0.49\textwidth}
+\begin{block}{E2: Sequence representation}
+\small
+\textbf{Hypothesis:} patch tokens outperform row and column tokens for the recurrent and Transformer models,
+because a patch keeps neighbouring pixels in both directions together.\\[2pt]
+\textbf{Varies:} rows, columns, or $4 \times 4$ patches.\\[2pt]
+\textbf{Fixed:} the architecture, its arguments and the protocol.\\[2pt]
+\textbf{Metrics:} validation macro-F1, against sequence length (28 or 49) and features per token (28 or 16).
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+%----------------------------------------------------------
+% TODO: drop E4 from this slide if the matched-budget runs are not finished by submission.
+\begin{frame}{Experiments and Hypotheses (2/2)}
+\begin{columns}[T]
+\begin{column}{0.49\textwidth}
+\begin{block}{E3: Recurrent cell}
+\small
+\textbf{Hypothesis:} the GRU matches the LSTM with fewer parameters, because sequences of 28 or 49 steps are short
+enough that the LSTM's extra gate and cell state add little.\\[2pt]
+\textbf{Varies:} cell type, GRU (62{,}218 parameters on rows) or LSTM (82{,}442).\\[2pt]
+\textbf{Fixed:} representation, hidden size, depth, dropout and the protocol.\\[2pt]
+\textbf{Metrics:} validation macro-F1, parameters, seconds per epoch. If the two are indistinguishable,
+the smaller model is preferred.
+\end{block}
+\end{column}
+\begin{column}{0.49\textwidth}
+\begin{block}{E4: Matched budget (extension)}
+\small
+\textbf{Hypothesis:} the E1 ranking reflects the architecture rather than the parameter count, so it holds
+when all models have about the same number of parameters.\\[2pt]
+\textbf{Varies:} model family, with width tuned to within 10\% of a shared budget.\\[2pt]
+\textbf{Fixed:} the budget and the protocol.\\[2pt]
+\textbf{Metrics:} validation macro-F1, with the realised parameter counts reported. E4 adds to E1 and does not replace it.
+\end{block}
+\end{column}
+\end{columns}
 \end{frame}
