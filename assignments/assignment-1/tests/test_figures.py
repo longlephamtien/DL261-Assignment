@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from src.figures import COLOURS, default_name, label, plot_curves, summarize
+from src.figures import COLOURS, configuration, default_name, label, plot_curves, summarize, variants
 from src.interfaces import RunSummary
 
 
@@ -42,9 +42,23 @@ def test_label_separates_seeds_and_representations() -> None:
     assert len(labels) == 3
 
 
-def test_every_run_is_plotted_beyond_the_palette(tmp_path: Path) -> None:
-    """Five models at three seeds exceed the colour list; none may be dropped."""
-    runs = {label(summary("m", seed, f"r{index}")): history(0.8) for index, seed in enumerate(range(len(COLOURS) + 3))}
+def test_every_configuration_is_plotted_beyond_the_palette(tmp_path: Path) -> None:
+    """More configurations than colours; none may be dropped."""
+    runs = {configuration(summary("m", 0, f"r{index}")): [history(0.8)] for index in range(len(COLOURS) + 3)}
+    plot_curves(runs, tmp_path / "curves")
+    assert (tmp_path / "curves.png").is_file()
+
+
+def test_seeds_of_one_configuration_share_a_curve(tmp_path: Path) -> None:
+    """Fifteen runs drawn individually are unreadable, so seeds average into one line."""
+    runs = {"mlp/image": [history(0.88), history(0.89), history(0.90)]}
+    plot_curves(runs, tmp_path / "curves")
+    assert (tmp_path / "curves.png").is_file()
+
+
+def test_curves_stop_at_the_shortest_seed(tmp_path: Path) -> None:
+    """Early stopping gives seeds different lengths; the mean must not thin out at the tail."""
+    runs = {"mlp/image": [history(0.88), history(0.89)[:1]]}
     plot_curves(runs, tmp_path / "curves")
     assert (tmp_path / "curves.png").is_file()
 
@@ -70,4 +84,42 @@ def test_default_name_covers_the_models_compared() -> None:
 def test_summarize_keeps_representations_apart() -> None:
     """E2 compares one architecture across representations, so they cannot be pooled."""
     rows = [row("transformer", 0, 0.90, "patches"), row("transformer", 0, 0.85, "rows")]
+    assert len(summarize(rows)) == 2
+
+
+def config(**args: object) -> dict:
+    return {"model": {"args": args}}
+
+
+def test_variants_separate_cells_of_one_recurrent_configuration() -> None:
+    """The cell ablation runs GRU and LSTM at the same model and representation."""
+    summaries = [summary("recurrent", 0), summary("recurrent", 0)]
+    configs = [config(cell_type="gru", representation="rows"), config(cell_type="lstm", representation="rows")]
+
+    marks = variants(summaries, configs)
+    assert marks == ["cell_type=gru", "cell_type=lstm"]
+    assert label(summaries[0], marks[0]) != label(summaries[1], marks[1]), "runs must not collide"
+
+
+def test_variants_stay_empty_when_a_model_appears_once() -> None:
+    """A comparison across architectures is labelled by name, so nothing is appended."""
+    summaries = [summary("recurrent", 0), summary("transformer", 0, "patches")]
+    configs = [config(cell_type="gru", representation="rows"), config(d_model=128, representation="patches")]
+
+    assert variants(summaries, configs) == ["", ""]
+    assert configuration(summaries[0]) == "recurrent/image"
+
+
+def test_variants_ignore_the_representation() -> None:
+    """`representation` already keys the configuration and must not be repeated in the variant."""
+    summaries = [summary("recurrent", 0, "rows"), summary("recurrent", 0, "patches")]
+    configs = [config(cell_type="gru", representation="rows"), config(cell_type="gru", representation="patches")]
+
+    assert variants(summaries, configs) == ["", ""]
+
+
+def test_summarize_keeps_variants_apart() -> None:
+    """Pooling GRU with LSTM would average two architectures into one row."""
+    rows = [row("recurrent", 0, 0.87) | {"variant": "cell_type=gru"},
+            row("recurrent", 0, 0.88) | {"variant": "cell_type=lstm"}]
     assert len(summarize(rows)) == 2

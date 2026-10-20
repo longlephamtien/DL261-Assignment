@@ -6,7 +6,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-COLOURS = ("#1488D8", "#030391", "#C1440E", "#2E7D32", "#6A1B9A")
+COLOURS = ("#1488D8", "#030391", "#C1440E", "#2E7D32", "#6A1B9A",
+           "#B8860B", "#00838F", "#AD1457", "#455A64")
 
 
 def save(fig: plt.Figure, path: Path, close: bool = True) -> None:

@@ -1,0 +1,155 @@
+{
+  "split": "val",
+  "runs": [
+    {
+      "run_id": "recurrent-seed0-20261019-232133",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=gru",
+      "seed": 0,
+      "parameters": 62218,
+      "best_epoch": 28,
+      "epochs_trained": 30,
+      "training_seconds": 460.22963881492615,
+      "seconds_per_epoch": 15.338318077723185,
+      "accuracy": 0.8744999766349792,
+      "macro_f1": 0.8741577968315658,
+      "inference_ms_per_image": {
+        "1": 2.130698319815565,
+        "128": 0.02060404296798879
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed1-20261019-233538",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=gru",
+      "seed": 1,
+      "parameters": 62218,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 436.27028918266296,
+      "seconds_per_epoch": 14.54002636273702,
+      "accuracy": 0.8738333582878113,
+      "macro_f1": 0.8733224952639314,
+      "inference_ms_per_image": {
+        "1": 2.241934160119854,
+        "128": 0.01962461593620901
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed2-20261019-234927",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=gru",
+      "seed": 2,
+      "parameters": 62218,
+      "best_epoch": 22,
+      "epochs_trained": 27,
+      "training_seconds": 387.9144022464752,
+      "seconds_per_epoch": 14.364973297825566,
+      "accuracy": 0.871833324432373,
+      "macro_f1": 0.871773368185408,
+      "inference_ms_per_image": {
+        "1": 2.167219179973472,
+        "128": 0.021005208436690737
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed0-20261020-210753",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=lstm",
+      "seed": 0,
+      "parameters": 82442,
+      "best_epoch": 30,
+      "epochs_trained": 30,
+      "training_seconds": 386.09722113609314,
+      "seconds_per_epoch": 12.867676957448323,
+      "accuracy": 0.8784999847412109,
+      "macro_f1": 0.8778431340292217,
+      "inference_ms_per_image": {
+        "1": 0.6349791795946658,
+        "128": 0.004971712187398225
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed1-20261020-211421",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=lstm",
+      "seed": 1,
+      "parameters": 82442,
+      "best_epoch": 27,
+      "epochs_trained": 30,
+      "training_seconds": 384.1936149597168,
+      "seconds_per_epoch": 12.8044553677241,
+      "accuracy": 0.8773333430290222,
+      "macro_f1": 0.8766592617129362,
+      "inference_ms_per_image": {
+        "1": 0.632967499550432,
+        "128": 0.0050544531222840305
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed2-20261020-212048",
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=lstm",
+      "seed": 2,
+      "parameters": 82442,
+      "best_epoch": 29,
+      "epochs_trained": 30,
+      "training_seconds": 369.2391240596771,
+      "seconds_per_epoch": 12.30517435868581,
+      "accuracy": 0.8759999871253967,
+      "macro_f1": 0.8756956036443911,
+      "inference_ms_per_image": {
+        "1": 0.6218316603917629,
+        "128": 0.005031848904764047
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    }
+  ],
+  "configurations": [
+    {
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=gru",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 62218,
+      "macro_f1_mean": 0.8730845534269683,
+      "macro_f1_sd": 0.0012098914126844277,
+      "accuracy_mean": 0.8733888864517212
+    },
+    {
+      "model": "recurrent",
+      "representation": "rows",
+      "variant": "cell_type=lstm",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 82442,
+      "macro_f1_mean": 0.876732666462183,
+      "macro_f1_sd": 0.00107564533251047,
+      "accuracy_mean": 0.8772777716318766
+    }
+  ]
+}
