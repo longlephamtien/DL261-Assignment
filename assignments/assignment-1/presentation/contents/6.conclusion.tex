@@ -3,5 +3,53 @@
 
 \section{Conclusion}
 
-\begin{frame}{Conclusion}
+%----------------------------------------------------------
+\begin{frame}{Findings}
+\small
+\begin{block}{Research question: does inductive bias or capacity govern performance here?}
+\textbf{The evidence favours inductive bias.}
+\end{block}
+
+\begin{itemize}
+    \item The most accurate model is the \emph{smallest} of the three strong ones, and keeps its margin
+          even over the best sequence configuration the ablations found.
+    \item The largest model, trained at twice the cost per epoch, is indistinguishable from a cheaper one.
+    \item The error structure that dominates every model's residual was predicted from the class means
+          before any network was trained.
+    \item \textbf{Selected model: the CNN}, $0.9110 \pm 0.0007$ macro-F1 on test, and also the cheapest
+          to run among the models competitive on accuracy, so there is no accuracy-against-speed
+          trade-off to negotiate here.
+    \item \textbf{A result can hinge on a choice made before any measurement:} the Transformer's
+          apparent tie with the MLP disappeared once the representation was varied.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Limitations and Future Work}
+\small
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\begin{block}{Limits}
+\begin{itemize}
+    \item One dataset of $28\times28$ grayscale images with balanced classes; neither the ranking nor
+          the error structure should be assumed to transfer.
+    \item Three seeds estimate a deviation from three observations, so a tie means \emph{not separated
+          at this sample size}, not equal.
+    \item One shared protocol and an equal search cap, so each figure is a score under a common
+          budget, not the best each architecture could reach.
+    \item No pretrained weights, which constrains the Transformer most.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.5\textwidth}
+\begin{block}{Next}
+\begin{itemize}
+    \item Ablate the representation for the remaining three architectures; only two of the five were
+          tested at more than one view of their input.
+    \item Reweight the loss towards Shirt, the single class that bounds macro-F1 for all five models.
+    \item Equalise parameter counts across families to separate capacity from architecture directly.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
 \end{frame}

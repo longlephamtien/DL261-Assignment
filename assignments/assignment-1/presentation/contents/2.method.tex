@@ -1,7 +1,381 @@
 % Method -- handbook section 2.3 requires this coverage
 % Pipeline, baseline and main model, loss, and what was self-implemented.
+% Architecture diagrams are drawn here from the configurations in configs/*.yaml;
+% parameter counts come from build_model() on those configurations.
 
 \section{Method}
 
-\begin{frame}{Method}
+\definecolor{dataBlue}{HTML}{1488D8}
+\definecolor{artifactGrey}{HTML}{667085}
+\tikzset{
+    stage/.style={rectangle, rounded corners=2pt, draw=#1, line width=0.6pt, fill=#1!8,
+                  minimum width=27mm, minimum height=10mm, align=center, font=\scriptsize},
+    layer/.style={rectangle, rounded corners=2pt, draw=BKTemplate, line width=0.6pt, fill=BKTemplate!10,
+                  minimum height=8mm, align=center, font=\scriptsize, inner sep=3pt},
+    neuron/.style={circle, draw=BKTemplate, line width=0.5pt, fill=BKTemplate!12, minimum size=3.6mm, inner sep=0},
+    link/.style={draw=artifactGrey!50, line width=0.3pt},
+    flow/.style={-stealth, draw=artifactGrey, line width=0.6pt},
+    dim/.style={font=\scriptsize, text=artifactGrey, align=center},
+    note/.style={font=\small, align=center},
+}
+
+% One feature map drawn as a stack of #3 squares of side #2 starting at x = #1, centred on y = 0.
+\newcommand{\featuremap}[3]{%
+    \foreach \k in {#3,...,1} {
+        \draw[draw=BKTemplate, line width=0.4pt, fill=BKTemplate!12]
+            ({#1 + 0.1*(\k-1)}, {-#2/2 + 0.1*(\k-1)}) rectangle ++(#2, #2);
+    }%
+}
+
+% Four neurons with a gap, as one column of a fully connected layer named #1 at x = #2.
+\newcommand{\neuroncolumn}[2]{%
+    \foreach \i/\y in {1/0.8, 2/0.4, 3/0, 4/-0.8} {
+        \node[neuron] (#1\i) at (#2, \y) {};
+    }
+    \node at (#2, -0.37) {\tiny$\vdots$};
+}
+
+%----------------------------------------------------------
+\begin{frame}{Pipeline Overview}
+\begin{figure}
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[x=33mm, y=-17mm]
+    \node[stage=dataBlue] at (0,0) (data)   {Fashion-MNIST\\[-1pt]\tiny\itshape 70{,}000 images};
+    \node[stage=dataBlue] at (1,0) (split)  {Split\\[-1pt]\tiny\itshape train / val / test};
+    \node[stage=dataBlue] at (2,0) (prep)   {Preprocessing\\[-1pt]\tiny\itshape normalize, augment};
+    \node[stage=dataBlue] at (3,0) (loader) {DataLoader\\[-1pt]\tiny\itshape batches of 128};
+
+    \node[stage=BKTemplate] at (3,1) (model) {Model\\[-1pt]\tiny\itshape forward pass, logits};
+    \node[stage=BKTemplate] at (2,1) (loss)  {Loss\\[-1pt]\tiny\itshape cross-entropy};
+    \node[stage=BKTemplate] at (1,1) (grad)  {Backward\\[-1pt]\tiny\itshape gradients};
+    \node[stage=BKTemplate] at (0,1) (opt)   {Optimizer\\[-1pt]\tiny\itshape AdamW step};
+
+    \node[stage=dataBlue]     at (0,2) (valid)  {Validation\\[-1pt]\tiny\itshape every epoch, argmax};
+    \node[stage=artifactGrey] at (1,2) (metric) {Metrics\\[-1pt]\tiny\itshape accuracy, macro-F1};
+    \node[stage=artifactGrey] at (2,2) (ckpt)   {Checkpoint\\[-1pt]\tiny\itshape best val macro-F1};
+    \node[stage=artifactGrey] at (3,2) (test)   {Test\\[-1pt]\tiny\itshape held out, once};
+
+    \draw[flow] (data) -- (split);
+    \draw[flow] (split) -- (prep);
+    \draw[flow] (prep) -- (loader);
+    \draw[flow] (loader) -- (model);
+    \draw[flow] (model) -- (loss);
+    \draw[flow] (loss) -- (grad);
+    \draw[flow] (grad) -- (opt);
+    \draw[flow, draw=BKTemplate, densely dashed] (opt.north) .. controls +(0,6mm) and +(-8mm,5mm) .. (model.north west)
+        node[midway, fill=white, font=\tiny, text=BKTemplate, inner sep=1.5pt] {update weights, next batch};
+    \draw[flow] (opt) -- (valid);
+    \draw[flow] (valid) -- (metric);
+    \draw[flow] (metric) -- (ckpt);
+    \draw[flow, densely dashed] (ckpt) -- (test);
+\end{tikzpicture}}
+\caption{From the dataset to the selected checkpoint; the same pipeline trains all five models.}
+\label{fig:pipeline}
+\end{figure}
+
+\vspace{-0.2cm}
+\small
+\begin{itemize}
+    \item \textbf{Shared path:} only the \emph{Model} box changes between experiments (Figure~\ref{fig:pipeline}).
+    \item \textbf{Held-out test:} the test split is evaluated once, after model selection on validation macro-F1.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Preprocessing and Batches}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\textwidth]{../results/eda/augmentation.png}
+\caption{One training image and seven augmented versions of it.}
+\label{fig:augmentation}
+\end{figure}
+
+\vspace{-0.2cm}
+\begin{itemize}
+    \item \textbf{Normalization:} $\tilde{x} = (x/255 - 0.2858) / 0.3529$, with the mean and standard deviation
+          computed on the training split only.
+    \item \textbf{Augmentation, training loader only:} random crop with 2-pixel edge padding, then horizontal flip
+          with probability 0.5 (Figure~\ref{fig:augmentation}). Validation and test images are never augmented.
+    \item \textbf{Batch:} images $(128, 1, 28, 28)$ \texttt{float32}, values in $[-0.81, 2.02]$;
+          labels $(128,)$ \texttt{int64}. Every model receives this same batch.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Shared Design of the Five Models}
+\small
+\begin{itemize}
+    \item \textbf{One output contract:} every model maps a batch to raw logits of shape $(N, 10)$.
+          No model applies softmax; the loss does it:
+          \[
+              \mathcal{L}(z, y) = -\log \frac{\exp(z_y)}{\sum_{c=1}^{10} \exp(z_c)}
+          \]
+    \item \textbf{Registry:} models are registered by name and built from a YAML configuration,
+          so the training loop has no model-specific code.
+    \item \textbf{Sequence input:} the recurrent and Transformer models receive the same image batch and convert it
+          into rows, columns or patches themselves.
+    \item \textbf{Self-implemented:} the five architectures, the data split, the training and evaluation loops,
+          and run tracking.
+    \item \textbf{From libraries:} PyTorch~\cite{paszke2019pytorch} layers (\texttt{Linear}, \texttt{Conv2d}, \texttt{GRU},
+          \texttt{LSTM}, \texttt{TransformerEncoderLayer}), optimizer and scheduler; torchvision for download and transforms;
+          scikit-learn for the stratified split and the metrics. No pretrained weights are used.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Model 1: Linear Classifier (Baseline)}
+\begin{figure}
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \draw[step=0.125, draw=artifactGrey!40, line width=0.2pt] (-3.6,-0.55) grid (-2.5,0.55);
+    \draw[draw=artifactGrey, line width=0.5pt] (-3.6,-0.55) rectangle (-2.5,0.55);
+    \node[dim] at (-3.05,-0.9) {image\\$1 \times 28 \times 28$};
+    \draw[flow] (-2.35,0) -- node[above, note] {flatten} (-0.45,0);
+
+    \neuroncolumn{in}{0}
+    \neuroncolumn{out}{2.6}
+    \foreach \i in {1,...,4} \foreach \j in {1,...,4} \draw[link] (in\i) -- (out\j);
+    \node[dim] at (0,-1.4) {784 inputs};
+    \node[dim] at (2.6,-1.4) {10 logits};
+    \node[note, text=BKTemplate] at (1.3,1.35) {$z = Wx + b$};
+\end{tikzpicture}
+\caption{The linear classifier: one affine layer from flattened pixels to class scores.}
+\label{fig:linear}
+\end{figure}
+
+\vspace{-0.2cm}
+\begin{itemize}
+    \item \textbf{Computation:} $x \in \mathbb{R}^{784}$, $W \in \mathbb{R}^{10 \times 784}$, $b \in \mathbb{R}^{10}$
+          (Figure~\ref{fig:linear}); 7{,}850 parameters.
+    \item \textbf{What it can represent:} each class score is a weighted sum of pixels, so the decision
+          boundaries between classes are hyperplanes in pixel space.
+    \item \textbf{Role:} the capacity floor of the comparison; every other model must improve on it.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Model 2: Multilayer Perceptron (MLP)}
+\begin{figure}
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \neuroncolumn{a}{0}
+    \neuroncolumn{b}{2.8}
+    \neuroncolumn{c}{5.6}
+    \neuroncolumn{d}{8.4}
+    \foreach \i in {1,...,4} \foreach \j in {1,...,4} {
+        \draw[link] (a\i) -- (b\j);
+        \draw[link] (b\i) -- (c\j);
+        \draw[link] (c\i) -- (d\j);
+    }
+    \node[dim] at (0,-1.4) {input\\784};
+    \node[dim] at (2.8,-1.4) {hidden 1: 512\\ReLU, Dropout 0.2};
+    \node[dim] at (5.6,-1.4) {hidden 2: 256\\ReLU, Dropout 0.2};
+    \node[dim] at (8.4,-1.4) {logits\\10};
+\end{tikzpicture}
+\caption{The MLP: two fully connected hidden layers between the flattened image and the logits.}
+\label{fig:mlp}
+\end{figure}
+
+\vspace{-0.3cm}
+\small
+\begin{itemize}
+    \item \textbf{Computation:} $h_1 = \mathrm{Dropout}(\mathrm{ReLU}(W_1 x + b_1))$,
+          $h_2 = \mathrm{Dropout}(\mathrm{ReLU}(W_2 h_1 + b_2))$, $z = W_3 h_2 + b_3$ (Figure~\ref{fig:mlp});
+          535{,}818 parameters.
+    \item \textbf{Activation:} $\mathrm{ReLU}(a) = \max(0, a)$ makes the model non-linear, and its gradient
+          does not shrink for positive inputs.
+    \item \textbf{Regularization:} dropout~\cite{srivastava2014dropout} sets 20\% of hidden units to zero during training;
+          weight decay 0.05 comes from the shared optimizer.
+    \item \textbf{Limit:} like the linear model, it reads a flat vector and has no notion of which pixels are neighbours.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Model 3: Convolutional Neural Network (CNN)}
+\begin{figure}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \featuremap{0}{2.0}{1}
+    \featuremap{4.0}{2.0}{4}
+    \featuremap{8.3}{1.0}{4}
+    \featuremap{11.4}{1.0}{7}
+    \featuremap{14.8}{0.5}{7}
+    \draw[draw=BKTemplate, fill=BKTemplate!12, line width=0.4pt] (17.5,-1.3) rectangle (17.8,1.3);
+    \draw[draw=BKTemplate, fill=BKTemplate!12, line width=0.4pt] (19.2,-0.8) rectangle (19.5,0.8);
+    \draw[draw=BKTemplate, fill=BKTemplate!25, line width=0.4pt] (20.9,-0.4) rectangle (21.2,0.4);
+
+    \draw[flow] (2.15,0) -- node[above, note] {Conv $3{\times}3$\\+ ReLU} (3.85,0);
+    \draw[flow] (6.45,0) -- node[above, note] {MaxPool\\$2{\times}2$} (8.15,0);
+    \draw[flow] (9.75,0) -- node[above, note] {Conv $3{\times}3$\\+ ReLU} (11.25,0);
+    \draw[flow] (13.15,0) -- node[above, note] {MaxPool\\$2{\times}2$} (14.65,0);
+    \draw[flow] (16.0,0) -- node[above, note] {flatten} (17.35,0);
+    \draw[flow] (17.95,0) -- node[above, note] {FC} (19.05,0);
+    \draw[flow] (19.65,0) -- node[above, note] {FC} (20.75,0);
+
+    \node[dim] at (1.0,-1.6)   {input\\$1{\times}28{\times}28$};
+    \node[dim] at (5.15,-1.6)  {32 feature maps\\$32{\times}28{\times}28$};
+    \node[dim] at (8.95,-1.6)  {$32{\times}14{\times}14$};
+    \node[dim] at (12.2,-1.6)  {64 feature maps\\$64{\times}14{\times}14$};
+    \node[dim] at (15.35,-1.6) {$64{\times}7{\times}7$};
+    \node[dim] at (17.65,-1.6) {3{,}136\\Dropout 0.2};
+    \node[dim] at (19.35,-1.6) {128\\ReLU};
+    \node[dim] at (21.05,-1.6) {10\\logits};
+\end{tikzpicture}}
+\caption{The CNN: two convolution stages, then a fully connected head; 421{,}642 parameters.}
+\label{fig:cnn}
+\end{figure}
+
+\vspace{-0.3cm}
+\small
+\begin{itemize}
+    \item \textbf{Convolution:} each $3 \times 3$ filter is applied at every position with the same weights; padding 1
+          keeps the $28 \times 28$ size. One filter produces one feature map, which records where that filter responds
+          (Figure~\ref{fig:cnn}).
+    \item \textbf{Pooling:} $2 \times 2$ max pooling keeps the largest response in each window. It halves the map size
+          and makes the output less sensitive to shifts of one pixel.
+    \item \textbf{Design:} our own architecture after LeNet~\cite{lecun1998gradient}, two stages of 32 and 64 filters,
+          trained from scratch.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Model 4: Recurrent Network (GRU)}
+\begin{figure}
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+    \node[note] (h0) at (0,0) {$h_0 = 0$};
+    \node[layer, minimum width=11mm] (c1) at (1.6,0) {GRU};
+    \node[layer, minimum width=11mm] (c2) at (3.4,0) {GRU};
+    \node[layer, minimum width=11mm] (c3) at (5.2,0) {GRU};
+    \node (dots) at (6.75,0) {$\cdots$};
+    \node[layer, minimum width=11mm] (c4) at (8.3,0) {GRU};
+    \node[layer] (norm) at (10.4,0) {LayerNorm};
+    \node[layer] (fc) at (12.3,0) {Linear\\$128 \to 10$};
+    \node[note] (out) at (13.9,0) {logits};
+
+    \draw[flow] (h0) -- (c1);
+    \draw[flow] (c1) -- node[above, dim] {$h_1$} (c2);
+    \draw[flow] (c2) -- node[above, dim] {$h_2$} (c3);
+    \draw[flow] (c3) -- node[above, dim] {$h_3$} (dots);
+    \draw[flow] (dots) -- node[above, dim] {$h_{27}$} (c4);
+    \draw[flow] (c4) -- node[above, dim] {$h_{28}$} (norm);
+    \draw[flow] (norm) -- (fc);
+    \draw[flow] (fc) -- (out);
+
+    \foreach \x/\t in {1.6/1, 3.4/2, 5.2/3, 8.3/28} {
+        \draw[draw=artifactGrey, fill=dataBlue!15, line width=0.4pt] (\x-0.55,-1.45) rectangle (\x+0.55,-1.3);
+        \draw[flow] (\x,-1.25) -- (\x,-0.45);
+        \node[dim] at (\x,-1.75) {$x_{\t}$: row \t};
+    }
+\end{tikzpicture}}
+\caption{The recurrent classifier reads the image one row per timestep; 62{,}218 parameters with a GRU.}
+\label{fig:gru}
+\end{figure}
+
+\vspace{-0.3cm}
+\small
+\begin{itemize}
+    \item \textbf{Timestep and input size:} one timestep is one image row, read top to bottom, so the sequence has
+          28 steps of 28 features (Figure~\ref{fig:gru}). Columns and $4 \times 4$ patches are the alternatives tested in E2.
+    \item \textbf{Hidden representation:} $h_t = \mathrm{GRU}(x_t, h_{t-1}) \in \mathbb{R}^{128}$ summarizes the rows read so far;
+          the last state $h_{28}$ is classified.
+    \item \textbf{Gates:} the GRU~\cite{cho2014learning} uses an update and a reset gate to decide how much of $h_{t-1}$ to keep.
+          The LSTM~\cite{hochreiter1997long} adds a separate cell state and a third gate (82{,}442 parameters); E3 compares the two.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Model 5: Transformer Encoder}
+\begin{figure}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[x=1cm, y=1cm]
+    % image split into 7 x 7 patches of 4 x 4 pixels
+    \draw[step=0.2, draw=BKTemplate!60, line width=0.3pt] (0,-0.6) grid (1.4,0.8);
+    \draw[draw=BKTemplate, line width=0.5pt] (0,-0.6) rectangle (1.4,0.8);
+    \node[dim] at (0.7,-0.95) {$7 \times 7$ patches\\of $4 \times 4$ pixels};
+
+    \node[layer] (proj) at (3.3,0) {Linear\\$16 \to 128$};
+    \draw[flow] (1.5,0) -- node[above, dim] {$49 \times 16$} (proj);
+
+    % token sequence: class token followed by 49 patch tokens
+    \draw[draw=BKTemplate, fill=BKTemplate!40, line width=0.4pt] (5.0,-0.3) rectangle ++(0.35,0.6);
+    \foreach \x in {5.45, 5.9, 6.35} {
+        \draw[draw=BKTemplate, fill=BKTemplate!12, line width=0.4pt] (\x,-0.3) rectangle ++(0.35,0.6);
+    }
+    \node at (6.95,0) {$\cdots$};
+    \draw[draw=BKTemplate, fill=BKTemplate!12, line width=0.4pt] (7.3,-0.3) rectangle ++(0.35,0.6);
+    \node[dim] at (5.17,0.5) {[CLS]};
+    \node[dim] at (6.3,-0.75) {$+$ learned position\\$50 \times 128$};
+    \draw[flow] (proj) -- (4.9,0);
+
+    % one encoder layer, repeated four times
+    \draw[draw=BKTemplate, rounded corners=3pt, line width=0.6pt, fill=BKTemplate!4] (8.3,-0.95) rectangle (16.7,0.95);
+    \node[font=\scriptsize\bfseries, text=BKTemplate] at (12.5,0.7) {Encoder layer $\times 4$};
+    \node[layer] (ln1) at (9.1,-0.1) {Layer\\Norm};
+    \node[layer] (att) at (10.75,-0.1) {Multi-head\\self-attention\\4 heads};
+    \node[circle, draw=BKTemplate, inner sep=0.5pt, font=\scriptsize] (add1) at (12.15,-0.1) {$+$};
+    \node[layer] (ln2) at (13.15,-0.1) {Layer\\Norm};
+    \node[layer] (ffn) at (14.75,-0.1) {FFN, GELU\\$128 \to 256$\\$\to 128$};
+    \node[circle, draw=BKTemplate, inner sep=0.5pt, font=\scriptsize] (add2) at (16.25,-0.1) {$+$};
+    \draw[flow] (7.75,0) -- (8.3,0);
+    \draw[flow] (ln1) -- (att);
+    \draw[flow] (att) -- (add1);
+    \draw[flow] (add1) -- (ln2);
+    \draw[flow] (ln2) -- (ffn);
+    \draw[flow] (ffn) -- (add2);
+    \draw[flow, densely dashed] (8.5,-0.1) -- (8.5,-0.8) -| (add1.south);
+    \draw[flow, densely dashed] (12.4,-0.1) -- (12.4,-0.8) -| (add2.south);
+
+    \node[layer] (head) at (18.1,0) {LayerNorm\\on [CLS]\\Linear $128 \to 10$};
+    \draw[flow] (16.7,0) -- (head);
+    \node[note] (out) at (20.25,0) {logits};
+    \draw[flow] (head) -- (out);
+\end{tikzpicture}}
+\caption{The Transformer classifier over $4 \times 4$ patch tokens; 540{,}170 parameters.}
+\label{fig:transformer}
+\end{figure}
+
+\vspace{-0.3cm}
+\small
+\begin{itemize}
+    \item \textbf{Tokens:} each patch is flattened to 16 values and projected to $d = 128$; a learned [CLS] token is
+          prepended, and its final state is classified (Figure~\ref{fig:transformer}), as in ViT~\cite{dosovitskiy2021image}.
+    \item \textbf{Positional encoding:} attention ignores token order, so one learned vector per position is added to each token.
+    \item \textbf{Attention~\cite{vaswani2017attention}:} queries, keys and values are linear projections of the same tokens $H$;
+          each of the 4 heads computes $\mathrm{softmax}(QK^\top / \sqrt{32})\,V$, so every token can use information from
+          every other token in one layer. Input and output are both $(N, 50, 128)$.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{The Five Models Side by Side}
+\begin{table}
+\centering
+\caption{Input view, built-in assumption and size of each model, at the configurations in \texttt{configs/}.}
+\label{tab:models}
+\small
+\begin{tabular}{llp{6.2cm}r}
+\toprule
+\textbf{Model} & \textbf{Input view} & \textbf{Built-in assumption (inductive bias)} & \textbf{Parameters} \\
+\midrule
+Linear      & 784 pixels           & class scores are linear in the pixels                 & 7{,}850 \\
+MLP         & 784 pixels           & none about pixel layout                               & 535{,}818 \\
+CNN         & $28 \times 28$ grid  & nearby pixels matter together; same filter everywhere & 421{,}642 \\
+GRU         & 28 rows of 28        & the image is an ordered sequence of rows              & 62{,}218 \\
+Transformer & 49 patches of 16     & few; positions are learned, all tokens interact       & 540{,}170 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item \textbf{No spatial prior:} Linear and MLP would learn equally well if every image had its pixels shuffled by the
+          same fixed permutation; the CNN and the patch Transformer would not.
+    \item \textbf{Unequal size:} parameter counts differ by a factor of 69 (Table~\ref{tab:models}), so results are read
+          together with cost.
+\end{itemize}
 \end{frame}

@@ -1,7 +1,170 @@
 % Problem and Data -- handbook section 2.3 requires this coverage
 % Motivation, task definition, dataset, and the exploratory findings that shape the method.
+% Figures are read from ../results/eda/, which notebooks/eda.ipynb writes, so the slides
+% always show the committed EDA output.
 
 \section{Problem and Data}
 
-\begin{frame}{Problem and Data}
+%----------------------------------------------------------
+\begin{frame}{Problem Formulation}
+\begin{itemize}
+    \item \textbf{Task:} single-label image classification, one prediction per image.
+    \item \textbf{Input:} a grayscale image $x \in \mathbb{R}^{1 \times 28 \times 28}$.
+    \item \textbf{Output:} raw logits $z = f_\theta(x) \in \mathbb{R}^{10}$, one score per class;
+          the prediction is $\hat{y} = \arg\max_c z_c$.
+    \item \textbf{Research question:} with the data, the split and the training protocol fixed,
+          how does the model family, and the way it reads the image, change macro-F1, accuracy and cost?
+    \item \textbf{Datasets:}
+    \begin{itemize}
+        \item Fashion-MNIST~\cite{xiao2017fashion} for every reported result.
+        \item MNIST for debugging the pipeline only; no MNIST number is reported.
+    \end{itemize}
+    \item \textbf{Main difficulty:} four upper-body classes share one silhouette at
+          $28 \times 28$ pixels and without colour.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Fashion-MNIST}
+\small
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{itemize}
+    \item \textbf{Source:} Zalando product photos, converted to grayscale and resized~\cite{xiao2017fashion}.
+    \item \textbf{Size:} 70{,}000 images; 60{,}000 official training, 10{,}000 official test.
+    \item \textbf{Format:} $28 \times 28$, one channel, \texttt{uint8} in $[0, 255]$; about 30\,MB compressed.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{itemize}
+    \item \textbf{Classes:} T-shirt/top, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot.
+    \item \textbf{License:} MIT.
+    \item \textbf{Balance:} every class holds exactly 10\% of each split (Figure~\ref{fig:class-distribution}),
+          so there is no class imbalance to correct.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.64\textwidth]{../results/eda/class_distribution.png}
+\caption{Images per class in the train, validation and test splits.}
+\label{fig:class-distribution}
+\end{figure}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Representative Samples}
+\begin{columns}[c]
+\begin{column}{0.36\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.82\textwidth]{../results/eda/sample_grid.png}
+\caption{Eight training images per class.}
+\label{fig:sample-grid}
+\end{figure}
+\end{column}
+\begin{column}{0.62\textwidth}
+\begin{itemize}
+    \item \textbf{Distinct shapes:} Trouser, Bag and the three footwear classes
+          have outlines no other class shares (Figure~\ref{fig:sample-grid}).
+    \item \textbf{Shared silhouette:} T-shirt/top, Pullover, Coat and Shirt differ mainly in
+          sleeve length, collar, buttons or zip, details that cover only a few pixels.
+    \item \textbf{Variation within a class:} prints, brightness and cut change from image to image.
+    \item \textbf{Fixed framing:} every garment is centred on a black background.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Class Overlap Before Training}
+\begin{columns}[c]
+\begin{column}{0.62\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{../results/eda/class_similarity.png}
+\caption{Left: cosine similarity between class mean images. Right: confusion matrix of a
+nearest-class-mean classifier on the validation split.}
+\label{fig:class-similarity}
+\end{figure}
+\end{column}
+\begin{column}{0.36\textwidth}
+\small
+\begin{itemize}
+    \item \textbf{Similar means:} cosine similarity exceeds 0.98 for Coat/Shirt, Pullover/Coat and Pullover/Shirt.
+    \item \textbf{Floor without training:} assigning each image to the closest class mean reaches
+          68.4\% validation accuracy (Figure~\ref{fig:class-similarity}).
+    \item \textbf{Uneven classes:} Shirt recall is 0.220, against 0.872 for Ankle boot.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Pixel Statistics and Spatial Structure}
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.85\textwidth]{../results/eda/pixel_intensity.png}
+\caption{Pixel intensity histogram; share of images with a non-zero value at each pixel.}
+\label{fig:pixel-intensity}
+\end{figure}
+\end{column}
+\begin{column}{0.43\textwidth}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.62\textwidth]{../results/eda/spatial_correlation.png}
+\caption{Mean pixel correlation against distance.}
+\label{fig:spatial-correlation}
+\end{figure}
+\end{column}
+\end{columns}
+
+\vspace{-0.2cm}
+\small
+\begin{itemize}
+    \item \textbf{Sparse input:} half of all training pixels are exactly 0, and the garment occupies the centre
+          (Figure~\ref{fig:pixel-intensity}), so many of the 784 flattened features carry little information.
+    \item \textbf{Redundancy:} 10 principal components explain 72.1\% of pixel variance; 100 explain 91.4\%.
+    \item \textbf{Local structure:} pixel correlation falls from 0.747 at 1 pixel to 0.159 at 10 and 0.093 at 20
+          (Figure~\ref{fig:spatial-correlation}). A convolution uses this structure; flattening removes it.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Three Sequence Views of One Image}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\textwidth]{../results/eda/sequence_profiles.png}
+\caption{Standard deviation of pixel values per timestep for row and column sequences (left)
+and per $4 \times 4$ patch token (right).}
+\label{fig:sequence-profiles}
+\end{figure}
+
+\vspace{-0.2cm}
+\small
+\begin{itemize}
+    \item \textbf{Rows or columns:} 28 timesteps of 28 features. \textbf{Patches of $4 \times 4$:} 49 tokens of 16 features.
+    \item \textbf{Where the signal sits:} no row falls below a quarter of the peak standard deviation, against one column
+          and three patch tokens (Figure~\ref{fig:sequence-profiles}). Patches gather the background into a few
+          corner tokens; rows and columns spread it over every step.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{What the Data Implies for the Method}
+\begin{itemize}
+    \item \textbf{Balanced classes:} accuracy and macro-F1 are both valid; macro-F1 is primary because it
+          weights a weak class such as Shirt as much as a strong one.
+    \item \textbf{Upper-body overlap:} the error analysis should focus on T-shirt/top, Pullover, Coat and Shirt,
+          and the nearest-class-mean result (68.4\%) is the floor every trained model must clear.
+    \item \textbf{Local correlation:} a model with a spatial prior, the CNN, is expected to lead
+          at comparable capacity.
+    \item \textbf{Uneven signal per token:} patch tokens are expected to beat row and column tokens
+          for the recurrent and Transformer models.
+    \item \textbf{Centred garments with small shifts:} random crops of $\pm 2$ pixels and horizontal flips
+          produce plausible training images without changing the label.
+\end{itemize}
 \end{frame}

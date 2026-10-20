@@ -3,5 +3,58 @@
 
 \section{Error Analysis}
 
-\begin{frame}{Error Analysis}
+%----------------------------------------------------------
+\begin{frame}{Error Groups}
+\begin{table}
+\centering
+\caption{CNN on the test split, averaged over three seeds: 888 of 10{,}000 images, an 8.9\% error rate.}
+\label{tab:error-groups}
+\small
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Group} & \textbf{Errors} & \textbf{Share} & \textbf{Classes involved} \\
+\midrule
+Upper-body garments & 576 & 64.9\% & T-shirt/top, Pullover, Coat, Shirt \\
+Footwear            &  93 & 10.5\% & Sandal, Sneaker, Ankle boot \\
+Scattered           & 219 & 24.6\% & remainder, 81\% of it involves Dress \\
+\midrule
+Total               & 888 & 100\%  & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item \textbf{Almost two thirds of all errors sit in one four-class block}, and every confusion
+          inside it is bidirectional (Table~\ref{tab:error-groups}).
+    \item Largest flows: Shirt $\to$ T-shirt/top 118 of 1{,}000 Shirts, T-shirt/top $\to$ Shirt 78,
+          Shirt $\to$ Coat 75.
+    \item \textbf{Shirt is the floor for all five models}: F1 0.7365, precision 0.753, recall 0.721.
+          It is the only class below 0.80.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Causes and Improvements}
+\small
+\begin{itemize}
+    \item \textbf{The cause is in the data, not the model.} These four classes differ by sleeve length,
+          collar shape and fabric texture, cues that survive $28\times28$ grayscale poorly. The EDA
+          predicted it: they have the most similar class means and dominate a nearest-class-mean
+          classifier before any network is trained.
+    \item \textbf{It is not architectural.} The same block holds 64\% of the MLP's errors, 64\% of the
+          GRU's, 61\% of the Transformer's and 48\% of the baseline's. The baseline is the exception
+          that confirms the rule: its errors are least concentrated only because it makes 2{,}369 of them.
+    \item \textbf{Footwear is not worth attacking:} sole shape and ankle height survive downsampling,
+          so all three exceed 0.95 F1 on only 93 errors.
+\end{itemize}
+
+\vspace{2pt}
+\begin{block}{Capacity is demonstrably not the fix}
+\small
+The Transformer carries 28\% more parameters than the CNN and a \emph{worse} Shirt F1. Three
+directions match the diagnosis instead: a class-weighted or focal loss trading precision on the
+easier classes for Shirt recall; augmentation targeted at sleeve and collar geometry rather than a
+generic crop; or a second-stage classifier specialising on the four-class block.
+\end{block}
 \end{frame}

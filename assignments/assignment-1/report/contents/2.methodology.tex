@@ -103,12 +103,14 @@ pretrained weights are used; every model starts from random initialisation.
 \label{subsec:methodology-3}
 % Required: Optimizer; learning rate; batch size; epochs; scheduler; regularization; early stopping; checkpoint criterion; seed; hardware; mixed precision if used; training time; hyperparameter selection method.
 
-Every model is trained under the identical protocol of Table~\ref{tab:protocol}. Hyperparameters
-are not tuned per architecture: one configuration was fixed in advance from values conventional
-for AdamW \cite{loshchilov2019adamw} on a small image benchmark, then applied unchanged to all
-five, since tuning each separately would confound the comparison with unequal search effort.
-Each score is therefore the score under a common budget, not the best that architecture could
-reach.
+Every model is trained under the identical protocol of Table~\ref{tab:protocol}. The optimizer,
+schedule and budget are not tuned per architecture: they were fixed in advance from values
+conventional for AdamW \cite{loshchilov2019adamw} on a small image benchmark and applied
+unchanged to all five, since tuning them separately would confound the comparison with unequal
+search effort. What each model may vary is its own architecture arguments, and that search is
+capped equally at six configurations per model, judged on validation macro-F1 at seed 0. Each
+score is therefore the score under a common protocol and an equal search budget, not the best
+that architecture could reach.
 
 \begin{table}[H]
 \centering
