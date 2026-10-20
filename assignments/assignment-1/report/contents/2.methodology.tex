@@ -4,18 +4,153 @@
 \label{subsec:methodology-1}
 % Required: Diagram of the form: raw data, preprocessing, dataloader, model, loss, optimization, prediction, post-processing, evaluation.
 
+Figure~\ref{fig:pipeline} shows the path from the raw dataset to an evaluated checkpoint. All
+five models take the same path; only the model block changes, which is what makes the comparison
+in Section~\ref{sec:results} attributable to the architecture.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/pipeline.pdf}
+    \caption{Pipeline, from the raw dataset to an evaluated checkpoint.}
+    \label{fig:pipeline}
+\end{figure}
 
 \subsection{Baseline and main methods}
 \label{subsec:methodology-2}
 % Required: Architecture, input representation, loss, metrics, strengths and limits, parameter count. State which parts were self-implemented and which came from libraries, naming the libraries.
 % Also required: Section 11.1: all five models. Linear (flatten, linear layer, cross-entropy, no softmax before the loss); MLP (at least one hidden layer, explain activations and regularization); CNN (self-designed, explain convolution, pooling and feature maps); LSTM or GRU (explain timestep definition, input size, hidden representation); Transformer (token projection and positional encoding, explain attention inputs and outputs). Section 11.3: pretrained backbones only as extensions, never as a mandatory model.
 
+All five share the loss of Equation~\ref{eq:cross-entropy} and are scored with accuracy and
+macro-F1. They differ only in how they represent the input and what structure they assume.
+
+\textbf{Linear classifier (baseline).} The image is flattened to $x \in \mathbb{R}^{784}$ and
+mapped to logits by one affine transformation,
+\begin{equation}
+    z = W x + b, \qquad W \in \mathbb{R}^{10 \times 784},\; b \in \mathbb{R}^{10},
+    \label{eq:linear}
+\end{equation}
+giving $7{,}850$ parameters. The raw logits go straight into the cross-entropy loss, with no
+softmax in front of it. It can draw only one hyperplane per class.
+
+\textbf{Multilayer perceptron (MLP).} Two hidden layers add the non-linear pixel interaction that
+Equation~\ref{eq:linear} cannot express:
+\begin{equation}
+\begin{aligned}
+    h_1 &= \mathrm{Dropout}_{0.2}(\mathrm{ReLU}(W_1 x + b_1)), \\
+    h_2 &= \mathrm{Dropout}_{0.2}(\mathrm{ReLU}(W_2 h_1 + b_2)), \\
+    z   &= W_3 h_2 + b_3,
+\end{aligned}
+\end{equation}
+with widths $784 \to 512 \to 256 \to 10$ and $535{,}818$ parameters. The activation
+$\mathrm{ReLU}(a) = \max(0, a)$ does not saturate, so gradients reach both hidden layers without
+the vanishing behaviour of a sigmoid. Dropout at $p = 0.2$ after each hidden layer, active in
+training only, forces each unit to stay useful when a random fifth of its neighbours is removed.
+Its input is a flat vector, so it has no access to spatial structure.
+
+\textbf{Convolutional network (CNN).} Designed for this task rather than taken from a reference
+model. A convolution applies a small filter at every position, so the same local pattern is
+recognised wherever it occurs and the parameter count stops scaling with image size:
+\begin{equation}
+\begin{aligned}
+    f_1 &= \mathrm{MaxPool}_2(\mathrm{ReLU}(W_1 * x + b_1)), \\
+    f_2 &= \mathrm{MaxPool}_2(\mathrm{ReLU}(W_2 * f_1 + b_2)), \\
+    z   &= W_4\,\mathrm{ReLU}(W_3\,\mathrm{vec}(f_2) + b_3) + b_4.
+\end{aligned}
+\end{equation}
+Each filter is $3 \times 3$ with padding $1$, so convolution preserves spatial extent and only
+pooling reduces it, $28 \times 28 \to 14 \times 14 \to 7 \times 7$. Each output channel is a
+feature map recording where that filter responded; channels rise $1 \to 32 \to 64$ as resolution
+falls, trading spatial precision for more patterns. Max pooling keeps the strongest response in
+each $2 \times 2$ window, halving the resolution and tolerating small translations. The flattened
+$64 \times 7 \times 7$ map feeds a $128$-unit hidden layer with dropout $0.2$, for $421{,}642$
+parameters.
+
+\textbf{Recurrent network (GRU).} The image is read as a sequence of its $28$ rows: one timestep
+per row, each an input vector of size $28$. A single-layer GRU \cite{cho2014gru} with hidden size
+$128$ carries a state $h_t$ updated at every row, so $h_t$ summarises the image from the top edge
+down to row $t$ and the final state $h_{28}$ represents the whole image:
+\begin{equation}
+    h_t = \mathrm{GRU}(x_t, h_{t-1}), \qquad
+    z = W\,\mathrm{LayerNorm}(h_{28}) + b.
+\end{equation}
+At $62{,}218$ parameters it is the smallest model with any depth, and it reaches vertical
+structure only through the order of its timesteps.
+
+\textbf{Transformer.} The image is split into $49$ non-overlapping $4 \times 4$ patches, each
+flattened to $16$ values and projected by a learned matrix $E$ to a $128$-dimensional token. A
+learned class token is prepended and a learned positional embedding $P$ added, which is necessary
+because self-attention is permutation-invariant and would otherwise discard the arrangement of
+the patches:
+\begin{equation}
+    H_0 = [\,x_{\mathrm{cls}};\, E p_1;\, \dots;\, E p_{49}\,] + P, \qquad
+    z = W\,H_L^{(\mathrm{cls})} + b.
+\end{equation}
+Four pre-norm encoder layers \cite{vaswani2017attention} follow, each with four-head
+self-attention over all $50$ tokens and a $256$-unit feed-forward block with dropout $0.1$.
+Attention takes the token sequence and returns one of the same length, each output token a
+weighted mixture of all inputs, so a patch can attend to any other regardless of distance. The
+class token gives the logits, for $540{,}170$ parameters. It assumes no locality at all.
+
+\textbf{Implementation.} The five architectures, the registry that selects them, the training
+loop, the evaluation and the figures are written by the group. Layer primitives
+(\texttt{nn.Linear}, \texttt{nn.Conv2d}, \texttt{nn.MaxPool2d}, \texttt{nn.GRU},
+\texttt{nn.TransformerEncoder}, \texttt{nn.Dropout}, \texttt{nn.LayerNorm}), the optimizers and
+the scheduler come from PyTorch \cite{paszke2019pytorch}, the dataset loader from torchvision,
+the metrics and the stratified split from scikit-learn, and the plots from matplotlib. No
+pretrained weights are used; every model starts from random initialisation.
 
 \subsection{Training setup}
 \label{subsec:methodology-3}
 % Required: Optimizer; learning rate; batch size; epochs; scheduler; regularization; early stopping; checkpoint criterion; seed; hardware; mixed precision if used; training time; hyperparameter selection method.
 
+Every model is trained under the identical protocol of Table~\ref{tab:protocol}. Hyperparameters
+are not tuned per architecture: one configuration was fixed in advance from values conventional
+for AdamW \cite{loshchilov2019adamw} on a small image benchmark, then applied unchanged to all
+five, since tuning each separately would confound the comparison with unequal search effort.
+Each score is therefore the score under a common budget, not the best that architecture could
+reach.
+
+\begin{table}[H]
+\centering
+\caption{Shared training protocol.}
+\label{tab:protocol}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Setting} & \textbf{Value} \\
+\hline
+Optimizer            & AdamW, $\eta = 3 \times 10^{-4}$, weight decay $\lambda = 0.05$ \\
+Batch size           & 128 \\
+Epochs               & 30 maximum \\
+Scheduler            & Cosine annealing over 30 epochs \\
+Regularization       & Weight decay; dropout where the architecture defines it; random crop and horizontal flip on the training loader only \\
+Early stopping       & After 5 epochs without an improvement in validation macro-F1 \\
+Checkpoint criterion & Highest validation macro-F1 \\
+Seeds                & $0$, $1$, $2$ for every configuration \\
+Hardware             & Apple M4 Pro, 14 cores, 48~GB unified memory, MPS backend \\
+Software             & Python 3.12.0, PyTorch 2.14.0, torchvision 0.29.0, scikit-learn 1.9.1 \\
+Mixed precision      & Not used; all runs are full \texttt{float32} \\
+\hline
+\end{tabularx}
+\end{table}
+
+Each seed sets the Python, NumPy and PyTorch generators together, and every run directory records
+the resolved configuration, the environment and the git commit, so any reported number traces
+back to the run that produced it. The fifteen runs took 1.76 hours, from 258~s for the Linear
+baseline to 690~s for the Transformer.
 
 \subsection{Experimental design}
 \label{subsec:methodology-4}
 % Required: Per experiment: hypothesis; changed factor; fixed factors; metrics; conclusion criteria.
+
+The main experiment varies the architecture over its five levels and fixes everything else: the
+committed split, the protocol of Table~\ref{tab:protocol} and the seed set. Its hypothesis is
+that inductive bias, not parameter count, governs macro-F1 here, and macro-F1 decides it.
+Because each sequence model is compared at its own default view of the image, the design
+confounds the architecture with that view; the ablations of Section~\ref{subsec:results-6}
+separate the two under the same criterion.
+
+The conclusion criterion was fixed before the results were seen and applies to every comparison
+in this report. Configuration $A$ is better than $B$ only when the mean validation macro-F1 of
+$A$ exceeds that of $B$ and the two intervals of mean $\pm$ one standard deviation across the
+three seeds do not overlap. Overlapping intervals mean the two are indistinguishable, which is
+itself a result and is not resolved by picking the higher mean.

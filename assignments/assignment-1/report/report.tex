@@ -12,6 +12,8 @@
 \definecolor{lightgrey}{rgb}{0.90, 0.90, 0.90}
 
 \setlength\parindent{0pt}
+% Paragraphs are unindented, so they need vertical space to be visible at all.
+\setlength\parskip{0.6em}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage[makeroom]{cancel}
@@ -296,7 +298,7 @@
 
 \captionsetup[table]{labelfont={small,bf},textfont={small,it},belowskip=-2pt,aboveskip=5pt}
 
-\usepackage[backend=biber,style=ieee]{biblatex}
+\usepackage[backend=bibtex,style=ieee]{biblatex}
 \addbibresource{references.bib}
 
 \setlength{\floatsep}{5pt plus 2pt minus 2pt}
@@ -388,13 +390,18 @@ HO CHI MINH CITY, 2026
 
 \section*{Code Availability}
 \addcontentsline{toc}{section}{Code Availability}
-The implementation, configurations and committed splits are available at
-\url{https://github.com/longlephamtien/DL261-Assignment}, and the assignment page at
-\url{https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-1/}.
+Every deliverable for this assignment is linked from the assignment page,
+\url{https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-1/}, and reachable
+directly below.
+\noindent\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Source code} & \url{https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-1} \\
+\textbf{Checkpoints} & \url{https://huggingface.co/longlephamtien/DL261-Assignment/tree/main/assignment-1/runs} \\
+\textbf{Slides} & \url{https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-1/presentation/presentation.pdf} \\
+\textbf{Presentation video} & To be added. \\
+\hline
+\end{tabularx}
 
-% Keeps biber working before the first real \cite appears; remove once the
-% content cites its references directly.
-\nocite{paszke2019pytorch}
 \printbibliography
 \addcontentsline{toc}{section}{References}
 

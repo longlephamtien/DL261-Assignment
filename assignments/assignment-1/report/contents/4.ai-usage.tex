@@ -1,6 +1,116 @@
 % AI Usage Disclosure -- handbook sections 4.1 and 5
+% Mirrors the aiDisclosure block of the assignment page, which is the single source of truth.
 % Required per tool (section 5.2): tool name and version; member who used it; stage;
 % purpose; affected sections; representative prompt or prompt-log link; how the output
 % was edited and verified; member responsible for verification; sources used for
 % verification. State explicitly if no AI tool was used (section 5.4).
+
+Claude and Gemini were used to decide what the exploratory analysis should cover, to design and scaffold the MLP, to review the training code, to write the model tests, and to draft the experiment plan. No prompt logs were retained, so each entry
+carries a prompt summary in their place, and no result or sentence in this report was accepted
+from a tool without the verification recorded below.
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Task} & Deciding which aspects of the dataset the EDA should cover \\
+\textbf{Prompt summary} & Asked which aspects of Fashion-MNIST the exploratory analysis should cover and whether the current coverage was sufficient. \\
+\textbf{AI contribution} & Proposed adding class overlap, pixel correlation against distance, and the row, column, and patch sequence profiles, and pointed out that input size and imbalance are required. \\
+\textbf{Student verification} & Executed the notebook end to end, checked every figure against its printed output, and corrected two conclusions the measurements did not support. \\
+\textbf{Affected files/sections} & \texttt{notebooks/eda.ipynb}, Dataset and EDA \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Task} & Reviewing the training code for correctness \\
+\textbf{Prompt summary} & Asked whether the training code was correct and whether it met the acceptance criteria of the issue. \\
+\textbf{AI contribution} & Found that the run directory was written before the normalization statistics were computed, that metrics were rounded before checkpoint selection, and that model factories silently accepted unknown arguments; drafted the corrections. \\
+\textbf{Student verification} & Ran the pipeline from two different working directories, confirmed the written run configuration holds the statistics, and retrained both models to confirm the reported metrics are unchanged. \\
+\textbf{Affected files/sections} & \texttt{src/train.py}, \texttt{src/data.py}, \texttt{src/models/} \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Task} & Writing pytest cases for the model contract \\
+\textbf{Prompt summary} & Asked for pytest cases covering output shape, parameter count, and rejection of invalid model arguments. \\
+\textbf{AI contribution} & Drafted the model test suite, 18 cases across both models. \\
+\textbf{Student verification} & Ran the suite, then checked a claim the assistant made about flattening being unconditional; it was wrong for unbatched input, so the guard was kept and a regression test added. \\
+\textbf{Affected files/sections} & \texttt{tests/test\_models.py}, \texttt{src/models/} \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Gemini 3.8 Flash \\
+\textbf{Used by} & Ho Minh Nhat \\
+\textbf{Task} & Proposing an MLP architecture suited to the dataset \\
+\textbf{Prompt summary} & Asked which hidden layer sizes, activation, and regularization suit 28x28 grayscale images with ten balanced classes. \\
+\textbf{AI contribution} & Suggested two hidden layers of 512 and 256 units with ReLU and dropout, and explained the trade-off against a single wider layer. \\
+\textbf{Student verification} & Trained the proposed architecture and compared its parameter count and validation macro-F1 against the linear baseline before adopting it. \\
+\textbf{Affected files/sections} & \texttt{configs/mlp.yaml}, \texttt{src/models/mlp.py}, Methodology \\
+\textbf{Responsible member} & Ho Minh Nhat \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Gemini 3.8 Flash \\
+\textbf{Used by} & Ho Minh Nhat \\
+\textbf{Task} & Generating a code skeleton for the model module \\
+\textbf{Prompt summary} & Asked for a skeleton of the model module that fits the registry interface, with depth, width, activation, and dropout taken from configuration. \\
+\textbf{AI contribution} & Drafted the classifier class and its factory function. \\
+\textbf{Student verification} & Completed and adjusted the skeleton by hand, then ran the model tests to confirm the output shape and the parameter count. \\
+\textbf{Affected files/sections} & \texttt{src/models/mlp.py} \\
+\textbf{Responsible member} & Ho Minh Nhat \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Gemini 3.8 Flash \\
+\textbf{Used by} & Ho Minh Nhat \\
+\textbf{Task} & Reviewing whether the source code matches the handbook and is internally consistent \\
+\textbf{Prompt summary} & Asked whether the modules satisfy the mandatory model requirements and whether they agree with each other on the batch and logits contract. \\
+\textbf{AI contribution} & Compared the modules against the handbook requirements and pointed out where the interfaces disagreed. \\
+\textbf{Student verification} & Re-read the relevant handbook sections and checked each point against the code, then ran the test suite. \\
+\textbf{Affected files/sections} & \texttt{src/} \\
+\textbf{Responsible member} & Ho Minh Nhat \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Task} & Drafting the experiment plan and fairness protocol \\
+\textbf{Prompt summary} & Asked for an experiment plan fixing the shared protocol, the seed count, the tuning budget, and a quantitative rule for deciding when one model is better. \\
+\textbf{AI contribution} & Drafted the plan, proposed the non-overlap rule on mean plus or minus one standard deviation across seeds, and pointed out that the handbook requires this content in the report rather than as a repository file. \\
+\textbf{Student verification} & Checked every protocol value against the base configuration and the committed split, confirmed the per-epoch timings against the recorded runs, and confirmed each experiment maps to an existing backlog issue. \\
+\textbf{Affected files/sections} & \texttt{EXPERIMENTS.md}, Experimental setup \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
 
