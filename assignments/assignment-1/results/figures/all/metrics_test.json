@@ -1,0 +1,357 @@
+{
+  "split": "test",
+  "runs": [
+    {
+      "run_id": "cnn-seed0-20261019-231441",
+      "model": "cnn",
+      "representation": "image",
+      "seed": 0,
+      "parameters": 421642,
+      "best_epoch": 29,
+      "epochs_trained": 30,
+      "training_seconds": 409.53410506248474,
+      "seconds_per_epoch": 13.648344326019288,
+      "accuracy": 0.9111999869346619,
+      "macro_f1": 0.9109215944687878,
+      "inference_ms_per_image": {
+        "1": 0.306420840206556,
+        "128": 0.007316484372950072
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "cnn-seed1-20261019-232916",
+      "model": "cnn",
+      "representation": "image",
+      "seed": 1,
+      "parameters": 421642,
+      "best_epoch": 24,
+      "epochs_trained": 29,
+      "training_seconds": 379.6596522331238,
+      "seconds_per_epoch": 13.089153018491022,
+      "accuracy": 0.9118000268936157,
+      "macro_f1": 0.9117328937224036,
+      "inference_ms_per_image": {
+        "1": 0.3077383400523104,
+        "128": 0.006761979218481429
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "cnn-seed2-20261019-234256",
+      "model": "cnn",
+      "representation": "image",
+      "seed": 2,
+      "parameters": 421642,
+      "best_epoch": 27,
+      "epochs_trained": 30,
+      "training_seconds": 388.4114739894867,
+      "seconds_per_epoch": 12.944108327229818,
+      "accuracy": 0.9106000065803528,
+      "macro_f1": 0.9102418592436843,
+      "inference_ms_per_image": {
+        "1": 0.30206332012312487,
+        "128": 0.006780670469197503
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "linear-seed0-20260922-215714",
+      "model": "linear",
+      "representation": "image",
+      "seed": 0,
+      "parameters": 7850,
+      "best_epoch": 22,
+      "epochs_trained": 27,
+      "training_seconds": 280.4547140598297,
+      "seconds_per_epoch": 10.386148964917219,
+      "accuracy": 0.7612000107765198,
+      "macro_f1": 0.760393574813896,
+      "inference_ms_per_image": {
+        "1": 0.03469666000455618,
+        "128": 0.0004305859397391032
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "linear-seed1-20261019-222817",
+      "model": "linear",
+      "representation": "image",
+      "seed": 1,
+      "parameters": 7850,
+      "best_epoch": 23,
+      "epochs_trained": 28,
+      "training_seconds": 297.8490228652954,
+      "seconds_per_epoch": 10.63626950127738,
+      "accuracy": 0.7659000158309937,
+      "macro_f1": 0.7642209058800968,
+      "inference_ms_per_image": {
+        "1": 0.03593915986130014,
+        "128": 0.0004192903111288615
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "linear-seed2-20261019-225007",
+      "model": "linear",
+      "representation": "image",
+      "seed": 2,
+      "parameters": 7850,
+      "best_epoch": 13,
+      "epochs_trained": 18,
+      "training_seconds": 194.785227060318,
+      "seconds_per_epoch": 10.820172336366442,
+      "accuracy": 0.7623000144958496,
+      "macro_f1": 0.7609395955263424,
+      "inference_ms_per_image": {
+        "1": 0.036035839875694364,
+        "128": 0.00042339187530160416
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "mlp-seed0-20260922-220156",
+      "model": "mlp",
+      "representation": "image",
+      "seed": 0,
+      "parameters": 535818,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 338.5748269557953,
+      "seconds_per_epoch": 11.283702580134074,
+      "accuracy": 0.8805000185966492,
+      "macro_f1": 0.880319003131059,
+      "inference_ms_per_image": {
+        "1": 0.1235725000151433,
+        "128": 0.0021428060927064507
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "mlp-seed1-20261019-223317",
+      "model": "mlp",
+      "representation": "image",
+      "seed": 1,
+      "parameters": 535818,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 329.0124351978302,
+      "seconds_per_epoch": 10.964196491241456,
+      "accuracy": 0.8831999897956848,
+      "macro_f1": 0.8826382359831977,
+      "inference_ms_per_image": {
+        "1": 0.13294250005856156,
+        "128": 0.0023072851558936236
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "mlp-seed2-20261019-225325",
+      "model": "mlp",
+      "representation": "image",
+      "seed": 2,
+      "parameters": 535818,
+      "best_epoch": 27,
+      "epochs_trained": 30,
+      "training_seconds": 351.31143403053284,
+      "seconds_per_epoch": 11.708281095822652,
+      "accuracy": 0.8791999816894531,
+      "macro_f1": 0.8790710635253219,
+      "inference_ms_per_image": {
+        "1": 0.12834416003897786,
+        "128": 0.002231289061001007
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed0-20261019-232133",
+      "model": "recurrent",
+      "representation": "rows",
+      "seed": 0,
+      "parameters": 62218,
+      "best_epoch": 28,
+      "epochs_trained": 30,
+      "training_seconds": 460.22963881492615,
+      "seconds_per_epoch": 15.338318077723185,
+      "accuracy": 0.8686000108718872,
+      "macro_f1": 0.8682048514080594,
+      "inference_ms_per_image": {
+        "1": 2.0574483199743554,
+        "128": 0.02082376953012499
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed1-20261019-233538",
+      "model": "recurrent",
+      "representation": "rows",
+      "seed": 1,
+      "parameters": 62218,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 436.27028918266296,
+      "seconds_per_epoch": 14.54002636273702,
+      "accuracy": 0.8664000034332275,
+      "macro_f1": 0.8660083761237838,
+      "inference_ms_per_image": {
+        "1": 1.9792858400614932,
+        "128": 0.01867516265519953
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "recurrent-seed2-20261019-234927",
+      "model": "recurrent",
+      "representation": "rows",
+      "seed": 2,
+      "parameters": 62218,
+      "best_epoch": 22,
+      "epochs_trained": 27,
+      "training_seconds": 387.9144022464752,
+      "seconds_per_epoch": 14.364973297825566,
+      "accuracy": 0.8658000230789185,
+      "macro_f1": 0.8660180557518469,
+      "inference_ms_per_image": {
+        "1": 2.1691783200367354,
+        "128": 0.018895937498655258
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "transformer-seed0-20260928-195935",
+      "model": "transformer",
+      "representation": "patches",
+      "seed": 0,
+      "parameters": 540170,
+      "best_epoch": 26,
+      "epochs_trained": 30,
+      "training_seconds": 699.2357947826385,
+      "seconds_per_epoch": 23.299366664886474,
+      "accuracy": 0.8816999793052673,
+      "macro_f1": 0.8807162931950099,
+      "inference_ms_per_image": {
+        "1": 1.0576574999140576,
+        "128": 0.028128873750574712
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "transformer-seed1-20261019-223849",
+      "model": "transformer",
+      "representation": "patches",
+      "seed": 1,
+      "parameters": 540170,
+      "best_epoch": 28,
+      "epochs_trained": 30,
+      "training_seconds": 675.934895992279,
+      "seconds_per_epoch": 22.522540163993835,
+      "accuracy": 0.8788999915122986,
+      "macro_f1": 0.8785489157917759,
+      "inference_ms_per_image": {
+        "1": 1.088234180060681,
+        "128": 0.02767628906212849
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "transformer-seed2-20261019-225919",
+      "model": "transformer",
+      "representation": "patches",
+      "seed": 2,
+      "parameters": 540170,
+      "best_epoch": 28,
+      "epochs_trained": 30,
+      "training_seconds": 693.5924320220947,
+      "seconds_per_epoch": 23.11195208231608,
+      "accuracy": 0.8805999755859375,
+      "macro_f1": 0.8795210933889541,
+      "inference_ms_per_image": {
+        "1": 1.123246680072043,
+        "128": 0.028386445312662545
+      },
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch_threads": 10
+    }
+  ],
+  "configurations": [
+    {
+      "model": "cnn",
+      "representation": "image",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 421642,
+      "macro_f1_mean": 0.9109654491449586,
+      "macro_f1_sd": 0.0007464840109801395,
+      "accuracy_mean": 0.9112000068028768
+    },
+    {
+      "model": "linear",
+      "representation": "image",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 7850,
+      "macro_f1_mean": 0.7618513587401118,
+      "macro_f1_sd": 0.0020701690489097115,
+      "accuracy_mean": 0.7631333470344543
+    },
+    {
+      "model": "mlp",
+      "representation": "image",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 535818,
+      "macro_f1_mean": 0.8806761008798596,
+      "macro_f1_sd": 0.0018101985906815903,
+      "accuracy_mean": 0.8809666633605957
+    },
+    {
+      "model": "recurrent",
+      "representation": "rows",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 62218,
+      "macro_f1_mean": 0.8667437610945633,
+      "macro_f1_sd": 0.0012653505845985102,
+      "accuracy_mean": 0.8669333457946777
+    },
+    {
+      "model": "transformer",
+      "representation": "patches",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 540170,
+      "macro_f1_mean": 0.8795954341252467,
+      "macro_f1_sd": 0.0010855994246575262,
+      "accuracy_mean": 0.8803999821345011
+    }
+  ]
+}

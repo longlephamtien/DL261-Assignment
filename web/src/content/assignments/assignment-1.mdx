@@ -9,8 +9,10 @@ resources:
     href: https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-1
   - label: Checkpoints
     href: https://huggingface.co/longlephamtien/DL261-Assignment/tree/main/assignment-1/runs
-  - label: Report and slides
-    href: null
+  - label: Report
+    href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-1/report/report.pdf
+  - label: Slides
+    href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-1/presentation/presentation.pdf
   - label: YouTube video
     href: null
 references: []
@@ -105,7 +107,7 @@ The aim is a controlled comparison of architecture families on one split under o
 
 ## Dataset and EDA
 
-Fashion-MNIST: 70,000 grayscale images of $28 \times 28$ pixels, one channel, `uint8` in $[0, 255]$, ten classes. The official 60,000 training images are split once, stratified by class, with seed 0. Those indices are fixed and reused by every model; the official test set is held out.
+Fashion-MNIST: 70,000 grayscale images of $28 \times 28$ pixels, one channel, `uint8` in $[0, 255]$, ten classes. The official 60,000 training images are split once, stratified by class, with seed 0. Those indices are fixed and reused by every model; the official test set is held out. The max-to-min per-class ratio is 1.000 in every subset, so accuracy and Macro F1 are not distorted by class priors.
 
 :::table{label="tab:splits"}
 | Subset | Images | Per class |
@@ -114,7 +116,7 @@ Fashion-MNIST: 70,000 grayscale images of $28 \times 28$ pixels, one channel, `u
 | Validation | 6,000 | 600 |
 | Test | 10,000 | 1,000 |
 
-Split sizes. The max-to-min per-class ratio is 1.000 in every subset, so the classes are balanced and accuracy and macro-F1 are not distorted by class priors.
+Split sizes.
 :::
 
 Half of all training pixels are exactly zero and the garment is centred, so most of the 784 flattened features carry no signal. :ref[fig:samples] shows the variation within each class: footwear and bags are distinctive, while the upper-body garments share a silhouette.
@@ -130,17 +132,17 @@ Class overlap is measurable before any training. Cosine similarity between class
 :::figure{label="fig:overlap"}
 ![Two heatmaps: on the left, cosine similarity between the ten class mean images; on the right, the confusion matrix of a nearest-class-mean classifier on the validation split](/DL261-Assignment/assignments/assignment-1/class_similarity.svg)
 
-Class mean similarity and the nearest-class-mean confusion matrix. Both isolate the same upper-body garment cluster.
+Class mean similarity and the nearest-class-mean confusion matrix.
 :::
 
 The flattened view is highly redundant: ten principal components explain $72.1\%$ of pixel variance and one hundred explain $91.4\%$. Pixel correlation falls from $0.747$ at a distance of one pixel to $0.159$ at ten and $0.093$ at twenty, the local structure a convolution exploits and a flattened view discards.
 
-The same image also supports three sequence views, which the recurrent and Transformer models will consume. Rows and columns give 28 timesteps of 28 features; $4 \times 4$ patches give 49 tokens of 16. :ref[fig:sequences] shows how unevenly each view spreads its signal.
+The same image also supports three sequence views, which the recurrent and Transformer models will consume. Rows and columns give 28 timesteps of 28 features; $4 \times 4$ patches give 49 tokens of 16. :ref[fig:sequences] shows how unevenly each view spreads its signal: no row falls below a quarter of peak signal, against one column and three patch tokens, so patch tokenisation isolates background into a few weak tokens while row and column sequences spread it across every step.
 
 :::figure{label="fig:sequences"}
 ![On the left, standard deviation per timestep for row and column sequences, both rising from the image border towards the centre; on the right, a 7 by 7 heatmap of standard deviation per 4 by 4 patch token](/DL261-Assignment/assignments/assignment-1/sequence_profiles.svg)
 
-Signal per timestep. No row falls below a quarter of peak signal, against one column and three patch tokens, so patch tokenisation isolates background into a few weak tokens while row and column sequences spread it across every step.
+Signal per timestep, and per $4 \times 4$ patch token.
 :::
 
 ## Methodology
@@ -180,7 +182,41 @@ $$
 - **Regularization:** $\text{Dropout}(p=0.2)$ is applied after each hidden layer during training to reduce co-adaptation between units.
 - **Complexity:** The architecture totals $535,818$ trainable parameters.
 
-*(Note: Convolutional, Recurrent, and Transformer architectures will be integrated in Milestone 2).*
+### Convolutional Network (CNN)
+
+A convolution replaces the dense mapping with a small filter applied at every position, so the same local pattern is recognised wherever it appears and the parameter count no longer scales with image size. Two stages of convolution, ReLU and max pooling precede the classifier:
+
+$$
+\begin{aligned}
+f_1 &= \text{MaxPool}_2(\text{ReLU}(W_1 * x + b_1)) \\
+f_2 &= \text{MaxPool}_2(\text{ReLU}(W_2 * f_1 + b_2)) \\
+z &= W_4\,\text{ReLU}(W_3\,\text{vec}(f_2) + b_3) + b_4
+\end{aligned}
+$$
+
+Each filter is $3 \times 3$ with padding $1$, so the convolution preserves spatial extent and only pooling reduces it: $28 \times 28 \to 14 \times 14 \to 7 \times 7$. The channel count rises $1 \to 32 \to 64$ as resolution falls, and each output channel is one feature map recording where its filter responds. The flattened $64 \times 7 \times 7$ map feeds a $128$-unit hidden layer with dropout $0.2$, giving $421{,}642$ parameters.
+
+### Recurrent Network (GRU)
+
+The image is read as a sequence of its $28$ rows, one timestep per row, each a $28$-dimensional input vector. A single-layer GRU with hidden size $128$ maintains a state $h_t$ that is updated at every row, and the final state $h_{28}$ summarises the whole image:
+
+$$
+h_t = \text{GRU}(x_t, h_{t-1}), \qquad z = W\,\text{LayerNorm}(h_{28}) + b
+$$
+
+The model sees vertical structure only through the order of its timesteps, never as a spatial neighbourhood, which makes it the weakest inductive bias among the sequence models at $62{,}218$ parameters.
+
+### Transformer
+
+The image is split into $49$ non-overlapping $4 \times 4$ patches, each flattened to $16$ values and projected to a $128$-dimensional token. A learned class token is prepended and a learned positional embedding is added, since attention is permutation-invariant and would otherwise discard the arrangement of the patches:
+
+$$
+H_0 = [\,x_{\text{cls}};\, E p_1;\, \dots;\, E p_{49}\,] + P, \qquad z = W\,H_L^{(\text{cls})} + b
+$$
+
+Four pre-norm encoder layers follow, each with four-head self-attention over all $50$ tokens and a $256$-unit feed-forward block, dropout $0.1$. Attention takes the full token sequence as input and returns a sequence of the same length, in which every token is a weighted mixture of all others, so a patch can attend to any other patch regardless of distance. The class token is read out for the logits, giving $540{,}170$ parameters.
+
+All five models are implemented from scratch in PyTorch and trained from random initialisation; no pretrained weights are used anywhere.
 
 ## Experimental setup
 
@@ -189,38 +225,134 @@ All models are trained under a strictly controlled experimental protocol:
 - **Preprocessing:** Normalization with training-split statistics, mean $0.2858$ and standard deviation $0.3529$; random crop and horizontal flip on the training loader only.
 - **Optimization:** AdamW optimizer with initial learning rate $\eta = 3 \times 10^{-4}$, weight decay $\lambda = 0.05$, and batch size $128$.
 - **Scheduler:** Cosine annealing learning rate schedule over $30$ epochs.
-- **Model selection:** Checkpointing based on the highest validation Macro F1 score (`val_macro_f1`) with early stopping patience of $5$ epochs. The test split is not evaluated in this milestone.
+- **Seeds:** Every configuration is trained at seeds $0$, $1$ and $2$, and reported as a mean plus or minus one standard deviation.
+- **Model selection:** The checkpoint is the epoch with the highest validation Macro F1 (`val_macro_f1`), with early stopping after $5$ epochs without improvement. Validation therefore selects both the epoch and the architecture, so the test split was evaluated once, after selection concluded.
 - **Hardware:** Apple M4 Pro, 14 cores, 48 GB unified memory, MPS backend.
 - **Software:** Python 3.12.0, PyTorch 2.14.0, torchvision 0.29.0, scikit-learn 1.9.1.
 
-Accuracy and Macro F1 depend only on the seed and the fixed split, so they reproduce anywhere; times do not, so both models were trained back to back on an idle machine.
+A model is reported as better than another only when its mean validation Macro F1 is higher and the two intervals of mean plus or minus one standard deviation do not overlap; otherwise the two are reported as indistinguishable, which is itself a result. Accuracy and Macro F1 depend only on the seed and the fixed split, so they reproduce anywhere; times do not, so all fifteen runs were trained consecutively on an idle machine.
 
 ## Results
 
-:::table{label="tab:m1_preliminary_results"}
-| Model Architecture | Parameters | Best Epoch / Total | Training Time | Validation Accuracy | Validation Macro F1 |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Linear Classifier** | 7,850 | 22 / 27 (Early stop) | 280s (10.4 s/epoch) | 77.13% | **76.98%** |
-| **MLP (512-256)** | 535,818 | 26 / 30 | 339s (11.3 s/epoch) | 88.62% | **88.59%** |
+:::table{label="tab:results"}
+| Model | Parameters | s/epoch | ms/image at batch 1 | Validation Macro F1 | Test Macro F1 | Test accuracy |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **CNN** | 421,642 | 13.2 | 0.305 | **0.9198 ± 0.0018** | **0.9110 ± 0.0007** | **0.9112 ± 0.0006** |
+| MLP | 535,818 | 11.3 | 0.128 | 0.8862 ± 0.0015 | 0.8807 ± 0.0018 | 0.8810 ± 0.0020 |
+| Transformer | 540,170 | 23.0 | 1.090 | 0.8834 ± 0.0023 | 0.8796 ± 0.0011 | 0.8804 ± 0.0014 |
+| GRU | 62,218 | 14.7 | 2.069 | 0.8731 ± 0.0012 | 0.8667 ± 0.0013 | 0.8669 ± 0.0015 |
+| Linear | 7,850 | 10.6 | 0.036 | 0.7697 ± 0.0025 | 0.7619 ± 0.0021 | 0.7631 ± 0.0025 |
 
-Preliminary comparison of baseline architectures on the Fashion-MNIST validation split for Milestone 1 Draft. Both checkpoints are published at revision `4f862a4` with SHA-256 checksums, next to the configuration, environment record, and per-epoch history that produced them.
+Architecture comparison.
 :::
 
 :::figure{label="fig:curves"}
-![On the left, cross-entropy loss against epoch; on the right, macro-F1 against epoch; solid lines for training and dashed for validation, for both the linear and MLP models](/DL261-Assignment/assignments/assignment-1/learning_curves.svg)
+![Two panels sharing an epoch axis: cross-entropy loss on the left and macro-F1 on the right, one line per architecture averaged over three seeds, solid for validation and dashed for training, each with a shaded band](/DL261-Assignment/assignments/assignment-1/learning_curves.svg)
 
-Learning curves, solid for training and dashed for validation.
+Learning curves per architecture, averaged over three seeds.
 :::
+
+Inference time is per image at batch size 1, and all fifteen runs were trained consecutively on one idle machine, so the times compare with each other but do not transfer to other hardware. Each number in :ref[tab:results] traces back to a run identifier, its configuration, its environment record and its checkpoint.
+
+In :ref[fig:curves], validation scores better than training rather than worse: for the CNN, the MLP and the Linear baseline, validation loss is below training loss and validation Macro F1 above training Macro F1 at every epoch of every seed, while the Transformer and the GRU behave the same way over most of training and cross over in the final third. This is not leakage: augmentation and dropout are active during training only, so the training metrics are measured on a harder version of the task. No model overfits, since validation loss is still at its minimum in the final epoch for every architecture. The spread across seeds is small enough, at most $0.0025$ in Macro F1, that the architecture ranking is stable.
+
+Validation overstates test performance for every architecture, by at most $0.0088$ Macro F1. The ordering is unchanged, so selecting on validation did not select a model that fails to generalise, but the gap is the price of having used validation four times over: once per epoch, once for checkpointing, once for early stopping, and once for choosing the architecture.
+
+## Qualitative results
+
+:::figure{label="fig:confusion"}
+![A ten by ten heatmap of the CNN confusion matrix on the test split, normalised by row to percentages; the diagonal dominates, and the only substantial off-diagonal mass forms a block among T-shirt/top, Pullover, Coat and Shirt](/DL261-Assignment/assignments/assignment-1/confusion_cnn_test.svg)
+
+Confusion matrix of the CNN on the test split, rows normalised to percent.
+:::
+
+:::figure{label="fig:predictions"}
+![Eight correctly classified test images, each captioned with the true label, the predicted label and the confidence](/DL261-Assignment/assignments/assignment-1/predictions_correct.png)
+![Eight misclassified test images, each captioned with the true label, the predicted label and the confidence](/DL261-Assignment/assignments/assignment-1/predictions_incorrect.png)
+
+CNN predictions on the test split: correct above, errors below.
+:::
+
+:ref[fig:confusion] shows that the CNN's residual error is not spread over the ten classes but concentrated in one block. In :ref[fig:predictions] the upper row is the first eight test images in loader order, the lower the eight errors the model was most confident about. The upper row of :ref[fig:predictions] includes two genuinely difficult cases the model still resolves: a plaid Shirt at confidence $0.97$ and a dark hooded Coat at $0.80$, both recognised from texture and silhouette rather than from brightness. The lower row is more informative, because these are failures at confidence $0.99$ or above: a sleeveless garment labelled T-shirt/top but predicted Dress, a flat open-backed shoe labelled Ankle boot but predicted Sandal, and a Trouser predicted Dress. These are not cases the model is unsure about; they are cases where the $28 \times 28$ grayscale image is compatible with both labels, which places a ceiling on the task that no architecture here can pass.
 
 ## Comparison and discussion
 
-As demonstrated in :ref[tab:m1_preliminary_results], the Multilayer Perceptron outperforms the linear baseline, achieving an increase of **+11.60% in Macro F1** ($88.59\%$ vs $76.98\%$) for $68$ times the parameters and $1.09$ times the cost per epoch.
+Applying the decision rule of the previous section to :ref[tab:results], the CNN beats all four alternatives, the MLP and the Transformer are indistinguishable from each other, both beat the GRU, and all four beat the Linear baseline. The CNN's margin on test is $0.0303$ Macro F1 over the MLP and $0.1491$ over the baseline.
 
-1. **Inductive Bias and Non-linearity:** The linear classifier is constrained to hyperplanar decision boundaries in pixel space $\mathbb{R}^{784}$, which is insufficient for resolving complex intra-class variations in clothing shapes (e.g., distinguishing Pullover vs Coat). The MLP, equipped with hidden layers and ReLU non-linearities, learns hierarchical representations capable of isolating non-linearly separable manifolds. The nearest-class-mean floor of $68.4\%$ and the linear model's $76.98\%$ sit closer to each other than either does to the MLP, so the linear model extracts little beyond class-mean templates.
-2. **Training Dynamics:** The linear model saturates early and triggers early stopping at epoch 27 (best epoch 22), reflecting its limited capacity. In contrast, the MLP exhibits steady convergence across all 30 epochs without overfitting, aided by dropout regularization ($p=0.2$) and weight decay.
-3. **Validation above Training:** In :ref[fig:curves] the validation scores exceed the training scores for both models. This is not leakage: augmentation and dropout are active during training only, so the training metrics are measured on a harder version of the task.
-4. **Cost:** Parameter count is a poor proxy for cost at this scale, since both models are dominated by data loading rather than by their matrix multiplications. Inference latency will separate the architectures more sharply.
+The ranking does not follow capacity. The CNN wins with $21\%$ fewer parameters than the MLP and $22\%$ fewer than the Transformer, and the Transformer, the largest model and the most expensive to train, does not separate from an MLP that trains in half the time. What distinguishes the five is the inductive bias each imposes on the same pixels, and that bias follows from the input representation. The CNN keeps the image as a grid and assumes locality and translation equivariance, which matches the pixel correlation measured in the EDA; the weight sharing this implies is why it is at once the most accurate and the smallest of the three strong models. The MLP receives a flattened vector in which neighbouring pixels are no longer neighbours, so it must learn that structure from data and pays for it in parameters. The GRU sees row vectors in sequence, capturing real vertical structure but asserting a processing order a static image does not have. The Transformer has no locality prior at all, so attention must discover neighbourhood relations from data, and at this scale it does not recover the gap. The baseline's $0.7619$ measures directly that the classes are not linearly separable in pixel space.
+
+Accuracy is not the only axis. The GRU reaches $0.8667$ with under an eighth of the MLP's parameters, trailing it by $0.0140$, yet is the slowest at inference, $2.069$ ms per image against the CNN's $0.305$, because its timesteps are sequential while convolution is not. Among the models competitive on accuracy, however, the CNN is also the cheapest to run, so here there is no accuracy-against-speed trade-off to negotiate.
+
+Two conclusions do not follow. The first is that attention is the reason the Transformer trails: the ablation below shows that most of its deficit against the MLP comes from the patch tokenisation it was given, not from the architecture, so the attribution above holds for the Transformer only as configured here. The second is that any single component of the CNN causes its advantage; separating locality from weight sharing from pooling would need a further ablation that was not run.
 
 ## Error analysis
 
+The CNN misclassifies $888$ of the $10{,}000$ test images, an error rate of $8.9\%$ averaged over three seeds. They fall into three groups of very unequal size.
+
+**Upper-body garments, $576$ errors ($65\%$).** Almost two thirds of the total, every confusion bidirectional. The largest flows are Shirt predicted as T-shirt/top, $118$ of $1{,}000$ Shirts, then T-shirt/top as Shirt, $78$, and Shirt as Coat, $75$. Shirt is the only class below $0.80$ F1, at $0.7365$ with precision $0.753$ and recall $0.721$, and it is the lowest class for all five architectures. The cause lies in the data: these classes are separated by sleeve length, collar shape and fabric texture, and :ref[fig:overlap] showed before any training that they have the most similar class means. The same block holds $64\%$ of the MLP's errors, $64\%$ of the GRU's, $61\%$ of the Transformer's and $48\%$ of the Linear baseline's, so it is a property of the task at this resolution rather than of any one architecture. The baseline is the exception that confirms it: its errors are the least concentrated only because it also makes $2{,}369$ of them, spreading failure over classes the other four separate easily.
+
+**Footwear, $93$ errors ($10\%$).** Only $93$ across three semantically close classes. Sole shape and ankle height survive downsampling far better than fabric texture, which is why all three exceed $0.95$ F1 and why this group is not worth attacking.
+
+**Scattered, $219$ errors ($25\%$).** Spread thinly and dominated by Dress, which is involved in $81\%$ of it, chiefly against Shirt and Coat. This group includes the confident failures of :ref[fig:predictions], where the annotation is arguably as much at fault as the prediction.
+
+Only the first group is worth improving, and capacity is demonstrably not the way: the Transformer carries $28\%$ more parameters than the CNN and a worse Shirt F1. A class-weighted or focal loss would trade precision on the three easier classes for recall on Shirt, where Macro F1 is actually lost. Augmentation targeted at sleeve and collar geometry would make the separating cues more salient than a random crop does. A second-stage classifier trained only on the four-class block would let it specialise on the $65\%$ of errors that matter.
+
+## Ablation study
+
+The comparison above gives each sequence model its own default view of the image, so it confounds the architecture with that view. Two ablations separate them. Both hold the protocol and the three seeds fixed, both are judged on validation by the same decision rule, and the test split is not touched.
+
+### Sequence representation
+
+The first ablation fixes the architecture and varies only how the image is turned into a sequence: $28$ rows of $28$ features, $28$ columns of $28$, or $49$ patches of $16$. :ref[tab:ablation-representation] and :ref[fig:ablation] report the result.
+
+:::table{label="tab:ablation-representation"}
+| Model | Representation | Tokens | Parameters | s/epoch | Validation Macro F1 |
+| :--- | :--- | :--- | ---: | ---: | ---: |
+| GRU | rows | $28 \times 28$ | 62,218 | 14.7 | **0.8731 ± 0.0012** |
+| GRU | columns | $28 \times 28$ | 62,218 | 14.6 | 0.8726 ± 0.0017 |
+| GRU | $4 \times 4$ patches | $49 \times 16$ | 57,610 | 17.8 | 0.8215 ± 0.0007 |
+| Transformer | rows | $28 \times 28$ | 539,018 | 18.4 | **0.8987 ± 0.0024** |
+| Transformer | columns | $28 \times 28$ | 539,018 | 18.4 | 0.8961 ± 0.0014 |
+| Transformer | $4 \times 4$ patches | $49 \times 16$ | 540,170 | 23.0 | 0.8834 ± 0.0023 |
+
+Sequence representation.
+:::
+
+The hypothesis that patch tokens would win, because a patch preserves two-dimensional locality, is refuted for both architectures: patches are the worst of the three every time. Rows and columns are indistinguishable from each other, which is expected, since these garments are roughly symmetric about the vertical axis and neither scan direction sees more structure than the other.
+
+:::figure{label="fig:ablation"}
+![Two panels sharing an epoch axis, cross-entropy loss on the left and macro-F1 on the right, with six coloured lines for the three representations of each sequence model, the recurrent patch configuration clearly worst](/DL261-Assignment/assignments/assignment-1/ablation_representation.svg)
+
+Learning curves for the six representation configurations.
+:::
+
+Two measurements already on this page explain why patches lose. :ref[fig:sequences] showed that three patch tokens fall below a quarter of peak signal against no row, because patch tokenisation gathers the empty border into a few near-constant tokens while a row spreads it across every step; a patch sequence therefore carries the same information in more tokens, each narrower and several nearly empty. The cost of that is very unequal between the two architectures, $-0.0516$ Macro F1 for the GRU against $-0.0153$ for the Transformer. The asymmetry follows from how each reaches distant information: attention addresses any token directly, so lengthening the sequence from $28$ to $49$ costs it little, whereas recurrence must carry state across every additional step, and $75\%$ more steps of a weaker signal is where the GRU loses. Patches are also slower for both models despite having no more parameters, because sequence length, not token width, sets the number of sequential steps.
+
+### Recurrent cell
+
+The second ablation fixes the row representation and varies only the gating, between the GRU used throughout and an LSTM of the same hidden size and depth.
+
+:::table{label="tab:ablation-cell"}
+| Cell | Parameters | s/epoch | ms/image at batch 1 | Validation Macro F1 | Validation accuracy |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| **LSTM** | 82,442 | 12.7 | 0.630 | **0.8767 ± 0.0011** | **0.8773 ± 0.0013** |
+| GRU | 62,218 | 14.7 | 2.180 | 0.8731 ± 0.0012 | 0.8734 ± 0.0014 |
+
+Recurrent cell at the row representation.
+:::
+
+The hypothesis that the GRU would match the LSTM at lower capacity is refuted on both counts, as :ref[tab:ablation-cell] shows. The LSTM is better, by $0.0036$ Macro F1 with non-overlapping intervals, and it is the cheaper model to run here despite carrying $33\%$ more parameters. The accuracy margin is small and bought with those extra parameters, so it says only that the separate cell state helps slightly over $28$ steps, not that one cell is generally preferable. The timing is the more surprising half and should be read with care: an LSTM performs strictly more arithmetic per step than a GRU, so the $14\%$ faster epoch and the $3.5\times$ faster single-image inference are properties of how well each fused kernel is optimised on this backend, not of the algorithms. They would not be expected to transfer to other hardware.
+
+### Effect on the main comparison
+
+The representation ablation revises one conclusion of the previous section. On row tokens the Transformer reaches $0.8987 \pm 0.0024$, whose interval clears the MLP's $0.8862 \pm 0.0015$, so the two are no longer indistinguishable: the Transformer beats the MLP once it is given a representation that suits it. The tie reported in :ref[tab:results] is thus an artefact of the patch tokenisation, not evidence that attention cannot exceed a dense network at this scale.
+
+What survives unchanged is the headline. The CNN at $0.9198 \pm 0.0018$ still beats the best sequence configuration found here by a clear margin, with fewer parameters than either sequence model, so inductive bias rather than capacity remains the better explanation of the ranking. The GRU's choice of rows, made before these experiments, also turns out to have been its best option.
+
 ## Limitations and conclusion
+
+Four limits bound these results. The comparison uses one dataset of $28 \times 28$ grayscale images with balanced classes, so neither the ranking nor the error structure should be assumed to carry over to natural images, higher resolutions or imbalanced data. Three seeds estimate a standard deviation from three observations, so the tie between the MLP and the Transformer means they were not separated at this sample size, not that they are equal. All five share one optimizer, schedule and budget, as fairness demands, so each figure is a score under a common protocol rather than the best each architecture could reach. No pretrained weights are used, which constrains the Transformer most.
+
+The research question was whether architectural inductive bias or capacity governs performance here. The evidence favours inductive bias: the most accurate model is the smallest of the three strong ones, it keeps its margin even over the best sequence configuration the ablations found, and the error structure dominating every residual was predicted from the class means before any network was trained. The CNN is carried forward at $0.9110 \pm 0.0007$ Macro F1 on test.
+
+The ablations also show how much a result can depend on a choice made before any measurement: the Transformer's apparent tie with the MLP was an artefact of its default tokenisation, and disappeared once the representation was varied. That is the clearest direction for further work, since only two of the five architectures were ablated this way. The other is a loss reweighted towards Shirt, the one class that bounds Macro F1 for all five models.

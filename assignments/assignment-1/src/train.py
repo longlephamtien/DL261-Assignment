@@ -169,7 +169,7 @@ def fit(config: dict) -> Path:
         "hardware": env.get("hardware", "unknown"),
     }
     shared_io.write_json(run_dir / "summary.json", summary)
-    plot_curves({label(summary): history}, run_dir / "curves")
+    plot_curves({label(summary): [history]}, run_dir / "curves")
     return run_dir
 
 
