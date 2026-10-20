@@ -3,5 +3,154 @@
 
 \section{Results}
 
-\begin{frame}{Results}
+%----------------------------------------------------------
+\begin{frame}{Architecture Comparison}
+\begin{table}
+\centering
+\caption{Mean $\pm$ one standard deviation over seeds 0, 1 and 2. Inference is per image at
+batch 1; all runs share the machine of Table~\ref{tab:protocol}.}
+\label{tab:results}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Model} & \textbf{Params} & \textbf{s/epoch} & \textbf{ms/img} & \textbf{Val macro-F1} & \textbf{Test macro-F1} \\
+\midrule
+\textbf{CNN} & 421{,}642 & 13.2 & 0.305 & $\mathbf{0.9198 \pm 0.0018}$ & $\mathbf{0.9110 \pm 0.0007}$ \\
+MLP          & 535{,}818 & 11.3 & 0.128 & $0.8862 \pm 0.0015$ & $0.8807 \pm 0.0018$ \\
+Transformer  & 540{,}170 & 23.0 & 1.090 & $0.8834 \pm 0.0023$ & $0.8796 \pm 0.0011$ \\
+GRU          &  62{,}218 & 14.7 & 2.069 & $0.8731 \pm 0.0012$ & $0.8667 \pm 0.0013$ \\
+Linear       &   7{,}850 & 10.6 & 0.036 & $0.7697 \pm 0.0025$ & $0.7619 \pm 0.0021$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item The CNN beats all four; \textbf{the MLP and the Transformer are indistinguishable};
+          both beat the GRU; all four beat the baseline.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Training Behaviour}
+\begin{figure}
+\centering
+\includegraphics[width=0.78\textwidth]{../results/figures/all/learning_curves.png}
+\caption{Per architecture, averaged over three seeds.}
+\label{fig:curves}
+\end{figure}
+
+\small
+\begin{itemize}
+    \item Validation scores better than training: augmentation and dropout run in the training pass
+          only, so training is measured on a harder task.
+    \item No model overfits; the baseline underfits, flat near 0.77.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Inductive Bias and Cost}
+\small
+\begin{itemize}
+    \item The CNN wins with \textbf{21\% fewer parameters than the MLP} and 22\% fewer than the Transformer.
+    \item The Transformer is the largest model and the slowest to train (23.0 s/epoch), yet does not
+          separate from an MLP that trains in half the time.
+    \item \textbf{CNN:} grid input, locality and translation equivariance; matches the measured pixel
+          correlation, so weight sharing buys accuracy and size at once.
+    \item \textbf{MLP:} flat 784-vector, so spatial structure must be learned from data, paid in parameters.
+    \item \textbf{GRU:} rows in sequence; real vertical structure, but asserts a processing order a static
+          image does not have. Smallest model with depth, yet slowest at inference (2.069 ms) because
+          its timesteps are sequential.
+    \item \textbf{Linear:} 0.7619 measures directly that the classes are not linearly separable in pixel space.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Ablation: Sequence Representation}
+\begin{table}
+\centering
+\caption{Validation macro-F1 over three seeds, architecture fixed.}
+\label{tab:ablation-representation}
+\small
+\begin{tabular}{llrr}
+\toprule
+\textbf{Model} & \textbf{Representation} & \textbf{Tokens} & \textbf{Val macro-F1} \\
+\midrule
+GRU & rows                 & $28 \times 28$ & $\mathbf{0.8731 \pm 0.0012}$ \\
+GRU & columns              & $28 \times 28$ & $0.8726 \pm 0.0017$ \\
+GRU & $4\times4$ patches   & $49 \times 16$ & $0.8215 \pm 0.0007$ \\
+\midrule
+Transformer & rows               & $28 \times 28$ & $\mathbf{0.8987 \pm 0.0024}$ \\
+Transformer & columns            & $28 \times 28$ & $0.8961 \pm 0.0014$ \\
+Transformer & $4\times4$ patches & $49 \times 16$ & $0.8834 \pm 0.0023$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item \textbf{Hypothesis refuted:} patches are the worst representation for both models, not the
+          best. Patch tokenisation gathers the empty border into a few near-constant tokens.
+    \item The cost is unequal, $-0.0516$ for the GRU against $-0.0153$ for the Transformer:
+          attention reaches any token directly, recurrence must cross 75\% more steps.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Ablation: Recurrent Cell}
+\begin{table}
+\centering
+\caption{Row representation fixed; only the gating changes.}
+\label{tab:ablation-cell}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Cell} & \textbf{Params} & \textbf{s/epoch} & \textbf{ms/img} & \textbf{Val macro-F1} \\
+\midrule
+\textbf{LSTM} & 82{,}442 & 12.7 & 0.630 & $\mathbf{0.8767 \pm 0.0011}$ \\
+GRU           & 62{,}218 & 14.7 & 2.180 & $0.8731 \pm 0.0012$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\small
+\begin{itemize}
+    \item \textbf{Hypothesis refuted on both counts:} the LSTM is better, by 0.0036 macro-F1 with
+          non-overlapping intervals, \emph{and} cheaper to run despite 33\% more parameters.
+    \item Read the timing with care: an LSTM does strictly more arithmetic per step, so the speed is a
+          property of how well each fused kernel is optimised on this backend, not of the algorithms.
+    \item \textbf{This revises the main comparison:} on rows the Transformer reaches
+          $0.8987 \pm 0.0024$ and clears the MLP's $0.8862 \pm 0.0015$. The tie in
+          Table~\ref{tab:results} was an artefact of patch tokenisation, not evidence about attention.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Qualitative Results}
+\begin{columns}[c]
+\begin{column}{0.46\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=0.92\textwidth]{../results/figures/all/confusion_cnn_test.png}
+\caption{CNN on test, rows normalised to percent: one block of off-diagonal mass.}
+\label{fig:confusion}
+\end{figure}
+\end{column}
+\begin{column}{0.52\textwidth}
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{images/predictions_correct.png}
+
+\vspace{1pt}
+\includegraphics[width=\textwidth]{images/predictions_incorrect.png}
+\caption{Correct above, the most confident errors below.}
+\label{fig:predictions}
+\end{figure}
+\end{column}
+\end{columns}
+
+\vspace{-2pt}
+\footnotesize
+Every image in the lower row of Figure~\ref{fig:predictions} fails at confidence 0.99 or above,
+where the $28\times28$ image is genuinely compatible with both labels.
 \end{frame}
