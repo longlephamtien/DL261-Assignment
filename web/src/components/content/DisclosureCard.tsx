@@ -30,8 +30,8 @@ function Tags({ items }: { items: string[] }) {
 function Entry({ entry }: { entry: AiToolUse }) {
   return (
     <div className="space-y-3">
-      <h4 className="h-card">{entry.tool}</h4>
       <dl className="space-y-2">
+        <Row label="Tool">{entry.tool}</Row>
         <Row label="Used by">{entry.usedBy}</Row>
         <Row label="Task">{entry.task}</Row>
         <Row label="Prompt summary">
