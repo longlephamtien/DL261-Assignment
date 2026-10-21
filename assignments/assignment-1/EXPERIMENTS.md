@@ -17,7 +17,9 @@ A run that deviates from the protocol is repeated rather than reported. The test
 
 ## Seeds and budget
 
-Every reported configuration runs at seeds 0, 1 and 2, and is reported as a mean plus or minus one standard deviation. Tuning is capped at six configurations per model, judged on validation macro-F1 at seed 0 and varying only `model.args`.
+Every reported configuration runs at seeds 0, 1 and 2, and is reported as a mean plus or minus one standard deviation.
+
+Tuning is capped at six configurations per model, judged on validation macro-F1 at seed 0 and varying only `model.args`. In practice no model used that budget: each architecture was run at a single configuration, fixed before training from values conventional for its family, and the committed `configs/<model>.yaml` is that configuration. The search effort is therefore zero and identical for all five, which is the strongest form of the fairness constraint rather than a departure from it.
 
 ## Decision rule
 

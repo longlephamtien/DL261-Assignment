@@ -95,8 +95,8 @@ Seeds         & 0, 1, 2 for every reported configuration \\
 \begin{itemize}
     \item \textbf{Repeated runs:} every reported configuration is trained with seeds 0, 1 and 2 and reported as
           mean $\pm$ one standard deviation.
-    \item \textbf{Equal tuning budget:} at most six configurations per model, compared on validation macro-F1 at seed 0;
-          only the model's own arguments change.
+    \item \textbf{Equal tuning budget:} the protocol allows six configurations per model, but none were used ---
+          every architecture ran at a single configuration fixed before training, so search effort is zero for all five.
     \item \textbf{Decision rule:} model A is better than model B only if its mean validation macro-F1 is higher
           \emph{and} the two intervals of mean $\pm$ one standard deviation do not overlap
           (Figure~\ref{fig:decision-rule}). Otherwise the two are reported as indistinguishable.
