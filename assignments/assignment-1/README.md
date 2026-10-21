@@ -128,3 +128,24 @@ The split is committed rather than regenerated, because every model must use exa
 All five models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_macro_f1`. The test split is evaluated once, after model selection concludes.
 
 [EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the seed count and tuning budget, what each experiment varies, and the rule that decides when one model counts as better than another.
+
+## Traceability
+
+Every figure in the report and on the assignment page comes from the runs below. A run id resolves to `results/runs/<run_id>/`, which holds the resolved `config.yaml`, the `environment.json` recording the commit and library versions, the per-epoch `history.json`, and `checkpoint.pt`. Evaluation reports live beside it under `results/evaluation/<run_id>/<split>/`.
+
+Configurations evaluated on `val+test` are the five that form the main architecture comparison. The remaining five are ablation-only and are judged on validation alone, so the test split is read once per configuration and never participates in a selection decision.
+
+| Model | Representation | Config | Splits | Seeds | Run IDs | Commit |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Linear | image | `configs/linear.yaml` | val+test | 0, 1, 2 | `linear-seed0-20260922-215714`<br>`linear-seed1-20261019-222817`<br>`linear-seed2-20261019-225007` | `3af46a42`, `42f775db` |
+| MLP | image | `configs/mlp.yaml` | val+test | 0, 1, 2 | `mlp-seed0-20260922-220156`<br>`mlp-seed1-20261019-223317`<br>`mlp-seed2-20261019-225325` | `3af46a42`, `42f775db` |
+| CNN | image | `configs/cnn.yaml` | val+test | 0, 1, 2 | `cnn-seed0-20261019-231441`<br>`cnn-seed1-20261019-232916`<br>`cnn-seed2-20261019-234256` | `42f775db` |
+| GRU | rows | `configs/recurrent.yaml` | val+test | 0, 1, 2 | `recurrent-seed0-20261019-232133`<br>`recurrent-seed1-20261019-233538`<br>`recurrent-seed2-20261019-234927` | `42f775db` |
+| GRU | columns | `configs/recurrent.yaml` | val | 0, 1, 2 | `recurrent-seed0-20261020-120428`<br>`recurrent-seed1-20261020-123901`<br>`recurrent-seed2-20261020-204209` | `42f775db` |
+| GRU | patches | `configs/recurrent.yaml` | val | 0, 1, 2 | `recurrent-seed0-20261020-121141`<br>`recurrent-seed1-20261020-124637`<br>`recurrent-seed2-20261020-203312` | `42f775db` |
+| LSTM | rows | `configs/recurrent.yaml` (`model.args.cell_type=lstm`) | val | 0, 1, 2 | `recurrent-seed0-20261020-210753`<br>`recurrent-seed1-20261020-211421`<br>`recurrent-seed2-20261020-212048` | `42f775db` |
+| Transformer | rows | `configs/transformer.yaml` | val | 0, 1, 2 | `transformer-seed0-20261020-122036`<br>`transformer-seed1-20261020-125532`<br>`transformer-seed2-20261020-204923` | `42f775db` |
+| Transformer | columns | `configs/transformer.yaml` | val | 0, 1, 2 | `transformer-seed0-20261020-122954`<br>`transformer-seed1-20261020-130444`<br>`transformer-seed2-20261020-205839` | `42f775db` |
+| Transformer | patches | `configs/transformer.yaml` | val+test | 0, 1, 2 | `transformer-seed0-20260928-195935`<br>`transformer-seed1-20261019-223849`<br>`transformer-seed2-20261019-225919` | `42f775db`, `aa518436` |
+
+Reproduce any row with the commands in [Workflow](#workflow): train with the listed config at the listed seed, then evaluate the resulting run id on the listed splits.
