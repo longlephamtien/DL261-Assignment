@@ -2,6 +2,15 @@
 
 A controlled comparison of linear, convolutional, recurrent, and Transformer classifiers on Fashion-MNIST, under one shared split and evaluation protocol. MNIST is for debugging only.
 
+| Deliverable | Link |
+| --- | --- |
+| Assignment page | <https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-1/> |
+| Report | [`report/report.pdf`](report/report.pdf) |
+| Slides | [`presentation/presentation.pdf`](presentation/presentation.pdf) |
+| Presentation video | <https://youtu.be/w5Q_iRamGa0> |
+| Checkpoints | <https://huggingface.co/longlephamtien/DL261-Assignment/tree/main/assignment-1/runs> |
+| AI usage | [`AI_USAGE.md`](../../AI_USAGE.md) |
+
 ## Workflow
 
 Set up the environment and credentials first, see [assignments](../README.md). Then, from this folder:
