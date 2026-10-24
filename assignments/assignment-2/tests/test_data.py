@@ -5,8 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import torch
 
-from src.data import build_split, verify_split
+from src.interfaces import CLASS_NAMES, IGNORE_INDEX
+from src.data import build_split, verify_split, LABEL_TO_TRAIN_ID, to_train_ids
 
 TRAIN_CITIES = [f"city{index:02d}" for index in range(18)]
 VAL_CITIES = ["frankfurt", "lindau", "munster"]
@@ -61,3 +63,43 @@ def test_verify_split_rejects_an_overlap() -> None:
 def test_val_cities_must_leave_a_training_set(data_dir: Path, val_cities: int) -> None:
     with pytest.raises(ValueError, match="val_cities"):
         build_split(data_dir, seed=0, val_cities=val_cities)
+
+
+# --- label remapping, the piece every later metric depends on -------------------------------
+
+
+def test_train_id_table_matches_the_official_cityscapes_definition() -> None:
+    """Reference check: a transcription slip here would corrupt every mIoU silently."""
+    from cityscapesscripts.helpers.labels import labels
+
+    official = {label.id: label.trainId for label in labels if not label.ignoreInEval}
+    assert LABEL_TO_TRAIN_ID == official
+
+
+def test_train_id_names_line_up_with_the_class_list() -> None:
+    """trainId i must be CLASS_NAMES[i], or the per-class report labels the wrong rows."""
+    from cityscapesscripts.helpers.labels import labels
+
+    official = {label.trainId: label.name for label in labels if not label.ignoreInEval}
+    assert [official[index] for index in range(len(CLASS_NAMES))] == list(CLASS_NAMES)
+
+
+def test_evaluated_labels_map_to_their_train_ids() -> None:
+    mask = torch.tensor([[7, 8, 11], [26, 33, 23]], dtype=torch.uint8)
+    assert to_train_ids(mask).tolist() == [[0, 1, 2], [13, 18, 10]]
+
+
+def test_unevaluated_labels_become_ignore_index() -> None:
+    """Void, ego vehicle, parking, rail track and guard rail carry no evaluated label."""
+    mask = torch.tensor([0, 1, 9, 10, 14, 255], dtype=torch.uint8)
+    assert to_train_ids(mask).tolist() == [IGNORE_INDEX] * 6
+
+
+def test_every_train_id_is_reachable() -> None:
+    """All 19 classes must be producible, or one of them could never be predicted correctly."""
+    mask = torch.tensor(sorted(LABEL_TO_TRAIN_ID), dtype=torch.uint8)
+    assert sorted(to_train_ids(mask).tolist()) == list(range(len(CLASS_NAMES)))
+
+
+def test_remapping_preserves_shape() -> None:
+    assert to_train_ids(torch.zeros(4, 8, dtype=torch.uint8)).shape == (4, 8)
