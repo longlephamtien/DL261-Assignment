@@ -32,3 +32,5 @@ def build_model(name: str, **kwargs) -> nn.Module:
 
 def list_models() -> list[str]:
     return _REGISTRY.names()
+
+from . import deeplabv3  # noqa: E402, F401  imported for its registration side effect
