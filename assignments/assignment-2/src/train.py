@@ -3,23 +3,23 @@
     python -m src.train --config configs/unet.yaml
     python -m src.train --config configs/deeplabv3.yaml --set seed=1
 
-Implemented by #65 and #66.
+Implemented by #65 and #66. Refactored by #68.
 """
 
 from __future__ import annotations
 
 import argparse
-import time
 from pathlib import Path
 
 import torch
 from torch import Tensor, nn
 from torch.utils.data import DataLoader
 
+from shared import Trainer
 from shared import io as shared_io
 
 from .data import build_dataloaders
-from .interfaces import IGNORE_INDEX, NUM_CLASSES, EpochRecord, RunSummary, count_parameters, select_device
+from .interfaces import IGNORE_INDEX, NUM_CLASSES, RunSummary, count_parameters, select_device
 from .metrics import ConfusionMatrix
 from .models import build_model
 from .utils import RUNS_ROOT, create_run_dir, load_config, resolve_path, set_seed
@@ -67,11 +67,7 @@ def run_epoch(
     device: torch.device,
     optimizer: torch.optim.Optimizer | None = None,
 ) -> tuple[float, float, float]:
-    """Mean loss, mIoU and Dice over one pass; passing an optimizer trains.
-
-    One function for both passes, so the training and validation numbers can never drift apart
-    through a change applied to only one of them.
-    """
+    """Mean loss, mIoU and Dice over one pass; passing an optimizer trains."""
     training = optimizer is not None
     model.train(training)
     matrix = ConfusionMatrix()
@@ -102,7 +98,6 @@ def fit(config: dict) -> Path:
     model = build_model(config["model"]["name"], **config["model"].get("args", {})).to(device)
 
     run_dir = create_run_dir(config, resolve_path(config.get("output_dir", RUNS_ROOT)))
-    env = shared_io.read_json(run_dir / "environment.json")
 
     settings = config.get("train", {})
     epochs = int(settings.get("epochs", 40))
@@ -130,48 +125,24 @@ def fit(config: dict) -> Path:
     else:
         raise ValueError(f"unsupported scheduler: {scheduler_name}")
 
-    history: list[EpochRecord] = []
-    best = -float("inf") if checkpoint_mode == "max" else float("inf")
-    best_epoch, waited = 0, 0
-    started = time.time()
+    trainer = Trainer(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        device=device,
+        run_dir=run_dir,
+        scheduler=scheduler,
+        checkpoint_metric=checkpoint_metric,
+        checkpoint_mode=checkpoint_mode,
+        early_stopping_patience=patience,
+    )
 
-    for epoch in range(1, epochs + 1):
-        epoch_started = time.time()
-        current_lr = float(optimizer.param_groups[0]["lr"])
-
-        train_loss, train_miou, _ = run_epoch(model, loaders["train"], criterion, device, optimizer)
-        val_loss, val_miou, val_dice = run_epoch(model, loaders["val"], criterion, device)
-        if scheduler is not None:
-            scheduler.step()
-
-        record: EpochRecord = {
-            "epoch": epoch,
-            "train_loss": train_loss,
-            "train_miou": train_miou,
-            "val_loss": val_loss,
-            "val_miou": val_miou,
-            "val_dice": val_dice,
-            "seconds": time.time() - epoch_started,
-            "learning_rate": current_lr,
-        }
-        history.append(record)
-        shared_io.write_json(run_dir / "history.json", history)
-
-        print(
-            f"Epoch {epoch:02d}/{epochs:02d} | train loss {train_loss:.4f} mIoU {train_miou:.4f} | "
-            f"val loss {val_loss:.4f} mIoU {val_miou:.4f} Dice {val_dice:.4f} | {record['seconds']:.1f}s"
-        )
-
-        value = record[checkpoint_metric]
-        improved = value > best if checkpoint_mode == "max" else value < best
-        if improved:
-            best, best_epoch, waited = value, epoch, 0
-            torch.save(model.state_dict(), run_dir / "checkpoint.pt")
-        else:
-            waited += 1
-            if patience > 0 and waited >= patience:
-                print(f"Early stopping at epoch {epoch}")
-                break
+    stats = trainer.fit(
+        epochs=epochs,
+        train_loader=loaders["train"],
+        val_loader=loaders["val"],
+        run_epoch_fn=run_epoch,
+    )
 
     summary: RunSummary = {
         "run_id": run_dir.name,
@@ -179,13 +150,7 @@ def fit(config: dict) -> Path:
         "backbone": config["model"].get("args", {}).get("backbone", ""),
         "seed": config["seed"],
         "parameters": count_parameters(model),
-        "epochs_trained": len(history),
-        "best_epoch": best_epoch,
-        "checkpoint_metric": checkpoint_metric,
-        "checkpoint_value": float(best),
-        "training_seconds": time.time() - started,
-        "commit": env.get("commit", "unknown"),
-        "hardware": env.get("hardware", "unknown"),
+        **stats,
     }
     shared_io.write_json(run_dir / "summary.json", summary)
     return run_dir
