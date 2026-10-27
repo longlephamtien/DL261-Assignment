@@ -158,6 +158,18 @@ Copy the template into the section for the assignment you are working on and fil
 - **Responsible member:** Lê Phạm Tiến Long
 - **Sources used for verification:** The assignment handbook, sections 17, 18 and 19; the Cityscapes and NYU Depth dataset pages
 
+### Designing the controlled experiment and ablation
+
+- **Tool:** Claude Opus 5.5
+- **Used by:** Hồ Minh Nhật
+- **Stage:** Assignment 2, Milestone 3 final
+- **Prompt summary:** Asked for an experiment plan defining the controlled experiment and the ablation, each with hypothesis, changed and fixed factors, metrics and decision criterion, and fixing the seeds and checkpoint rule
+- **AI contribution:** Drafted `EXPERIMENTS.md`, confirmed that every varied factor is already a configuration key the trainer reads, derived the per-class hypotheses from the distribution analysis in the proposal, and recomputed the compute budget for three seeds per arm
+- **Student verification:** Checked every protocol value against `configs/base.yaml`, the data loader and the committed split, the budget against the proposal's compute table, and that each experiment maps to an existing backlog issue
+- **Affected files/sections:** `assignments/assignment-2/EXPERIMENTS.md`, `README.md`; report Methodology
+- **Responsible member:** Hồ Minh Nhật
+- **Sources used for verification:** The assignment handbook, sections 20 and 21; `assignments/assignment-2/PROPOSAL.md`
+
 ## Assignment 3
 
 No entries yet.
