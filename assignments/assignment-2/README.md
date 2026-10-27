@@ -54,11 +54,12 @@ Steps 3 to 5 take a run id as well as a path to the run directory.
 ## Layout
 
 ```
-configs/      base.yaml plus one file per model
-notebooks/    exploratory data analysis
-splits/       committed split indices
-tests/        contract tests
-results/      figures/, eda/; runs/ and evaluation/ are ignored
+EXPERIMENTS.md  the experiment plan and decision rule
+configs/        base.yaml plus one file per model
+notebooks/      exploratory data analysis
+splits/         committed split indices
+tests/          contract tests
+results/        figures/, eda/; runs/ and evaluation/ are ignored
 src/
   interfaces.py   shared types, constants, and schemas
   data.py         download, city split, mask remapping, DataLoader
@@ -120,4 +121,6 @@ The split is committed rather than regenerated, because every model must use exa
 
 The split unit is the **city**: train and validation hold disjoint sets of cities, so no street scene reaches both. Cityscapes withholds the test labels, so the official validation split is what gets reported, and model selection uses a held-out slice of train.
 
-All models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_miou`.
+All models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_miou`. The test split is evaluated once, after model selection concludes.
+
+[EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the seed count and budget, what each experiment varies, and the rule that decides when one configuration counts as better than another.

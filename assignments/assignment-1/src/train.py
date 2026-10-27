@@ -9,7 +9,6 @@ Implemented by #16.
 from __future__ import annotations
 
 import argparse
-import time
 from pathlib import Path
 
 import torch
@@ -17,11 +16,11 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch import nn
 from torch.utils.data import DataLoader
 
-from shared import io as shared_io
+from shared import Trainer, io as shared_io
 
 from .data import build_dataloaders
 from .figures import label, plot_curves
-from .interfaces import EpochRecord, RunSummary, count_parameters, select_device
+from .interfaces import RunSummary, count_parameters, select_device
 from .models import build_model
 from .utils import RUNS_ROOT, create_run_dir, load_config, resolve_path, set_seed
 
@@ -32,8 +31,12 @@ def run_epoch(
     criterion: nn.Module,
     device: torch.device,
     optimizer: torch.optim.Optimizer | None = None,
-) -> tuple[float, float, float]:
-    """Mean loss, accuracy, and macro-F1 over one pass; passing an optimizer trains."""
+) -> dict[str, float]:
+    """Mean loss, accuracy, and macro-F1 over one pass; passing an optimizer trains.
+
+    The names are what `Trainer` prefixes with `train_` and `val_` to build each history
+    record, which is why they are returned as a mapping rather than a tuple.
+    """
     training = optimizer is not None
     model.train(training)
     total_loss = 0.0
@@ -54,11 +57,11 @@ def run_epoch(
             predictions.extend(outputs.argmax(dim=1).detach().cpu().tolist())
             targets.extend(labels.cpu().tolist())
 
-    return (
-        total_loss / len(targets),
-        float(accuracy_score(targets, predictions)),
-        float(f1_score(targets, predictions, average="macro", zero_division=0)),
-    )
+    return {
+        "loss": total_loss / len(targets),
+        "accuracy": float(accuracy_score(targets, predictions)),
+        "macro_f1": float(f1_score(targets, predictions, average="macro", zero_division=0)),
+    }
 
 
 def fit(config: dict) -> Path:
@@ -73,7 +76,6 @@ def fit(config: dict) -> Path:
 
     output_root = resolve_path(config.get("output_dir", RUNS_ROOT))
     run_dir = create_run_dir(config, output_root)
-    env = shared_io.read_json(run_dir / "environment.json")
 
     train_cfg = config.get("train", {})
     epochs = int(train_cfg.get("epochs", 30))
@@ -104,55 +106,18 @@ def fit(config: dict) -> Path:
     else:
         raise ValueError(f"unsupported scheduler: {sched_name}")
 
-    history: list[EpochRecord] = []
-    best_val = -float("inf") if checkpoint_mode == "max" else float("inf")
-    best_epoch = 0
-    patience_counter = 0
-    start_time = time.time()
-
-    for epoch in range(1, epochs + 1):
-        epoch_start = time.time()
-        current_lr = float(optimizer.param_groups[0]["lr"])
-
-        train_loss, train_acc, train_f1 = run_epoch(model, loaders["train"], criterion, device, optimizer)
-        val_loss, val_acc, val_f1 = run_epoch(model, loaders["val"], criterion, device)
-
-        if scheduler is not None:
-            scheduler.step()
-
-        record: EpochRecord = {
-            "epoch": epoch,
-            "train_loss": train_loss,
-            "train_accuracy": train_acc,
-            "train_macro_f1": train_f1,
-            "val_loss": val_loss,
-            "val_accuracy": val_acc,
-            "val_macro_f1": val_f1,
-            "seconds": time.time() - epoch_start,
-            "learning_rate": current_lr,
-        }
-        history.append(record)
-        shared_io.write_json(run_dir / "history.json", history)
-
-        print(
-            f"Epoch {epoch:02d}/{epochs:02d} | "
-            f"train loss: {train_loss:.4f} acc: {train_acc:.4f} f1: {train_f1:.4f} | "
-            f"val loss: {val_loss:.4f} acc: {val_acc:.4f} f1: {val_f1:.4f} | "
-            f"{record['seconds']:.1f}s"
-        )
-
-        metric_val = record[checkpoint_metric]
-        is_best = (metric_val > best_val) if checkpoint_mode == "max" else (metric_val < best_val)
-        if is_best:
-            best_val = metric_val
-            best_epoch = epoch
-            patience_counter = 0
-            torch.save(model.state_dict(), run_dir / "checkpoint.pt")
-        else:
-            patience_counter += 1
-            if patience > 0 and patience_counter >= patience:
-                print(f"Early stopping at epoch {epoch}")
-                break
+    trainer = Trainer(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        device=device,
+        run_dir=run_dir,
+        scheduler=scheduler,
+        checkpoint_metric=checkpoint_metric,
+        checkpoint_mode=checkpoint_mode,
+        early_stopping_patience=patience,
+    )
+    stats = trainer.fit(epochs, loaders["train"], loaders["val"], run_epoch)
 
     summary: RunSummary = {
         "run_id": run_dir.name,
@@ -160,16 +125,10 @@ def fit(config: dict) -> Path:
         "representation": config.get("input", {}).get("representation", "image"),
         "seed": config["seed"],
         "parameters": count_parameters(model),
-        "epochs_trained": len(history),
-        "best_epoch": best_epoch,
-        "checkpoint_metric": checkpoint_metric,
-        "checkpoint_value": float(best_val),
-        "training_seconds": time.time() - start_time,
-        "commit": env.get("commit", "unknown"),
-        "hardware": env.get("hardware", "unknown"),
+        **stats,
     }
     shared_io.write_json(run_dir / "summary.json", summary)
-    plot_curves({label(summary): [history]}, run_dir / "curves")
+    plot_curves({label(summary): [trainer.history]}, run_dir / "curves")
     return run_dir
 
 
