@@ -75,6 +75,7 @@ class EpochRecord(TypedDict):
     epoch: int
     train_loss: float
     train_miou: float
+    train_dice: float
     val_loss: float
     val_miou: float
     val_dice: float

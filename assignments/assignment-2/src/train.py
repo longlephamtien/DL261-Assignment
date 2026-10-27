@@ -66,8 +66,13 @@ def run_epoch(
     criterion: nn.Module,
     device: torch.device,
     optimizer: torch.optim.Optimizer | None = None,
-) -> tuple[float, float, float]:
-    """Mean loss, mIoU and Dice over one pass; passing an optimizer trains."""
+) -> dict[str, float]:
+    """Mean loss, mIoU and Dice over one pass; passing an optimizer trains.
+
+    One function serves both passes, so the training and validation numbers cannot drift apart
+    through a change applied to only one of them. The names are what `Trainer` prefixes with
+    `train_` and `val_`, which is why they are returned as a mapping rather than a tuple.
+    """
     training = optimizer is not None
     model.train(training)
     matrix = ConfusionMatrix()
@@ -88,7 +93,11 @@ def run_epoch(
             images_seen += images.shape[0]
             matrix.update(targets.cpu(), logits.argmax(dim=1).cpu())
 
-    return total_loss / images_seen, matrix.mean_iou(), matrix.mean_dice()
+    return {
+        "loss": total_loss / images_seen,
+        "miou": matrix.mean_iou(),
+        "dice": matrix.mean_dice(),
+    }
 
 
 def fit(config: dict) -> Path:

@@ -1,10 +1,16 @@
-"""Shared training loop, checkpointing, and run tracking for assignment models."""
+"""The training loop shared by every assignment: epochs, checkpointing, and early stopping.
+
+What differs between assignments is the metric a pass reports, not the loop around it. A pass
+therefore returns a mapping of metric name to value, and the trainer prefixes those names with
+`train_` and `val_` rather than knowing any of them. Nothing here mentions a task.
+"""
 
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import torch
 from torch import nn
@@ -12,16 +18,19 @@ from torch.utils.data import DataLoader
 
 from . import io as shared_io
 
-
-EpochResult = Union[Dict[str, float], Tuple[float, ...]]
 EpochFunction = Callable[
-    [nn.Module, DataLoader, nn.Module, torch.device, Optional[torch.optim.Optimizer]],
-    EpochResult,
+    [nn.Module, DataLoader, nn.Module, torch.device, torch.optim.Optimizer | None],
+    dict[str, float],
 ]
+"""One pass over a loader. Training when given an optimizer, scoring when given None."""
 
 
 class Trainer:
-    """Trainer orchestrating epoch passes, early stopping, and artifact saving."""
+    """Runs the epochs of one model and keeps the run directory current as it goes.
+
+    History is written after every epoch rather than at the end, so a run killed part way
+    through still leaves behind what it had measured.
+    """
 
     def __init__(
         self,
@@ -30,11 +39,14 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         device: torch.device,
         run_dir: Path,
-        scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+        scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
         checkpoint_metric: str = "val_miou",
         checkpoint_mode: str = "max",
         early_stopping_patience: int = 8,
     ) -> None:
+        if checkpoint_mode not in ("max", "min"):
+            raise ValueError(f"checkpoint_mode must be 'max' or 'min', not '{checkpoint_mode}'")
+
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -42,13 +54,13 @@ class Trainer:
         self.run_dir = Path(run_dir)
         self.scheduler = scheduler
         self.checkpoint_metric = checkpoint_metric
-        self.checkpoint_mode = checkpoint_mode.lower()
+        self.checkpoint_mode = checkpoint_mode
         self.patience = early_stopping_patience
 
-        self.best = -float("inf") if self.checkpoint_mode == "max" else float("inf")
+        self.best = -float("inf") if checkpoint_mode == "max" else float("inf")
         self.best_epoch = 0
         self.waited = 0
-        self.history: List[Dict[str, Any]] = []
+        self.history: list[dict[str, Any]] = []
 
     def fit(
         self,
@@ -56,55 +68,39 @@ class Trainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         run_epoch_fn: EpochFunction,
-    ) -> Dict[str, Any]:
-        """Execute the training process and return execution metadata."""
+    ) -> dict[str, Any]:
+        """Train for up to `epochs`, and return the fields a run summary needs."""
         started = time.time()
-        env = shared_io.read_json(self.run_dir / "environment.json")
+        environment = shared_io.read_json(self.run_dir / "environment.json")
 
         for epoch in range(1, epochs + 1):
             epoch_started = time.time()
-            current_lr = float(self.optimizer.param_groups[0]["lr"])
+            learning_rate = float(self.optimizer.param_groups[0]["lr"])
 
-            train_res = run_epoch_fn(self.model, train_loader, self.criterion, self.device, self.optimizer)
-            val_res = run_epoch_fn(self.model, val_loader, self.criterion, self.device, None)
-
-            if isinstance(train_res, tuple):
-                train_loss, train_miou = train_res[0], train_res[1]
-                val_loss, val_miou, val_dice = val_res[0], val_res[1], val_res[2]
-            else:
-                train_loss, train_miou = train_res["loss"], train_res["miou"]
-                val_loss, val_miou, val_dice = val_res["loss"], val_res["miou"], val_res["dice"]
-
+            train = run_epoch_fn(self.model, train_loader, self.criterion, self.device, self.optimizer)
+            validation = run_epoch_fn(self.model, val_loader, self.criterion, self.device, None)
             if self.scheduler is not None:
                 self.scheduler.step()
 
-            record: Dict[str, Any] = {
-                "epoch": epoch,
-                "train_loss": train_loss,
-                "train_miou": train_miou,
-                "val_loss": val_loss,
-                "val_miou": val_miou,
-                "val_dice": val_dice,
-                "seconds": time.time() - epoch_started,
-                "learning_rate": current_lr,
-            }
+            record: dict[str, Any] = {"epoch": epoch}
+            record.update({f"train_{name}": value for name, value in train.items()})
+            record.update({f"val_{name}": value for name, value in validation.items()})
+            record["seconds"] = time.time() - epoch_started
+            record["learning_rate"] = learning_rate
+
             self.history.append(record)
             shared_io.write_json(self.run_dir / "history.json", self.history)
+            print(self._describe(record, epochs))
 
-            print(
-                f"Epoch {epoch:02d}/{epochs:02d} | train loss {train_loss:.4f} mIoU {train_miou:.4f} | "
-                f"val loss {val_loss:.4f} mIoU {val_miou:.4f} Dice {val_dice:.4f} | {record['seconds']:.1f}s"
-            )
-
-            value = record.get(self.checkpoint_metric)
-            if value is None:
+            if self.checkpoint_metric not in record:
                 raise KeyError(
-                    f"checkpoint_metric '{self.checkpoint_metric}' is missing from epoch record: {list(record.keys())}"
+                    f"checkpoint metric '{self.checkpoint_metric}' is not among "
+                    f"{sorted(record)}; a pass must report it under that name"
                 )
 
-            improved = value > self.best if self.checkpoint_mode == "max" else value < self.best
-            if improved:
-                self.best, self.best_epoch, self.waited = value, epoch, 0
+            if self._improved(record[self.checkpoint_metric]):
+                self.best = record[self.checkpoint_metric]
+                self.best_epoch, self.waited = epoch, 0
                 torch.save(self.model.state_dict(), self.run_dir / "checkpoint.pt")
             else:
                 self.waited += 1
@@ -118,6 +114,18 @@ class Trainer:
             "checkpoint_metric": self.checkpoint_metric,
             "checkpoint_value": float(self.best),
             "training_seconds": time.time() - started,
-            "commit": env.get("commit", "unknown"),
-            "hardware": env.get("hardware", "unknown"),
+            "commit": environment.get("commit", "unknown"),
+            "hardware": environment.get("hardware", "unknown"),
         }
+
+    def _improved(self, value: float) -> bool:
+        return value > self.best if self.checkpoint_mode == "max" else value < self.best
+
+    def _describe(self, record: dict[str, Any], epochs: int) -> str:
+        """One progress line, naming whatever metrics the pass reported."""
+        metrics = " ".join(
+            f"{name} {value:.4f}"
+            for name, value in record.items()
+            if name not in ("epoch", "seconds", "learning_rate")
+        )
+        return f"Epoch {record['epoch']:02d}/{epochs:02d} | {metrics} | {record['seconds']:.1f}s"

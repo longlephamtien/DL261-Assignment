@@ -104,12 +104,14 @@ def test_a_pass_with_an_optimizer_updates_the_weights() -> None:
     assert not torch.equal(before, model.head.weight)
 
 
-def test_a_pass_reports_loss_miou_and_dice() -> None:
-    loss, miou, dice = run_epoch(Tiny(), loader(), build_criterion({"train": {}}), torch.device("cpu"))
+def test_a_pass_reports_loss_miou_and_dice_by_name() -> None:
+    """Trainer prefixes these names, so a rename here silently renames the history columns."""
+    metrics = run_epoch(Tiny(), loader(), build_criterion({"train": {}}), torch.device("cpu"))
 
-    assert loss > 0
-    assert 0.0 <= miou <= 1.0
-    assert 0.0 <= dice <= 1.0
+    assert sorted(metrics) == ["dice", "loss", "miou"]
+    assert metrics["loss"] > 0
+    assert 0.0 <= metrics["miou"] <= 1.0
+    assert 0.0 <= metrics["dice"] <= 1.0
 
 
 def test_a_pass_leaves_the_model_in_eval_mode_when_not_training() -> None:
