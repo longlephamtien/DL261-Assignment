@@ -18,7 +18,7 @@ resources:
 references: []
 aiDisclosure:
   noAiUsed: false
-  summary: "Claude was used to check the candidate datasets against the handbook thresholds."
+  summary: "Claude was used to check the candidate datasets against the handbook thresholds and to draft the experiment plan."
   entries:
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
@@ -30,6 +30,17 @@ aiDisclosure:
       affectedSections:
         - Problem statement
       responsibleMember: Lê Phạm Tiến Long
+    - tool: Claude Opus 5.5
+      usedBy: Hồ Minh Nhật
+      task: Designing the controlled experiment and ablation
+      promptSummary: "Asked for an experiment plan defining the controlled experiment and the ablation, each with hypothesis, changed and fixed factors, metrics and decision criterion, and fixing the seeds and checkpoint rule."
+      promptLog: null
+      aiContribution: "Drafted the plan, confirmed that every varied factor is already a configuration key the trainer reads, derived the per-class hypotheses from the distribution analysis, and recomputed the compute budget for three seeds per arm."
+      studentVerification: "Checked every protocol value against the base configuration, the data loader and the committed split, the budget against the proposal's compute table, and that each experiment maps to an existing backlog issue."
+      affectedSections:
+        - EXPERIMENTS.md
+        - Experimental setup
+      responsibleMember: Hồ Minh Nhật
 ---
 
 ## Problem statement
