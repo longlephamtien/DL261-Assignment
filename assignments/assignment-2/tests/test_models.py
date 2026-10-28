@@ -108,3 +108,74 @@ def test_gradients_reach_the_head() -> None:
 
     head_weight = model.network.classifier[-1].weight
     assert head_weight.grad is not None and head_weight.grad.abs().sum() > 0
+
+
+# --- U-Net, the simple baseline ---------------------------------------------------------
+
+
+def unet(**kwargs):
+    return build_model("unet", **kwargs)
+
+
+def test_unet_is_registered() -> None:
+    assert "unet" in list_models()
+
+
+@pytest.mark.parametrize("size", [64, 128])
+def test_unet_returns_per_pixel_logits_at_the_input_resolution(size: int) -> None:
+    output = unet(base_width=4, depth=2).eval()(torch.randn(2, 3, size, size))
+    assert output.shape == (2, NUM_CLASSES, size, size)
+
+
+def test_unet_matches_the_configured_parameter_budget() -> None:
+    """The proposal fixes base width 32 and depth 4; a silent change invalidates its estimate."""
+    model = unet(base_width=32, depth=4)
+    assert sum(p.numel() for p in model.parameters() if p.requires_grad) == 7_763_635
+
+
+def test_unet_width_and_depth_come_from_configuration() -> None:
+    small = sum(p.numel() for p in unet(base_width=8, depth=3).parameters())
+    large = sum(p.numel() for p in unet(base_width=16, depth=3).parameters())
+    deeper = sum(p.numel() for p in unet(base_width=8, depth=4).parameters())
+
+    assert small < large and small < deeper
+
+
+def test_unet_carries_one_skip_connection_per_level() -> None:
+    """Without the skips the decoder would upsample semantics with no detail to place them on."""
+    model = unet(base_width=4, depth=3)
+    assert len(model.encoders) == len(model.decoders) == len(model.upsamples) == 3
+
+
+def test_unet_rejects_an_input_the_pooling_cannot_halve() -> None:
+    """A size not divisible by 2**depth loses a row that the decoder cannot restore."""
+    with pytest.raises(ValueError, match="divisible"):
+        unet(base_width=4, depth=3).eval()(torch.randn(1, 3, 60, 64))
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"base_width": 4, "depth": 0},
+        {"base_width": 0, "depth": 2},
+        {"base_width": 4, "depth": 2, "dropout": 1.0},
+        {"base_width": 4, "depth": 2, "dropout": -0.1},
+    ],
+)
+def test_unet_rejects_an_invalid_configuration(kwargs: dict) -> None:
+    with pytest.raises(ValueError):
+        unet(**kwargs)
+
+
+def test_unet_dropout_is_only_added_when_asked() -> None:
+    assert not any(isinstance(m, torch.nn.Dropout2d) for m in unet(base_width=4, depth=2).modules())
+    assert any(isinstance(m, torch.nn.Dropout2d) for m in unet(base_width=4, depth=2, dropout=0.2).modules())
+
+
+def test_unet_trains_from_scratch_with_no_pretrained_weights() -> None:
+    """The proposal fixes the baseline as trained from scratch, so nothing may be downloaded."""
+    model = unet(base_width=4, depth=2)
+    model(torch.randn(2, 3, 32, 32)).sum().backward()
+
+    assert all(p.requires_grad for p in model.parameters())
+    assert model.head.weight.grad is not None and model.head.weight.grad.abs().sum() > 0
