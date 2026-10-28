@@ -270,6 +270,9 @@ def build_dataloaders(config: dict) -> dict[str, DataLoader]:
 
     Only the training loader crops and augments. Validation and test see the whole resized
     image, so a score is never an average over arbitrary windows.
+
+    Pinned memory is requested only on CUDA, where it buys an asynchronous host-to-device
+    copy. MPS ignores it and warns once per loader, which is noise on every run here.
     """
     dataset_config = config["dataset"]
     data_dir = resolve_path(dataset_config["root"])
@@ -300,7 +303,7 @@ def build_dataloaders(config: dict) -> dict[str, DataLoader]:
             batch_size=loader_config["batch_size"],
             shuffle=training,
             num_workers=loader_config["num_workers"],
-            pin_memory=True,
+            pin_memory=torch.cuda.is_available(),
             drop_last=training,
             persistent_workers=loader_config["num_workers"] > 0,
         )
