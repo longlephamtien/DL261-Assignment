@@ -170,6 +170,42 @@ Copy the template into the section for the assignment you are working on and fil
 - **Responsible member:** Hồ Minh Nhật
 - **Sources used for verification:** The assignment handbook, sections 20 and 21; `assignments/assignment-2/PROPOSAL.md`
 
+### Checking the compute plan for the training runs
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 2 draft
+- **Prompt summary:** Asked how many epochs each model could be trained for within the time left before the milestone, and whether the planned budget was realistic
+- **AI contribution:** Compared the per-epoch estimates in `results/compute.json` against the rate the running job was actually achieving, found the U-Net running 1.22 times slower than estimated, rescaled the DeepLabV3 estimate by the same factor, and tabulated the finishing time and remaining margin for 10, 20, 30 and 40 epochs
+- **Student verification:** Checked the projected finishing time against the epoch timings written into `history.json` as the run progressed, and confirmed the chosen budget left enough margin for evaluation and the remaining deliverables
+- **Affected files/sections:** `assignments/assignment-2/results/compute.json`; report Training setup
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The per-epoch timings recorded in each run's `history.json`; `assignments/assignment-2/PROPOSAL.md`
+
+### Reviewing the data loader for leakage
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 2 draft
+- **Prompt summary:** Asked whether the data loading path could leak information between partitions, and whether the split and preprocessing hold the guarantees the proposal claims
+- **AI contribution:** Traced the three routes by which leakage could enter and reported on each: the split indices are generated once and committed rather than regenerated, so every run reads identical data; normalization statistics are computed on the training split alone and recorded with the run; and the test partition is read once per configuration after model selection concludes. Noted that masks must be resized by nearest neighbour, since interpolating label ids produces classes present in neither neighbour
+- **Student verification:** Ran the loaders against the real archives and confirmed 2,406, 569 and 500 images with no unusable annotations, that no city appears in more than one partition, and that validation and test batches arrive uncropped; the labelId to trainId table was checked against `cityscapesscripts.helpers.labels` rather than accepted, since a slip there would corrupt every later metric without failing
+- **Affected files/sections:** `assignments/assignment-2/src/data.py`, `tests/test_data.py`; report Data splitting and Preprocessing
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The official Cityscapes toolkit `labels.py`; the committed split file; the dataset on disk
+
+### Rewriting the assignment page in academic English
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 2 draft
+- **Prompt summary:** Asked to express the methodology and experimental setup in concise academic English, following the structure the handbook requires
+- **AI contribution:** Drafted the Methodology and Experimental setup sections from `EXPERIMENTS.md`, the committed configurations and the implemented code, and flagged where a claim needed a number rather than an adjective
+- **Student verification:** Checked every figure in the drafted text against its source, the parameter counts against the models themselves, and the protocol values against `configs/base.yaml`; confirmed the page builds with no unresolved cross-references and that every table and figure is referenced in the text
+- **Affected files/sections:** `web/src/content/assignments/assignment-2.mdx`; report Methodology and Training setup
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** `assignments/assignment-2/EXPERIMENTS.md`, `configs/base.yaml`, the model definitions; the assignment handbook, sections 3 and 20
+
 ## Assignment 3
 
 No entries yet.
