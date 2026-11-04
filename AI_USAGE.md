@@ -170,6 +170,18 @@ Copy the template into the section for the assignment you are working on and fil
 - **Responsible member:** Hồ Minh Nhật
 - **Sources used for verification:** The assignment handbook, sections 20 and 21; `assignments/assignment-2/PROPOSAL.md`
 
+### Specifying the fine-tuning procedure
+
+- **Tool:** Claude Opus 5.5
+- **Used by:** Hồ Minh Nhật
+- **Stage:** Assignment 2, Milestone 3 final
+- **Prompt summary:** Asked what issue #70 still required against the existing code, then asked to complete it
+- **AI contribution:** Compared the acceptance criteria with the configuration and training code, recommended keeping the single-stage procedure from the proposal over staged unfreezing, moved the hardcoded flip probability into `loader.flip_probability` with a fallback for runs recorded before the key existed, documented the procedure with its configuration keys, and added tests that hold the committed values
+- **Student verification:** Ran the Assignment 2 test suite on the branch; the responsible member reviews the diff and the procedure table against `configs/base.yaml` and `PROPOSAL.md` before merging
+- **Affected files/sections:** `assignments/assignment-2/configs/base.yaml`, `src/data.py`, `EXPERIMENTS.md`, `README.md`, `tests/test_configs.py`, `tests/test_data.py`
+- **Responsible member:** Hồ Minh Nhật
+- **Sources used for verification:** The assignment handbook, section 20; `assignments/assignment-2/PROPOSAL.md`, `configs/base.yaml`
+
 ### Checking the compute plan for the training runs
 
 - **Tool:** Claude Opus 5

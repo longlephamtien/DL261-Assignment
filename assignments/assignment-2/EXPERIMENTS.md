@@ -17,6 +17,31 @@
 
 A run that deviates from the protocol is repeated rather than reported. The test split, the official validation partition, is evaluated once per configuration, after model selection concludes.
 
+## Fine-tuning procedure
+
+The pretrained model is fine-tuned in a single stage: the final convolution is replaced for the 19 classes, and every parameter trains from the first epoch at one learning rate. No layer is unfrozen part way through and no layer has its own learning rate, so the procedure the proposal committed to is the one U-Net shares, and E1 compares models rather than training schedules. Every value below is read from the configuration, and each run records its resolved copy in its `config.yaml`.
+
+| Element | Value | Configuration key |
+| --- | --- | --- |
+| Pretrained weights | torchvision DeepLabV3 default weights; only the final 1x1 convolution is replaced | `model.args.pretrained`, `model.args.backbone` |
+| Layer freezing | none: all parameters train for the whole run | `model.args.freeze_backbone: false` |
+| Frozen arm (E2) | backbone fixed for the whole run; ASPP and the classifier train | `model.args.freeze_backbone: true` |
+| Optimizer | AdamW, over the parameters that require gradients | `train.optimizer`, `train.weight_decay` |
+| Learning rate | 3e-4, one value for every trained parameter | `train.lr` |
+| Scheduler | cosine annealing stepped once per epoch, period equal to the configured epochs | `train.scheduler`, `train.epochs` |
+| Epochs | up to 40, stopping after 8 epochs without improvement | `train.epochs`, `train.early_stopping_patience` |
+| Augmentation | random 512×512 crop, then horizontal flip with probability 0.5, training loader only | `loader.augment`, `input.crop`, `loader.flip_probability` |
+| Checkpoint | highest validation mIoU | `train.checkpoint_metric`, `train.checkpoint_mode` |
+| Seed | 0, 1 and 2 | `seed` |
+
+Early stopping does not shorten the cosine period, so a run that stops early ends above the minimum learning rate.
+
+```sh
+python -m src.train --config configs/deeplabv3.yaml --set seed=0
+```
+
+`tests/test_configs.py` fails if a later edit changes these committed values, which an experiment must vary through `--set` instead.
+
 ## Seeds and budget
 
 Every configuration entering a comparison runs at seeds 0, 1 and 2, and is reported as a mean plus or minus one standard deviation. The seed changes initialisation, crop positions and batch order; the split stays the seed 0 file for every run.

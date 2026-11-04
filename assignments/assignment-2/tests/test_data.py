@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
+from PIL import Image
 
 from src.interfaces import CLASS_NAMES, IGNORE_INDEX
-from src.data import build_split, verify_split, LABEL_TO_TRAIN_ID, to_train_ids
+from src.data import (
+    LABEL_TO_TRAIN_ID,
+    CityscapesSegmentation,
+    build_dataloaders,
+    build_split,
+    to_train_ids,
+    verify_split,
+)
 
 TRAIN_CITIES = [f"city{index:02d}" for index in range(18)]
 VAL_CITIES = ["frankfurt", "lindau", "munster"]
@@ -103,3 +113,97 @@ def test_every_train_id_is_reachable() -> None:
 
 def test_remapping_preserves_shape() -> None:
     assert to_train_ids(torch.zeros(4, 8, dtype=torch.uint8)).shape == (4, 8)
+
+
+ROAD_LABEL_ID, SIDEWALK_LABEL_ID = 7, 8
+ROAD_TRAIN_ID, SIDEWALK_TRAIN_ID = 0, 1
+
+
+def write_pair(root: Path, source: str, city: str) -> None:
+    """One image and mask whose left half is road and right half sidewalk, so a flip is visible."""
+    image_dir, mask_dir = root / "leftImg8bit" / source / city, root / "gtFine" / source / city
+    image_dir.mkdir(parents=True)
+    mask_dir.mkdir(parents=True)
+    mask = np.full((4, 8), ROAD_LABEL_ID, dtype=np.uint8)
+    mask[:, 4:] = SIDEWALK_LABEL_ID
+    Image.fromarray(np.stack([mask * 10] * 3, axis=-1)).save(image_dir / f"{city}_000000_leftImg8bit.png")
+    Image.fromarray(mask).save(mask_dir / f"{city}_000000_gtFine_labelIds.png")
+
+
+def flipped(dataset: CityscapesSegmentation) -> bool:
+    _, mask = dataset[0]
+    return mask[0, 0].item() == SIDEWALK_TRAIN_ID
+
+
+@pytest.fixture
+def image_tree(tmp_path: Path) -> Path:
+    write_pair(tmp_path, "train", "aachen")
+    return tmp_path
+
+
+def augmented(root: Path, **kwargs) -> CityscapesSegmentation:
+    return CityscapesSegmentation(root, ["aachen"], "train", size=(4, 8), augment=True, **kwargs)
+
+
+def test_flip_probability_zero_never_flips(image_tree: Path) -> None:
+    dataset = augmented(image_tree, flip_probability=0.0)
+    assert not any(flipped(dataset) for _ in range(20))
+
+
+def test_flip_probability_one_always_flips_image_and_mask_together(image_tree: Path) -> None:
+    plain = augmented(image_tree, flip_probability=0.0)
+    mirrored = augmented(image_tree, flip_probability=1.0)
+
+    image, mask = plain[0]
+    flipped_image, flipped_mask = mirrored[0]
+
+    assert torch.equal(flipped_image, image.flip(-1))
+    assert torch.equal(flipped_mask, mask.flip(-1))
+
+
+def test_the_default_flip_probability_flips_some_samples_but_not_all(image_tree: Path) -> None:
+    torch.manual_seed(0)
+    dataset = augmented(image_tree)
+    outcomes = {flipped(dataset) for _ in range(50)}
+    assert outcomes == {True, False}
+
+
+@pytest.mark.parametrize("probability", [-0.1, 1.1])
+def test_a_flip_probability_outside_the_unit_interval_is_rejected(image_tree: Path, probability: float) -> None:
+    with pytest.raises(ValueError, match="flip_probability"):
+        augmented(image_tree, flip_probability=probability)
+
+
+def test_the_same_seed_reproduces_the_same_augmentation(image_tree: Path) -> None:
+    dataset = CityscapesSegmentation(image_tree, ["aachen"], "train", size=(4, 8), crop=(2, 3), augment=True)
+
+    def draw(seed: int) -> list[torch.Tensor]:
+        torch.manual_seed(seed)
+        return [dataset[0][1] for _ in range(20)]
+
+    assert all(torch.equal(left, right) for left, right in zip(draw(0), draw(0)))
+    assert not all(torch.equal(left, right) for left, right in zip(draw(0), draw(1)))
+
+
+@pytest.fixture
+def loader_config(tmp_path: Path) -> dict:
+    write_pair(tmp_path, "train", "aachen")
+    write_pair(tmp_path, "train", "bochum")
+    write_pair(tmp_path, "val", "lindau")
+    split_file = tmp_path / "split.json"
+    split_file.write_text(json.dumps({"cities": {"train": ["aachen"], "val": ["bochum"], "test": ["lindau"]}}))
+    return {
+        "dataset": {"root": str(tmp_path), "split_file": str(split_file)},
+        "input": {"height": 4, "width": 8, "crop": [2, 2]},
+        "loader": {"batch_size": 1, "num_workers": 0, "augment": True, "flip_probability": 0.25},
+    }
+
+
+def test_the_configured_flip_probability_reaches_the_training_loader(loader_config: dict) -> None:
+    assert build_dataloaders(loader_config)["train"].dataset.flip_probability == 0.25
+
+
+def test_a_run_recorded_before_the_flip_key_existed_keeps_its_probability(loader_config: dict) -> None:
+    """`src.evaluate` replays each run's own config.yaml, including the published checkpoints."""
+    del loader_config["loader"]["flip_probability"]
+    assert build_dataloaders(loader_config)["train"].dataset.flip_probability == 0.5

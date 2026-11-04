@@ -108,6 +108,9 @@ def verify_split(split: SplitFile) -> None:
 IMAGENET_NORMALIZATION = ([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 """The ImageNet channel statistics the pretrained torchvision weights were trained with."""
 
+DEFAULT_FLIP_PROBABILITY = 0.5
+"""What every run flipped at before `loader.flip_probability` existed, so replaying one stays faithful."""
+
 
 def _sample_paths(data_dir: Path, partition: str, cities: list[str]) -> tuple[list[tuple[Path, Path]], int]:
     """Pair every image with its labelIds mask, returning the pairs and the count of unusable ones.
@@ -143,11 +146,15 @@ class CityscapesSegmentation(Dataset):
         crop: tuple[int, int] | None = None,
         augment: bool = False,
         normalization: tuple[list[float], list[float]] = IMAGENET_NORMALIZATION,
+        flip_probability: float = DEFAULT_FLIP_PROBABILITY,
     ) -> None:
+        if not 0.0 <= flip_probability <= 1.0:
+            raise ValueError(f"flip_probability must lie in [0, 1], not {flip_probability}")
         self.samples, self.invalid_annotations = _sample_paths(data_dir, partition, cities)
         if not self.samples:
             raise ValueError(f"no image and mask pairs for {partition} in {data_dir}")
         self.size, self.crop, self.augment = size, crop, augment
+        self.flip_probability = flip_probability
         mean, std = normalization
         self.mean = torch.tensor(mean).view(3, 1, 1)
         self.std = torch.tensor(std).view(3, 1, 1)
@@ -167,7 +174,7 @@ class CityscapesSegmentation(Dataset):
 
         if self.crop is not None:
             image, mask = self._crop(image, mask)
-        if self.augment and torch.rand(()) < 0.5:
+        if self.augment and torch.rand(()) < self.flip_probability:
             image, mask = image.flip(-1), mask.flip(-1)
 
         return (image - self.mean) / self.std, mask.long()
@@ -295,6 +302,7 @@ def build_dataloaders(config: dict) -> dict[str, DataLoader]:
             crop=crop if training else None,
             augment=training and loader_config["augment"],
             normalization=normalization,
+            flip_probability=loader_config.get("flip_probability", DEFAULT_FLIP_PROBABILITY),
         )
         if dataset.invalid_annotations:
             print(f"{partition}: skipped {dataset.invalid_annotations} images with no labelIds mask")
