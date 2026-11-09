@@ -116,3 +116,4 @@ class EvaluationReport(TypedDict):
     parameters: int
     training_seconds: float
     inference_ms_per_image: dict[str, float]
+    peak_memory_bytes: int

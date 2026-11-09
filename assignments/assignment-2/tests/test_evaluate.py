@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.evaluate import predict
+from src.evaluate import predict, select_examples
 from src.interfaces import IGNORE_INDEX, NUM_CLASSES
 from src.metrics import ConfusionMatrix
 
@@ -63,22 +63,36 @@ def test_predict_matches_a_matrix_built_by_hand() -> None:
     assert torch.equal(matrix.matrix, expected.matrix)
 
 
-def test_predict_keeps_only_the_requested_number_of_examples() -> None:
-    """Overlays need a handful of images; holding the split would exhaust memory."""
+def test_predict_scores_every_image_in_loader_order() -> None:
+    """Examples are chosen across the whole split, so every image needs its own score."""
     images = torch.randn(6, 3, 8, 8)
     targets = torch.randint(0, NUM_CLASSES, (6, 8, 8))
 
-    _, examples = predict(Constant(0), loader(images, targets), torch.device("cpu"), keep=3)
+    _, scores = predict(Constant(0), loader(images, targets), torch.device("cpu"))
 
-    assert examples["images"].shape[0] == 3
-    assert examples["targets"].shape[0] == 3
-    assert examples["predictions"].shape[0] == 3
+    assert len(scores) == 6
+    assert all(0.0 <= score <= 1.0 for score in scores)
 
 
-def test_predict_keeps_nothing_by_default() -> None:
-    images = torch.randn(4, 3, 8, 8)
-    targets = torch.randint(0, NUM_CLASSES, (4, 8, 8))
+def test_predict_scores_an_image_by_its_own_classes_only() -> None:
+    """A per-image mIoU over all 19 classes would make every image look equally bad."""
+    targets = torch.zeros(2, 8, 8, dtype=torch.long)
 
-    _, examples = predict(Constant(0), loader(images, targets), torch.device("cpu"))
+    _, scores = predict(Constant(0), loader(torch.randn(2, 3, 8, 8), targets), torch.device("cpu"))
 
-    assert examples == {}
+    assert scores == [1.0, 1.0], "a perfect prediction of the only class present scores 1"
+
+
+def test_select_examples_spans_the_range_and_names_the_tiers() -> None:
+    """#74 asks for a correct, a difficult and a failure case, not three near-identical ones."""
+    scores = [0.1, 0.9, 0.5, 0.7, 0.3]
+
+    chosen = select_examples(scores, 3)
+
+    assert [tier for _, tier in chosen] == ["correct", "difficult", "failure"]
+    assert [scores[index] for index, _ in chosen] == [0.9, 0.5, 0.1]
+
+
+def test_select_examples_handles_fewer_images_than_requested() -> None:
+    assert select_examples([0.4], 6) == [(0, "correct")]
+    assert select_examples([], 6) == []

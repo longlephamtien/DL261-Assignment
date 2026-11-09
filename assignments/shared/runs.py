@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import platform
 import random
 import subprocess
@@ -26,6 +27,7 @@ def set_seed(seed: int, deterministic: bool = True) -> None:
     elif device.type == "mps":
         torch.mps.manual_seed(seed)
     if deterministic:
+        os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
         torch.use_deterministic_algorithms(True, warn_only=True)
