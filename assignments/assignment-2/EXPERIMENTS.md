@@ -36,6 +36,8 @@ The pretrained model is fine-tuned in a single stage: the final convolution is r
 
 Early stopping does not shorten the cosine period, so a run that stops early ends above the minimum learning rate.
 
+Reproducibility has one limit on this hardware. `set_seed` requests deterministic algorithms with `warn_only=True`, and MPS has no deterministic kernel for `index_put_with_accumulate`, which DeepLabV3 reaches in its backward pass; PyTorch therefore warns and proceeds nondeterministically rather than failing. Measured at a fixed seed, the U-Net reproduces bit-exactly while DeepLabV3 diverges by about 4e-07 per step. Seed-to-seed spread consequently includes this nondeterminism, and rerunning one seed will not reproduce its number exactly.
+
 ```sh
 python -m src.train --config configs/deeplabv3.yaml --set seed=0
 ```
