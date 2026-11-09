@@ -4,7 +4,8 @@
 #   scripts/experiments.sh [arm ...]
 #
 # With no argument it runs every arm. Arms already marked done are skipped, so the script can
-# be interrupted and restarted. Progress goes to the terminal and to results/experiments.log.
+# be interrupted and restarted. Everything goes to results/experiments.log, one timestamp per
+# line, and nothing to the terminal: thirteen runs of forty epochs would bury the shell.
 #
 # Arms are ordered so the headline comparison finishes first and the extension is last:
 #   e1-deeplabv3  pretrained arm, also the reference E2 and E3 are measured against
@@ -13,13 +14,19 @@
 #   e3-dice       the ablation
 #   e4-resnet50   extension, seed 0 only, droppable
 set -u
-set -o pipefail  # without this, `tee` would report success for a run that crashed
+set -o pipefail  # without this, the log filter would report success for a run that crashed
 
 cd "$(dirname "$0")/.." || exit 1
 PYTHON="../.venv/bin/python"
 MARKERS="results/.completed"
 LOG="results/experiments.log"
 mkdir -p "$MARKERS" "$(dirname "$LOG")"
+
+log() { printf '%s  %s\n' "$(date '+%F %T')" "$*" >> "$LOG"; }
+
+# Stamps each line a run prints. Reading line by line keeps the log current while the run is
+# still going, which a plain redirect would not.
+stamp() { while IFS= read -r line; do printf '%s  %s\n' "$(date '+%F %T')" "$line"; done >> "$LOG"; }
 
 [ -x "$PYTHON" ] || { echo "no interpreter at $PYTHON; create the virtual environment first"; exit 1; }
 
@@ -43,7 +50,8 @@ done
 total=${#selected[@]}
 [ "$total" -eq 0 ] && { echo "no arm matched: $*"; exit 1; }
 
-echo "=== $total runs queued, $(date '+%F %T') ===" | tee -a "$LOG"
+echo "$total runs queued; follow results/experiments.log"
+log "=== $total runs queued ==="
 started_all=$(date +%s)
 index=0
 
@@ -56,27 +64,30 @@ for entry in "${selected[@]}"; do
   marker="$MARKERS/$arm-seed$seed"
 
   if [ -f "$marker" ]; then
-    echo "[$index/$total] $arm seed $seed | already done, skipping" | tee -a "$LOG"
+    log "[$index/$total] $arm seed $seed | already done, skipping"
     continue
   fi
 
   args=(--config "$(config_for "$arm")" --set "seed=$seed")
   [ -n "$override" ] && args+=(--set "$override")
 
-  echo "" | tee -a "$LOG"
-  echo "[$index/$total] $arm seed $seed | started $(date '+%F %T')" | tee -a "$LOG"
+  log ""
+  log "[$index/$total] $arm seed $seed | started"
   started=$(date +%s)
 
-  if "$PYTHON" -m src.train "${args[@]}" 2>&1 | tee -a "$LOG"; then
+  # -u keeps the per-epoch lines coming: piped onward, Python would block-buffer stdout and
+  # the progress would only reach the log once a run had already finished.
+  if PYTHONUNBUFFERED=1 "$PYTHON" -u -m src.train "${args[@]}" 2>&1 | stamp; then
     elapsed=$(( $(date +%s) - started ))
+    overall=$(( $(date +%s) - started_all ))
     date +%s > "$marker"
-    printf '[%d/%d] %s seed %s | done in %dh%02dm, %dh%02dm elapsed overall\n' \
+    log "$(printf '[%d/%d] %s seed %s | done in %dh%02dm, %dh%02dm elapsed overall' \
       "$index" "$total" "$arm" "$seed" $((elapsed / 3600)) $(((elapsed % 3600) / 60)) \
-      $((($(date +%s) - started_all) / 3600)) $(((($(date +%s) - started_all) % 3600) / 60)) | tee -a "$LOG"
+      $((overall / 3600)) $(((overall % 3600) / 60)))"
   else
-    echo "[$index/$total] $arm seed $seed | FAILED, continuing with the next arm" | tee -a "$LOG"
+    log "[$index/$total] $arm seed $seed | FAILED, continuing with the next arm"
   fi
 done
 
-echo "" | tee -a "$LOG"
-echo "=== queue finished $(date '+%F %T') ===" | tee -a "$LOG"
+log ""
+log "=== queue finished ==="
