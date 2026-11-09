@@ -24,6 +24,7 @@ loader:
   batch_size: 8
   num_workers: 4
   augment: true
+  flip_probability: 0.5
 
 train:
   epochs: 40

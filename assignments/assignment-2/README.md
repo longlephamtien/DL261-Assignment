@@ -123,4 +123,4 @@ The split unit is the **city**: train and validation hold disjoint sets of citie
 
 All models share one split file, one seed list, identical preprocessing and augmentation, and the checkpoint rule `val_miou`. The test split is evaluated once, after model selection concludes.
 
-[EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the seed count and budget, what each experiment varies, and the rule that decides when one configuration counts as better than another.
+[EXPERIMENTS.md](EXPERIMENTS.md) shows the fixed protocol, the fine-tuning procedure, the seed count and budget, what each experiment varies, and the rule that decides when one configuration counts as better than another.
