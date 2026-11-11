@@ -5,3 +5,4 @@ results/experiments.log
 results/.completed/
 *.svg
 *.pdf
+results/evaluate.log

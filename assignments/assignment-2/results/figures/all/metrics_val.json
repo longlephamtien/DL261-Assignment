@@ -1,0 +1,617 @@
+{
+  "split": "val",
+  "runs": [
+    {
+      "run_id": "deeplabv3-seed0-20261109-230158",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+      "seed": 0,
+      "parameters": 11024963,
+      "best_epoch": 30,
+      "epochs_trained": 38,
+      "training_seconds": 5343.326158046722,
+      "seconds_per_epoch": 140.58202441742546,
+      "miou": 0.6184226712987912,
+      "dice": 0.7430204614246716,
+      "pixel_accuracy": 0.9383453479318412,
+      "inference_ms_per_image": {
+        "1": 14.972545850469032,
+        "8": 8.059557812521234
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed0-20261110-121645",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+      "seed": 0,
+      "parameters": 8053011,
+      "best_epoch": 15,
+      "epochs_trained": 23,
+      "training_seconds": 2193.421064376831,
+      "seconds_per_epoch": 95.33453149380891,
+      "miou": 0.4905634337681725,
+      "dice": 0.6197888595008403,
+      "pixel_accuracy": 0.90366877057074,
+      "inference_ms_per_image": {
+        "1": 14.351887500379235,
+        "8": 8.023578906249895
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed0-20261110-144803",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+      "seed": 0,
+      "parameters": 11024963,
+      "best_epoch": 4,
+      "epochs_trained": 12,
+      "training_seconds": 1808.8798828125,
+      "seconds_per_epoch": 150.71594101190567,
+      "miou": 0.4911481829138889,
+      "dice": 0.6048086602718616,
+      "pixel_accuracy": 0.9072358291650175,
+      "inference_ms_per_image": {
+        "1": 14.396793749619974,
+        "8": 8.01406250002401
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed0-20261110-161840",
+      "model": "deeplabv3",
+      "backbone": "resnet50",
+      "variant": "backbone=resnet50,freeze_backbone=False,loss=cross_entropy",
+      "seed": 0,
+      "parameters": 39638355,
+      "best_epoch": 37,
+      "epochs_trained": 40,
+      "training_seconds": 29599.618104219437,
+      "seconds_per_epoch": 739.9180328428745,
+      "miou": 0.6664520657327041,
+      "dice": 0.7811944707901193,
+      "pixel_accuracy": 0.9515778496614002,
+      "inference_ms_per_image": {
+        "1": 72.33898545018747,
+        "8": 74.58374818124867
+      },
+      "peak_memory_bytes": 4694622208,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed1-20261110-003107",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+      "seed": 1,
+      "parameters": 11024963,
+      "best_epoch": 31,
+      "epochs_trained": 39,
+      "training_seconds": 5473.047100067139,
+      "seconds_per_epoch": 140.30392625393011,
+      "miou": 0.6142603618054409,
+      "dice": 0.738605948335872,
+      "pixel_accuracy": 0.9384461247845226,
+      "inference_ms_per_image": {
+        "1": 15.068831249664072,
+        "8": 8.111112500046147
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed1-20261110-125324",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+      "seed": 1,
+      "parameters": 8053011,
+      "best_epoch": 24,
+      "epochs_trained": 32,
+      "training_seconds": 3047.472347021103,
+      "seconds_per_epoch": 95.20217895507812,
+      "miou": 0.4998239166898501,
+      "dice": 0.6281388331749963,
+      "pixel_accuracy": 0.9071331298023669,
+      "inference_ms_per_image": {
+        "1": 15.005731250130339,
+        "8": 8.009207293707732
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed1-20261110-151818",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+      "seed": 1,
+      "parameters": 11024963,
+      "best_epoch": 4,
+      "epochs_trained": 12,
+      "training_seconds": 1807.2234268188477,
+      "seconds_per_epoch": 150.57749718427658,
+      "miou": 0.49626161232480565,
+      "dice": 0.6168415281001117,
+      "pixel_accuracy": 0.9091398009119603,
+      "inference_ms_per_image": {
+        "1": 14.817587500147056,
+        "8": 7.970146875049977
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed2-20261110-020225",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+      "seed": 2,
+      "parameters": 11024963,
+      "best_epoch": 35,
+      "epochs_trained": 40,
+      "training_seconds": 5613.9129848480225,
+      "seconds_per_epoch": 140.31350057721139,
+      "miou": 0.6082516059616779,
+      "dice": 0.7329101665334119,
+      "pixel_accuracy": 0.9384144761640961,
+      "inference_ms_per_image": {
+        "1": 14.460577099816874,
+        "8": 8.00408541881552
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed2-20261110-134416",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+      "seed": 2,
+      "parameters": 8053011,
+      "best_epoch": 36,
+      "epochs_trained": 40,
+      "training_seconds": 3821.7586817741394,
+      "seconds_per_epoch": 95.50733101963996,
+      "miou": 0.4979876324294896,
+      "dice": 0.6272899406146752,
+      "pixel_accuracy": 0.9073995971501683,
+      "inference_ms_per_image": {
+        "1": 14.387189549597679,
+        "8": 8.063097399917751
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "deeplabv3-seed2-20261110-154830",
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+      "seed": 2,
+      "parameters": 11024963,
+      "best_epoch": 4,
+      "epochs_trained": 12,
+      "training_seconds": 1804.2757580280304,
+      "seconds_per_epoch": 150.331657965978,
+      "miou": 0.5000150825829679,
+      "dice": 0.6211945686290794,
+      "pixel_accuracy": 0.9053476667961716,
+      "inference_ms_per_image": {
+        "1": 14.407166649471037,
+        "8": 8.0940476563228
+      },
+      "peak_memory_bytes": 3667148800,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "unet-seed0-20261110-033604",
+      "model": "unet",
+      "backbone": "",
+      "variant": "",
+      "seed": 0,
+      "parameters": 7763635,
+      "best_epoch": 38,
+      "epochs_trained": 40,
+      "training_seconds": 10417.433401107788,
+      "seconds_per_epoch": 260.4112424969673,
+      "miou": 0.46873478159706655,
+      "dice": 0.558362593848608,
+      "pixel_accuracy": 0.9289150035011147,
+      "inference_ms_per_image": {
+        "1": 22.896668750036042,
+        "8": 22.250242449990765
+      },
+      "peak_memory_bytes": 7093043200,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "unet-seed1-20261110-062947",
+      "model": "unet",
+      "backbone": "",
+      "variant": "",
+      "seed": 1,
+      "parameters": 7763635,
+      "best_epoch": 40,
+      "epochs_trained": 40,
+      "training_seconds": 10411.829836845398,
+      "seconds_per_epoch": 260.2736613750458,
+      "miou": 0.48239597618433866,
+      "dice": 0.5806842350066389,
+      "pixel_accuracy": 0.9298048531057729,
+      "inference_ms_per_image": {
+        "1": 23.29234999997425,
+        "8": 22.096173956288112
+      },
+      "peak_memory_bytes": 7093043200,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    },
+    {
+      "run_id": "unet-seed2-20261110-092324",
+      "model": "unet",
+      "backbone": "",
+      "variant": "",
+      "seed": 2,
+      "parameters": 7763635,
+      "best_epoch": 39,
+      "epochs_trained": 40,
+      "training_seconds": 10396.012350797653,
+      "seconds_per_epoch": 259.8772050976753,
+      "miou": 0.4995393056256797,
+      "dice": 0.6058672678845616,
+      "pixel_accuracy": 0.9306841830345215,
+      "inference_ms_per_image": {
+        "1": 22.494360450218664,
+        "8": 21.991492706183635
+      },
+      "peak_memory_bytes": 7093043200,
+      "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+      "torch": "2.14.0",
+      "torchvision": "0.29.0",
+      "python": "3.12.0",
+      "torch_threads": 10
+    }
+  ],
+  "configurations": [
+    {
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 11024963,
+      "miou_mean": 0.6136448796886367,
+      "miou_sd": 0.0051133898932152946,
+      "dice_mean": 0.7381788587646518,
+      "dice_sd": 0.005068660555160678,
+      "pixel_accuracy_mean": 0.9384019829601533,
+      "pixel_accuracy_sd": 5.153691509645632e-05,
+      "seconds_per_epoch_mean": 140.39981708285566,
+      "seconds_per_epoch_sd": 0.15786877935440025
+    },
+    {
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 8053011,
+      "miou_mean": 0.4961249942958374,
+      "miou_sd": 0.004903182802871221,
+      "dice_mean": 0.6250725444301706,
+      "dice_sd": 0.0045954487777655,
+      "pixel_accuracy_mean": 0.9060671658410917,
+      "pixel_accuracy_sd": 0.0020813399809966643,
+      "seconds_per_epoch_mean": 95.34801382284233,
+      "seconds_per_epoch_sd": 0.15302214063236785
+    },
+    {
+      "model": "deeplabv3",
+      "backbone": "mobilenet_v3_large",
+      "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 11024963,
+      "miou_mean": 0.4958082926072208,
+      "miou_sd": 0.004450797850963545,
+      "dice_mean": 0.6142815856670176,
+      "dice_sd": 0.00848760726697175,
+      "pixel_accuracy_mean": 0.9072410989577165,
+      "pixel_accuracy_sd": 0.0018960725503177566,
+      "seconds_per_epoch_mean": 150.5416987207201,
+      "seconds_per_epoch_sd": 0.19462659721018905
+    },
+    {
+      "model": "deeplabv3",
+      "backbone": "resnet50",
+      "variant": "backbone=resnet50,freeze_backbone=False,loss=cross_entropy",
+      "seeds": [
+        0
+      ],
+      "parameters": 39638355,
+      "miou_mean": 0.6664520657327041,
+      "miou_sd": 0.0,
+      "dice_mean": 0.7811944707901193,
+      "dice_sd": 0.0,
+      "pixel_accuracy_mean": 0.9515778496614002,
+      "pixel_accuracy_sd": 0.0,
+      "seconds_per_epoch_mean": 739.9180328428745,
+      "seconds_per_epoch_sd": 0.0
+    },
+    {
+      "model": "unet",
+      "backbone": "",
+      "variant": "",
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "parameters": 7763635,
+      "miou_mean": 0.48355668780236166,
+      "miou_sd": 0.015435028790141976,
+      "dice_mean": 0.5816380322466028,
+      "dice_sd": 0.02376669540968565,
+      "pixel_accuracy_mean": 0.9298013465471363,
+      "pixel_accuracy_sd": 0.0008845949792540675,
+      "seconds_per_epoch_mean": 260.1873696565628,
+      "seconds_per_epoch_sd": 0.27727906785349204
+    }
+  ],
+  "cost": {
+    "hardware": [
+      "mps: Apple M4 Pro, 14 cores, 48 GB RAM"
+    ],
+    "software": [
+      "python 3.12.0, torch 2.14.0, torchvision 0.29.0"
+    ],
+    "configurations": [
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+        "seed": 0,
+        "parameters": 11024963,
+        "training_seconds": 5343.326158046722,
+        "seconds_per_epoch": 140.58202441742546,
+        "inference_ms_per_image": {
+          "1": 14.972545850469032,
+          "8": 8.059557812521234
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+        "seed": 0,
+        "parameters": 8053011,
+        "training_seconds": 2193.421064376831,
+        "seconds_per_epoch": 95.33453149380891,
+        "inference_ms_per_image": {
+          "1": 14.351887500379235,
+          "8": 8.023578906249895
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+        "seed": 0,
+        "parameters": 11024963,
+        "training_seconds": 1808.8798828125,
+        "seconds_per_epoch": 150.71594101190567,
+        "inference_ms_per_image": {
+          "1": 14.396793749619974,
+          "8": 8.01406250002401
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "resnet50",
+        "variant": "backbone=resnet50,freeze_backbone=False,loss=cross_entropy",
+        "seed": 0,
+        "parameters": 39638355,
+        "training_seconds": 29599.618104219437,
+        "seconds_per_epoch": 739.9180328428745,
+        "inference_ms_per_image": {
+          "1": 72.33898545018747,
+          "8": 74.58374818124867
+        },
+        "peak_memory_bytes": 4694622208
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+        "seed": 1,
+        "parameters": 11024963,
+        "training_seconds": 5473.047100067139,
+        "seconds_per_epoch": 140.30392625393011,
+        "inference_ms_per_image": {
+          "1": 15.068831249664072,
+          "8": 8.111112500046147
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+        "seed": 1,
+        "parameters": 8053011,
+        "training_seconds": 3047.472347021103,
+        "seconds_per_epoch": 95.20217895507812,
+        "inference_ms_per_image": {
+          "1": 15.005731250130339,
+          "8": 8.009207293707732
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+        "seed": 1,
+        "parameters": 11024963,
+        "training_seconds": 1807.2234268188477,
+        "seconds_per_epoch": 150.57749718427658,
+        "inference_ms_per_image": {
+          "1": 14.817587500147056,
+          "8": 7.970146875049977
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
+        "seed": 2,
+        "parameters": 11024963,
+        "training_seconds": 5613.9129848480225,
+        "seconds_per_epoch": 140.31350057721139,
+        "inference_ms_per_image": {
+          "1": 14.460577099816874,
+          "8": 8.00408541881552
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
+        "seed": 2,
+        "parameters": 8053011,
+        "training_seconds": 3821.7586817741394,
+        "seconds_per_epoch": 95.50733101963996,
+        "inference_ms_per_image": {
+          "1": 14.387189549597679,
+          "8": 8.063097399917751
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "deeplabv3",
+        "backbone": "mobilenet_v3_large",
+        "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
+        "seed": 2,
+        "parameters": 11024963,
+        "training_seconds": 1804.2757580280304,
+        "seconds_per_epoch": 150.331657965978,
+        "inference_ms_per_image": {
+          "1": 14.407166649471037,
+          "8": 8.0940476563228
+        },
+        "peak_memory_bytes": 3667148800
+      },
+      {
+        "model": "unet",
+        "backbone": "",
+        "variant": "",
+        "seed": 0,
+        "parameters": 7763635,
+        "training_seconds": 10417.433401107788,
+        "seconds_per_epoch": 260.4112424969673,
+        "inference_ms_per_image": {
+          "1": 22.896668750036042,
+          "8": 22.250242449990765
+        },
+        "peak_memory_bytes": 7093043200
+      },
+      {
+        "model": "unet",
+        "backbone": "",
+        "variant": "",
+        "seed": 1,
+        "parameters": 7763635,
+        "training_seconds": 10411.829836845398,
+        "seconds_per_epoch": 260.2736613750458,
+        "inference_ms_per_image": {
+          "1": 23.29234999997425,
+          "8": 22.096173956288112
+        },
+        "peak_memory_bytes": 7093043200
+      },
+      {
+        "model": "unet",
+        "backbone": "",
+        "variant": "",
+        "seed": 2,
+        "parameters": 7763635,
+        "training_seconds": 10396.012350797653,
+        "seconds_per_epoch": 259.8772050976753,
+        "inference_ms_per_image": {
+          "1": 22.494360450218664,
+          "8": 21.991492706183635
+        },
+        "peak_memory_bytes": 7093043200
+      }
+    ]
+  }
+}

@@ -40,10 +40,28 @@ def load_run(directory: Path) -> tuple[dict, RunSummary, list[EpochRecord]]:
     return _load_run(directory)
 
 
+ARM_NAMES = {
+    "freeze_backbone=True": "frozen backbone",
+    "loss=dice": "Dice loss",
+}
+"""Short names for the settings an experiment varies, so a legend stays readable."""
+
+
 def configuration(summary: RunSummary, variant: str = "") -> str:
-    """Curves are grouped by configuration, not by run; seeds of one configuration average."""
-    parts = [summary["model"], summary["backbone"], variant]
-    return "/".join(part for part in parts if part)
+    """Curves are grouped by configuration, not by run; seeds of one configuration average.
+
+    The name is the architecture, its backbone, and only those varied settings that actually
+    distinguish this arm: `variants` lists every key that differs anywhere in the comparison,
+    which at five arms is too long to label a legend with.
+    """
+    name = {"unet": "U-Net", "deeplabv3": "DeepLabV3"}.get(summary["model"], summary["model"])
+    backbone = {"mobilenet_v3_large": "MobileNetV3", "resnet50": "ResNet50"}.get(
+        summary["backbone"], summary["backbone"]
+    )
+    if backbone:
+        name = f"{name}-{backbone}"
+    marks = [ARM_NAMES[setting] for setting in variant.split(",") if setting in ARM_NAMES]
+    return f"{name}, {', '.join(marks)}" if marks else name
 
 
 def label(summary: RunSummary, variant: str = "") -> str:
@@ -125,10 +143,6 @@ def main(argv: list[str] | None = None) -> int:
     summaries = [summary for _, summary, _ in loaded]
     labels = variants(summaries, [config for config, _, _ in loaded], extra=VARIANT_KEYS)
 
-    per_model: dict[str, set[str]] = {}
-    for summary, variant in zip(summaries, labels):
-        per_model.setdefault(summary["model"], set()).add(configuration(summary, variant))
-
     histories: dict[str, list[list[EpochRecord]]] = {}
     reports: dict[str, EvaluationReport] = {}
     rows: list[dict] = []
@@ -152,8 +166,7 @@ def main(argv: list[str] | None = None) -> int:
 
         key = configuration(summary, variant)
         histories.setdefault(key, []).append(history)
-        name = summary["model"] if len(per_model[summary["model"]]) == 1 else re.sub(r"\W+", "_", key)
-        reports.setdefault(name, shared_io.read_json(report))
+        reports.setdefault(key, shared_io.read_json(report))
 
     configurations = summarize(
         rows,
@@ -167,8 +180,9 @@ def main(argv: list[str] | None = None) -> int:
     plot_per_class(reports, comparison / f"per_class_iou_{split}")
     for name, report in reports.items():
         plot_confusion(
-            report["confusion_matrix"], CLASS_NAMES, comparison / f"confusion_{name}_{split}",
-            f"{report['model']} on the {report['split']} split, row-normalised to percent",
+            report["confusion_matrix"], CLASS_NAMES,
+            comparison / f"confusion_{re.sub(r'\W+', '_', name).strip('_').lower()}_{split}",
+            f"{name} on the {report['split']} split, row-normalised to percent",
         )
 
     shared_io.write_json(
