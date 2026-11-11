@@ -4,35 +4,511 @@
 \label{subsec:results-1}
 % Required: Loss and metric curves; selected checkpoint; overfitting or underfitting; training time; implementation issues and fixes.
 
+Figure~\ref{fig:curves} shows the learning curves, each averaged over its seeds. The left panel
+is labelled \emph{training objective} rather than loss because the ablation arm minimises
+Equation~\ref{eq:dice} and the others Equation~\ref{eq:cross-entropy}; the two are not on a
+common scale and should be read only against their own arm.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/learning_curves.pdf}
+    \caption{Learning curves; solid validation, dashed training, band one standard deviation.}
+    \label{fig:curves}
+\end{figure}
+
+\textbf{The budget was the right size, for three of the five arms.} The pretrained DeepLabV3 runs
+stopped at epochs 38, 39 and 40 with their best epoch at 30, 31 and 35, and their validation
+curve is flat from about epoch 32, rising from $0.615$ to $0.616$ over the last eight epochs. The
+40-epoch budget was therefore adequate without being generous. The ResNet50 run behaved the same
+way, best at epoch 37 of 40.
+
+\textbf{The U-Net is the exception, and its number is a lower bound.} Its best epochs were 38, 40
+and 39 of 40, and its validation mIoU rises monotonically to the last epoch, $0.446$ at epoch 28,
+$0.460$ at 32, $0.466$ at 36 and $0.468$ at 40. It was still improving when the budget ran out.
+Every U-Net figure in this report is therefore a floor rather than a converged score, which
+Section~\ref{subsec:results-7} returns to.
+
+\textbf{Overfitting is present but mild, and is not what separates the arms.}
+Table~\ref{tab:behaviour} gives the gap between training and validation mIoU at the selected
+epoch. The pretrained arms sit between $0.11$ and $0.16$, and validation mIoU never turns
+downward for them; the U-Net's gap is only $0.021$, which is consistent with a model still
+underfitting at epoch 40 rather than one generalising unusually well. The Dice arm is the
+instructive case: its gap is $-0.002$, so it does not overfit at all, it simply stops improving.
+
+\begin{table}[H]
+\centering
+\caption{Training behaviour.}
+\label{tab:behaviour}
+\small
+\begin{tabular}{lcccrr}
+\hline
+\textbf{Configuration} & \textbf{Epochs run} & \textbf{Best epoch} & \textbf{Gap} & \textbf{s/epoch} & \textbf{Hours} \\
+\hline
+DeepLabV3-MobileNetV3                  & 38 / 39 / 40 & 30 / 31 / 35 & $0.121$  & 140.4 & 1.52 \\
+DeepLabV3-MobileNetV3, frozen backbone & 23 / 32 / 40 & 15 / 24 / 36 & $0.110$  &  95.3 & 0.84 \\
+DeepLabV3-MobileNetV3, Dice loss       & 12 / 12 / 12 &  4 /  4 /  4 & $-0.002$ & 150.5 & 0.50 \\
+DeepLabV3-ResNet50                     & 40           & 37           & $0.165$  & 739.9 & 8.22 \\
+U-Net                                  & 40 / 40 / 40 & 38 / 40 / 39 & $0.021$  & 260.2 & 2.89 \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Early stopping.} It fired for three arms and not for the U-Net or ResNet50. The frozen
+arm stopped at 23, 32 and 40 epochs, a spread of 17 epochs from nothing but the seed, which is a
+reminder that the stopping epoch is a far noisier quantity than the score it protects. The Dice
+arm stopped at epoch 12 on all three seeds, having peaked at epoch 4 on all three;
+Section~\ref{subsec:results-6} explains why.
+
+\textbf{Training time.} The 13 runs took $25.5$ hours in total on the single machine of
+Table~\ref{tab:protocol}, run consecutively so that the timings compare with each other, from
+$0.50$ hours for a Dice run that stopped at epoch 12 to $8.22$ hours for ResNet50.
+
+\textbf{Implementation issues found and fixed.} Four, each of which would have corrupted a
+reported number. The qualitative-example selection kept only the first six images of the split
+before ranking them, so the ``failure case'' was the worst of an arbitrary six rather than of the
+split; after the fix the selected range widened from $0.58$ down to $0.42$, and after it from $0.77$ down to $0.29$ image mIoU.
+The selected examples were then discarded before any overlay was written, so the figures could
+never have been produced. Inference latency was measured with autograd active, which is not what
+inference does; the measured effect on this backend was within noise, $14.82$ against
+$15.71$~ms, but it would dominate peak memory on CUDA. And two early draft runs used ten epochs:
+because the cosine period equals the configured epoch count, their learning-rate trajectory
+differs from a 40-epoch run at every step, so they were deleted rather than pooled.
 
 \subsection{Quantitative results}
 \label{subsec:results-2}
 % Required: Primary and secondary metrics; parameter counts; training and inference time; configurations; mean and standard deviation over multiple runs where feasible.
 % Also required: Section 20.1, segmentation: mIoU and Dice; instance segmentation also reports mask AP. Section 21: report hardware, software versions, seeds, checkpoint rules, training time, and inference cost.
 
+Table~\ref{tab:results} reports every mandatory comparison quantity. Validation mIoU is the
+quantity the decision rule of Section~\ref{subsec:methodology-4} is applied to, because it is
+what selected the checkpoints; the test column is reported once, afterwards, and decides nothing.
+The evaluation reproduces the training-time validation mIoU exactly for all 13 runs, to four
+decimal places, which confirms that the checkpoint written during training is the one scored
+here.
+
+\begin{table}[H]
+\centering
+\caption{Main comparison.}
+\label{tab:results}
+\scriptsize
+\begin{tabular}{lrrrrrrcc}
+\hline
+\textbf{Configuration} & \textbf{Params} & \textbf{s/ep} & \textbf{h} & \textbf{ms@1} & \textbf{ms@8} & \textbf{GB} & \textbf{Val mIoU} & \textbf{Test mIoU} \\
+\hline
+DeepLabV3-ResNet50                & 39{,}638{,}355 & 739.9 & 8.22 & 72.3 & 76.8 & 4.37 & $\mathit{0.6665}$ & $\mathit{0.7076}$ \\
+DeepLabV3-MobileNetV3             & 11{,}024{,}963 & 140.4 & 1.52 & 15.2 &  8.2 & 3.41 & $\mathbf{0.6136 \pm 0.0051}$ & $\mathbf{0.6180 \pm 0.0049}$ \\
+\quad frozen backbone             &  8{,}053{,}011 &  95.3 & 0.84 & 14.7 &  8.3 & 3.41 & $0.4961 \pm 0.0049$ & $0.5003 \pm 0.0088$ \\
+\quad Dice loss                   & 11{,}024{,}963 & 150.5 & 0.50 & 14.9 &  8.2 & 3.41 & $0.4958 \pm 0.0045$ & $0.4983 \pm 0.0123$ \\
+U-Net, from scratch               &  7{,}763{,}635 & 260.2 & 2.89 & 22.6 & 22.0 & 6.57 & $0.4836 \pm 0.0154$ & $0.4702 \pm 0.0071$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Secondary metrics on the test split.}
+\label{tab:secondary}
+\small
+\begin{tabular}{lrrr}
+\hline
+\textbf{Configuration} & \textbf{Dice} & \textbf{Pixel accuracy} & \textbf{Error rate} \\
+\hline
+DeepLabV3-ResNet50                & $\mathit{0.8181}$ & $\mathit{0.9509}$ & $4.9\%$ \\
+DeepLabV3-MobileNetV3             & $\mathbf{0.7441 \pm 0.0048}$ & $0.9329$ & $6.7\%$ \\
+\quad frozen backbone             & $0.6336 \pm 0.0091$ & $0.8959$ & $10.4\%$ \\
+\quad Dice loss                   & $0.6225 \pm 0.0167$ & $0.8982$ & $10.2\%$ \\
+U-Net, from scratch               & $0.5710 \pm 0.0113$ & $0.9202$ & $8.0\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+Three observations follow from the two tables before any comparison is drawn.
+
+\textbf{Pixel accuracy and mIoU disagree, exactly as the EDA predicted.} In
+Table~\ref{tab:secondary} the U-Net reaches $0.9202$ pixel accuracy, higher than both the frozen
+arm ($0.8959$) and the Dice arm ($0.8982$), while scoring lower than both on mIoU. A metric
+dominated by the three classes that cover $75.8\%$ of the ground ranks these three models in the
+opposite order to the metric that weights all nineteen equally. This is the measured
+justification for the choice made in Section~\ref{subsec:problem-and-data-3}, and it is why
+pixel accuracy appears in this report only as a secondary column.
+
+\textbf{Validation does not overstate test here; for four arms of five it understates it.} Test
+mIoU exceeds validation mIoU by $0.0043$ for DeepLabV3, $0.0042$ for the frozen arm, $0.0024$ for
+Dice and $0.0412$ for ResNet50. Only the U-Net is lower on test, by $0.0134$. This runs against
+the usual expectation and has a simple cause: with a city-level split, the three test cities are
+simply a different sample of difficulty from the three validation cities, and that
+partition-to-partition difference is of the same order as, or larger than, the seed-to-seed
+spread. Pixel accuracy moves the other way for every arm, falling on test while mIoU rises, which
+is consistent with the test cities holding a class mix that is harder per pixel but better
+populated in the rarer classes. What transfers between the two columns is therefore the margin
+between two arms rather than the absolute level.
+
+\textbf{The seed spread is small except for the U-Net.} The standard deviation across seeds is
+$0.0049$ to $0.0088$ validation mIoU for the three pretrained arms but $0.0154$ for the U-Net,
+three times larger, with individual seeds at $0.4687$, $0.4824$ and $0.4995$. Training from
+scratch is markedly less reproducible than fine-tuning here. The U-Net's best seed alone would
+have been indistinguishable from the frozen arm; its worst would have lost under the rule. A
+single-seed comparison could therefore have reported either outcome, which is the concrete
+argument for the three-seed protocol.
 
 \subsection{Qualitative results}
 \label{subsec:results-3}
 % Required: Correct predictions; difficult but correct cases; failures; predictions against ground truth; task-appropriate visualizations.
 
+Figure~\ref{fig:confusion} gives the confusion matrix of the pretrained DeepLabV3 on the test
+split, rows normalised because the class supports span three orders of magnitude.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.84\textwidth]{images/confusion_deeplabv3_mobilenetv3_test.pdf}
+    \caption{Confusion matrix of DeepLabV3-MobileNetV3 on test, rows normalised.}
+    \label{fig:confusion}
+\end{figure}
+
+Six examples per run are selected without human choice: the split is ranked by per-image mIoU and
+sampled at even ranks, so the best image is the correct case, the worst the failure, and the
+ranks between them the difficult ones. For DeepLabV3 at seed $0$ on test this spans $0.7556$ down
+to $0.2041$ image mIoU. Figure~\ref{fig:examples} shows three of the six.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/example_correct.png}
+
+    \vspace{1mm}
+    \includegraphics[width=\textwidth]{images/example_difficult.png}
+
+    \vspace{1mm}
+    \includegraphics[width=\textwidth]{images/example_failure.png}
+    \caption{Correct, difficult and failure cases at image mIoU $0.756$, $0.524$ and $0.204$.}
+    \label{fig:examples}
+\end{figure}
+
+The three rows say different things. In the correct case the large regions are recovered almost
+exactly and the visible error is a thin outline tracing every boundary: the model knows what each
+region is and is imprecise about where it ends. The difficult case adds the failure mode the
+confusion matrix quantifies, with poles and signs partially absorbed into the building behind
+them.
+
+The failure case is the most informative, and not for the reason its mIoU suggests. Its error
+panel reports that only $5.8\%$ of labelled pixels are wrong, a \emph{lower} error rate than the
+split average of $6.7\%$, yet it is the worst image in the split at $0.204$ mIoU. The cause is
+visible in the ground truth: most of the courtyard carries the ignore label, so little of the
+frame is scored, and the few classes that are present have small support. A per-image mean
+over classes is extremely sensitive when each class is represented by a handful of pixels. The
+lesson is that per-image mIoU and per-image pixel error are only loosely coupled, and that
+``worst image by mIoU'' selects for images with little labelled content as much as for images the
+model misunderstands.
 
 \subsection{Comparison and discussion}
 \label{subsec:results-4}
 % Required: Which method is better and by how much; where differences appear; causes in data, architecture, loss or training; accuracy, speed and parameter trade-offs; whether hypotheses are supported; conclusions that cannot yet be drawn. Listing metrics and declaring the highest score best is not sufficient.
 % Also required: Section 20: compute-cost analysis is mandatory alongside the quantitative comparison.
 
+Applying the criterion of Section~\ref{subsec:methodology-4} to the validation column of
+Table~\ref{tab:results} gives Table~\ref{tab:verdicts}.
+
+\begin{table}[H]
+\centering
+\caption{Every pairwise comparison, on validation mIoU.}
+\label{tab:verdicts}
+\small
+\begin{tabular}{llc}
+\hline
+\textbf{Comparison} & \textbf{Verdict} & \textbf{Margin} \\
+\hline
+DeepLabV3 vs.\ U-Net            & DeepLabV3 better           & $0.1301$ \\
+DeepLabV3 vs.\ frozen backbone  & Full fine-tuning better    & $0.1175$ \\
+DeepLabV3 vs.\ Dice loss        & Cross-entropy better       & $0.1178$ \\
+U-Net vs.\ frozen backbone      & \textbf{Indistinguishable} & $0.0126$ \\
+U-Net vs.\ Dice loss            & \textbf{Indistinguishable} & $0.0123$ \\
+Frozen backbone vs.\ Dice loss  & \textbf{Indistinguishable} & $0.0003$ \\
+Anything vs.\ ResNet50          & Indicative only, one seed  & not applicable \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{The headline is a single large effect, and three ways of losing it.} One configuration,
+the fully fine-tuned pretrained model, separates from everything else. The other three
+three-seed arms are mutually indistinguishable, clustered within $0.0126$ validation mIoU of one
+another despite differing in architecture, in pretraining, and in objective. Freezing the
+backbone, swapping cross-entropy for Dice, and training a different architecture from scratch are
+three unrelated interventions, and all three land in the same place. The frozen arm and the Dice
+arm differ by $0.0003$. This is the strongest result in the report: on this dataset at this
+budget, what matters is not which of several reasonable choices is made but whether the model
+starts from adapted pretrained features at all.
+
+\textbf{Where the difference appears.} Figure~\ref{fig:per-class} breaks the aggregate down.
+Against the frozen arm, full fine-tuning is better on \emph{all nineteen} classes with
+non-overlapping intervals, so nothing about the frozen arm is preserved. But the gap is very
+unevenly distributed: $0.027$ on road, $0.044$ on car and $0.048$ on building, against $0.215$ on
+truck, $0.213$ on traffic sign, $0.173$ on traffic light and $0.166$ on bus. A frozen
+object-centric backbone still supports the classes that fill a street scene and loses precisely
+the classes that do not.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/per_class_iou_test.pdf}
+    \caption{Per-class IoU on test, hardest class first.}
+    \label{fig:per-class}
+\end{figure}
+
+This partly supports the hypothesis of the controlled experiment and partly refutes it. The prediction that the gap would
+be widest on thin classes is right for traffic sign and traffic light, which are second and
+third largest, but the single widest gap is truck, a rare-but-large class, and pole, the thin
+class named explicitly in the hypothesis, sits mid-table at $0.128$. The correct statement is
+narrower than the one pre-registered: freezing costs most on the classes that are \emph{rare in
+the training distribution}, whether they are rare because they are thin in area or because they
+are seldom photographed, and costs least on the three classes that cover most of the ground.
+
+\textbf{Pretraining is not uniformly better, which the aggregate hides.} The U-Net beats the
+pretrained DeepLabV3, with non-overlapping intervals, on three classes: pole
+($0.4126$ against $0.3277$), sky ($0.9332$ against $0.9211$) and vegetation ($0.8823$ against
+$0.8740$). Pole is the interesting one, a $26\%$ relative margin for the weaker model. The cause
+is architectural rather than about features. DeepLabV3 never resolves below a stride of $8$ and
+returns its logits to full resolution by one bilinear interpolation, which cannot reconstruct a
+structure a few pixels wide; the U-Net's skip connections carry full-resolution detail into the
+decoder, which is exactly what a pole needs. The from-scratch baseline is better at localisation
+and far worse at recognition, and mIoU averages the two into a single number that shows only the
+second. The per-class table therefore admits no unqualified claim that the pretrained model is
+the better one.
+
+\textbf{Compute cost.} Table~\ref{tab:results} makes the cost comparison unusually clean, because
+the best accuracy-per-cost model is also the most accurate of the three-seed arms. The U-Net is
+dominated on every axis simultaneously: it holds $30\%$ fewer parameters than DeepLabV3 yet takes
+$1.9$ times as long per epoch, $1.5$ times as long to serve one image, $2.7$ times as long at
+batch 8, and $1.9$ times the peak memory, while scoring $0.130$ lower. Parameter count is simply
+not a proxy for cost here: the U-Net's convolutions run at full resolution and its decoder holds
+every encoder map alive for the skip connections, whereas MobileNetV3 reduces resolution early
+and keeps it reduced. The frozen arm is the one genuine trade: it trains in $0.84$ hours against
+$1.52$, a $45\%$ saving, for $0.118$ mIoU. Note that this saving is smaller than ``freezing the
+backbone'' suggests, because $73\%$ of the parameters remain trainable, and that it is a saving in
+\emph{training} only: inference cost is identical, $14.7$ against $15.2$~ms, since the same
+forward pass runs either way.
+
+\textbf{Scaling the backbone works, and is expensive.} ResNet50 reaches $0.6665$ validation and
+$0.7076$ test mIoU, against MobileNetV3's $0.6136$ and $0.6180$. At one seed this supports no
+claim of superiority under the decision rule, and it is reported as indicative. What can be said
+is weaker but not empty: the margin, $0.0529$ on validation, is ten times the seed-to-seed
+standard deviation measured for the same architecture at the same protocol, so it is unlikely to
+be seed noise alone. The cost is substantial: $5.3$ times the seconds per epoch, $4.8$ times the
+single-image latency, $9.4$ times at batch 8, and $3.6$ times the parameters, for roughly a
+$9\%$ relative gain in test mIoU. On this hardware a single ResNet50 run costs more than the nine
+MobileNetV3 runs of the other three experiments combined.
+
+\textbf{Hypotheses.} The model comparison is supported, with the per-class qualification above.
+The controlled experiment is supported on its main claim and refuted on its per-class prediction.
+The ablation is refuted outright, as Section~\ref{subsec:results-6} sets out. The backbone
+extension is consistent with its hypothesis but cannot establish it at one seed.
+
+\textbf{What does not follow.} Three things. The U-Net's $0.4836$ is a floor, not a converged
+score, so ``pretraining beats from-scratch by $0.130$'' is an upper bound on that margin at this
+budget rather than an estimate of it. The comparison attributes that gap to pretraining, but
+the two arms differ in architecture as well, and no run here separates a DeepLabV3 trained from
+scratch from a pretrained one; that single experiment would isolate the factor properly and was
+not in the budget. And every number is a score at an untuned configuration under one shared
+protocol, so none of them is the best the corresponding method could reach.
 
 \subsection{Error analysis}
 \label{subsec:results-5}
 % Required: Per error group: description; frequency or rate if possible; examples; hypothesized cause; improvement ideas.
 
+The pretrained DeepLabV3 mislabels $15.37$M of the $229.2$M labelled test pixels, an error rate
+of $6.71\%$ averaged over three seeds. Table~\ref{tab:errors} partitions every error pixel into
+six groups by the pair of classes involved, with precedence top to bottom so that each error
+falls in exactly one group.
+
+\begin{table}[H]
+\centering
+\caption{Error taxonomy, as a share of each model's own errors.}
+\label{tab:errors}
+\small
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Group} & \textbf{DeepLabV3} & \textbf{ResNet50} & \textbf{Frozen} & \textbf{Dice} & \textbf{U-Net} \\
+\hline
+Thin structures            & $24.7\%$ & $23.0\%$ & $19.6\%$ & $21.9\%$ & $18.7\%$ \\
+Upright surfaces           & $24.0\%$ & $26.5\%$ & $24.2\%$ & $24.0\%$ & $23.4\%$ \\
+Participant vs.\ background& $17.5\%$ & $15.7\%$ & $16.5\%$ & $17.7\%$ & $15.8\%$ \\
+Ground surfaces            & $14.6\%$ & $14.8\%$ & $20.3\%$ & $17.4\%$ & $17.1\%$ \\
+Traffic participants       & $ 6.5\%$ & $ 6.8\%$ & $ 6.3\%$ & $ 6.4\%$ & $12.5\%$ \\
+Other                      & $12.7\%$ & $13.3\%$ & $13.1\%$ & $12.7\%$ & $12.4\%$ \\
+\hline
+\textbf{Error rate}        & $ 6.7\%$ & $ 4.9\%$ & $10.4\%$ & $10.2\%$ & $ 8.0\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{The structure of the errors is a property of the task, not of the model.} The five
+configurations differ
+by more than a factor of two in error rate, from $4.9\%$ to $10.4\%$, yet their error
+\emph{composition} is nearly identical: thin structures take between $19$ and $25\%$ for all
+five, upright surfaces between $23$ and $27\%$, ground surfaces between $15$ and $20\%$. Improving the model lowers the total and
+leaves the proportions where they were. There is one exception, treated below.
+
+\textbf{Thin structures, $24.7\%$.} Any error where a pole, traffic light or traffic sign is on
+either side. The largest single flows in the whole matrix sit here: pole predicted as building,
+$0.91$M pixels or $5.9\%$ of all errors, pole as vegetation, $0.56$M or $3.6\%$, and traffic sign
+as building, $0.28$M. Pole is the hardest class of the nineteen at $0.3230$ IoU despite appearing in
+$99\%$ of images, so this is not a data-scarcity failure: it is a resolution failure, and
+Figure~\ref{fig:examples} shows it directly. The cause is the one identified in
+Section~\ref{subsec:results-4}: a stride-8 feature map upsampled bilinearly cannot represent a
+structure a few pixels wide, and a pole is mostly boundary. The evidence that this is
+architectural rather than inherent is that the from-scratch U-Net, with its full-resolution skip
+connections, scores $0.4361$ on pole against DeepLabV3's $0.3230$ while losing on almost
+everything else.
+
+\textbf{Upright surfaces, $24.0\%$.} Confusions among building, wall, fence and vegetation, led
+by building predicted as vegetation, $1.16$M pixels, and vegetation as building, $1.13$M, which
+are nearly symmetric. These are overwhelmingly boundary pixels where a tree overhangs a facade,
+and the near-symmetry is the signature of a boundary error rather than a systematic bias. Wall
+and fence add a second cause: both are low vertical barriers that the taxonomy separates from
+building by a convention rather than an appearance, and both are among the weakest classes at
+$0.4345$ and $0.4689$.
+
+\textbf{Ground surfaces, $14.6\%$.} Road, sidewalk and terrain confused with one another,
+$1.12$M pixels of sidewalk predicted as road and $0.74$M the reverse. The boundary between road
+and sidewalk is a kerb a few pixels high, often occluded by parked cars, and at $512 \times 1024$
+it is sometimes not visible at all. This group grows to $20.3\%$ for the frozen arm, the largest
+compositional shift in the table.
+
+\textbf{Traffic participants, $6.5\%$, and the one place a model differs in kind.} Confusions
+among the eight vehicle and person classes. This is the smallest group for every DeepLabV3 arm at
+between $6.3$ and $6.8\%$, and it is $12.5\%$ for the U-Net, nearly double. The cause is visible in the
+per-class table: the U-Net scores $0.0205$ on rider, against DeepLabV3's $0.4316$, and $0.0108$
+on motorcycle. Rider and person differ not in appearance but in what the person is sitting on, a
+distinction that requires recognising the vehicle beneath them, and the from-scratch model never
+learns it. This is the one error group where the deficit is a failure of recognition rather than
+of localisation, and it is where pretrained features help most.
+
+\textbf{Participant versus background, $17.5\%$, and other, $12.7\%$.} The first is a person or
+vehicle confused with scenery, led by person predicted as building, $0.22$M, and road predicted
+as car, $0.21$M; these are object boundaries and shadow regions. The remainder is thinly spread
+and dominated by vegetation against terrain, $0.25$M, and building against sky, $0.22$M, both
+again boundary pairs.
+
+\textbf{What would improve it.} Five of the six groups are dominated by boundary pixels, which
+points at resolution and not at the objective or the data. Three ideas follow, in descending
+order of expected return. Evaluating at the native $1024 \times 2048$ rather than the resized
+$512 \times 1024$ would halve the boundary length measured in pixels, and the resize is a choice
+made for compute, not for accuracy. An architecture that keeps a full-resolution path, which the
+U-Net's advantage on pole suggests concretely, would address the thin-structure group that is the
+single largest; a DeepLabV3+ decoder is the standard form of this. Only the traffic-participant
+group would benefit from more or better data rather than more resolution, and it is the smallest.
+What is \emph{not} indicated is a reweighted loss: Section~\ref{subsec:results-6} measures that
+directly and it makes matters worse.
 
 \subsection{Ablation study}
 \label{subsec:results-6}
 % Required: Mandatory for Assignments 2 and 3; recommended for Assignment 1 when comparing representations or regularizers.
 % Also required: Section 21: at least one ablation is mandatory for Assignment 2.
 
+The ablation replaces cross-entropy with the soft Dice loss of Equation~\ref{eq:dice}, holding
+the model, the data and every other protocol value fixed. The hypothesis, fixed in advance, was
+that Dice would raise IoU on train, bus and truck, the classes that are rare but large when
+present, because it weights classes rather than pixels; and that it would not help pole or
+traffic sign, whose errors are boundaries. The pre-registered criterion was that the hypothesis
+holds only if the per-class rule separates the two arms on at least two of train, bus and truck.
+
+\textbf{The hypothesis is refuted, and in the opposite direction.}
+Table~\ref{tab:ablation} applies the rule. The two arms are separated on train and on truck, so
+the criterion is met in form, but Dice is \emph{worse} on both, and worse on every other class
+tested. Dice is worse overall, $0.4958 \pm 0.0045$ against $0.6136 \pm 0.0051$ validation mIoU,
+and worse on all nineteen classes individually.
+
+\begin{table}[H]
+\centering
+\caption{The ablation, on validation IoU.}
+\label{tab:ablation}
+\small
+\begin{tabular}{lccrr}
+\hline
+\textbf{Class} & \textbf{Cross-entropy} & \textbf{Dice} & \textbf{Change} & \textbf{P(absent from batch)} \\
+\hline
+train         & $0.6007 \pm 0.0383$ & $0.0000 \pm 0.0000$ & $-0.6007$ & $85.1\%$ \\
+bus           & $0.4154 \pm 0.0923$ & $0.1944 \pm 0.1696$ & $-0.2211$ & $70.0\%$ \\
+truck         & $0.3797 \pm 0.0398$ & $0.1952 \pm 0.0233$ & $-0.1845$ & $69.3\%$ \\
+motorcycle    & $0.4661 \pm 0.0064$ & $0.2775 \pm 0.0313$ & $-0.1886$ & $60.2\%$ \\
+\hline
+traffic sign  & $0.5518 \pm 0.0036$ & $0.4692 \pm 0.0068$ & $-0.0826$ & $0.6\%$ \\
+pole          & $0.3277 \pm 0.0085$ & $0.3048 \pm 0.0072$ & $-0.0229$ & $0.0\%$ \\
+road          & $0.9722 \pm 0.0004$ & $0.9502 \pm 0.0016$ & $-0.0220$ & $0.0\%$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Why, and the mechanism is measurable.} The last column of Table~\ref{tab:ablation} is
+the key. Across all nineteen classes the correlation between the probability that a class is
+absent from a training batch and the damage Dice does to that class is $r = -0.809$: the more
+often a class is missing from the batch, the more Dice costs it. The four worst-damaged classes
+are exactly the four most often absent.
+
+The cause lies in how the two objectives treat a class with no positive pixels in the batch.
+Under cross-entropy such a class contributes nothing of its own; it is only ever a competitor in
+the softmax denominator. Under Equation~\ref{eq:dice} it contributes a full term,
+$(0 + \varepsilon) / (\sum_\Omega p_{cij} + 0 + \varepsilon)$, which is maximised by driving the
+predicted probability of that class to zero everywhere in the batch. Dice therefore \emph{actively
+suppresses} every class that happens to be missing from the current eight crops. Measured over
+sampled batches, $10.43$ of the $19$ classes appear in a given $512 \times 512$ crop and $15.92$
+in a batch of eight, so $16.2\%$ of the Dice terms in a typical step are suppression terms. For
+train, which appears in $2\%$ of crops, roughly $85\%$ of the $301$ steps in an epoch push its
+logit down and about $45$ steps push it up. The result is the only exact zero in this report:
+under Dice the model never predicts a single train pixel, on any seed, on either split.
+
+\textbf{This also explains the training behaviour.} The Dice arm peaked at epoch $4$ on all three
+seeds and early stopping ended it at epoch $12$, with a training-to-validation gap of $-0.002$.
+It is not overfitting and it is not underfitting in the usual sense: the objective reaches a
+state where the suppression terms balance the overlap terms and stops producing useful gradient.
+The Dice arm is also the only one that is \emph{more} expensive per epoch than its
+cross-entropy counterpart, $150.5$ against $140.4$ seconds, since it computes a softmax and
+per-class sums; it is cheapest overall only because it quits early.
+
+\textbf{What this does and does not establish.} It establishes that an unweighted multi-class
+soft Dice with $\varepsilon = 1$, computed per batch at batch size 8, is the wrong objective for
+this class distribution, and it identifies the reason precisely enough to act on. It does not
+establish that class-balanced objectives are useless here: the natural follow-ups, accumulating
+Dice over an epoch rather than a batch, masking absent classes out of the mean, or a
+class-weighted cross-entropy that adds no suppression term, all avoid the specific mechanism
+measured above and none of them was run. The ablation revises the direction of
+Section~\ref{subsec:results-5}'s recommendations rather than supporting them: the remedy for
+rare classes is not to reweight the loss as implemented here.
 
 \subsection{Limitations and conclusion}
 \label{subsec:results-7}
 % Required: Data, method and experimental limits; generalization; future work; short answer to the research question.
+
+Six limits bound these results. \emph{The U-Net is undertrained:} its validation mIoU was still
+rising at epoch 40 on all three seeds, so $0.4836$ is a floor and the margin over it an upper
+bound. \emph{The model comparison confounds two factors:} its arms differ in architecture as
+well as in pretraining, so the gap is attributable to the pair, not to pretraining alone.
+\emph{The backbone extension is one seed} and supports no claim of superiority. \emph{Three seeds estimate a standard deviation from
+three observations,} so ``indistinguishable'' means not separated at this sample size, not equal.
+\emph{The data is narrow:} daylight, fair weather, European cities and one camera, and the images
+were resized to a quarter of their pixels for compute, which is itself a ceiling on the thin
+classes that dominate the error analysis. \emph{And reproducibility has a hardware limit:} MPS
+provides no deterministic kernel for the interpolation DeepLabV3 uses, so rerunning a DeepLabV3
+seed will not reproduce its number exactly, and the reported spread includes that
+nondeterminism.
+
+The research question was how much of the gap between a from-scratch model and a pretrained one
+comes from pretrained features rather than from architecture, loss or capacity. The evidence
+gives a sharp answer and an unexpected qualification. Fully fine-tuned pretrained features are
+worth $0.1301$ validation mIoU over the from-scratch baseline, $0.1175$ over the same weights
+with the backbone frozen, and $0.1178$ over the same model trained with a class-balanced
+objective; and those three alternatives are mutually indistinguishable, within $0.0126$ of one
+another. One factor accounts for essentially the whole spread. The qualification is that the
+advantage is not uniform: the from-scratch U-Net is better, with separated intervals, on pole,
+sky and vegetation, because a full-resolution decoder localises thin structures that a stride-8
+backbone cannot, and five of the six error groups are dominated by boundary pixels. Pretraining
+supplies recognition rather than resolution.
+
+DeepLabV3-MobileNetV3, fully fine-tuned, is carried forward at
+$\mathbf{0.6180 \pm 0.0049}$ test mIoU and $0.7441 \pm 0.0048$ test Dice, at $140$ seconds per
+epoch and $15.2$~ms per image.
+
+Three directions follow, in the order the evidence supports them. The first is resolution:
+evaluating and training at the native $1024 \times 2048$, or adding a decoder with a
+full-resolution path, attacks the thin-structure and boundary groups that are most of the error.
+The second is the clean version of the model comparison, a DeepLabV3 trained from scratch,
+which would separate pretraining from architecture in one run. The third is the class-balancing question the ablation
+reopened rather than closed: an epoch-accumulated Dice, or a Dice that masks absent classes out
+of its mean, avoids the suppression mechanism measured here and is the obvious next thing to try.

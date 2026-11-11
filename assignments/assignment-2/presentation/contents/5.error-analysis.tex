@@ -3,5 +3,140 @@
 
 \section{Error Analysis}
 
-\begin{frame}{Error Analysis}
+%----------------------------------------------------------
+\begin{frame}{Error Taxonomy}
+\small
+\begin{table}
+\centering
+\caption{Error taxonomy, as a share of each model's own errors.}
+\label{tab:errors}
+\scriptsize
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Group} & \textbf{DeepLabV3} & \textbf{ResNet50} & \textbf{Frozen} & \textbf{Dice} & \textbf{U-Net} \\
+\midrule
+Thin structures             & 24.7\% & 23.0\% & 19.6\% & 21.9\% & 18.7\% \\
+Upright surfaces            & 24.0\% & 26.5\% & 24.2\% & 24.0\% & 23.4\% \\
+Participant vs.\ background & 17.5\% & 15.7\% & 16.5\% & 17.7\% & 15.8\% \\
+Ground surfaces             & 14.6\% & 14.8\% & 20.3\% & 17.4\% & 17.1\% \\
+Traffic participants        &  6.5\% &  6.8\% &  6.3\% &  6.4\% & \textbf{12.5\%} \\
+Other                       & 12.7\% & 13.3\% & 13.1\% & 12.7\% & 12.4\% \\
+\midrule
+\textbf{Error rate} & 6.7\% & \textbf{4.9\%} & 10.4\% & 10.2\% & 8.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{-0.15cm}
+\begin{block}{The error structure is a property of the task, not of the model}
+Error rates differ by more than $2\times$ across the five configurations, yet the composition is
+nearly identical. Improving the model lowers the total and leaves the proportions alone.
+\end{block}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{The Groups, and What Causes Them}
+\footnotesize
+\begin{itemize}
+    \item \textbf{Thin structures, 24.7\%.} Pole $\rightarrow$ building is the single largest flow
+          in the matrix (0.91M pixels, 5.9\% of all errors); pole $\rightarrow$ vegetation adds
+          3.6\%. Pole is the hardest of the 19 classes (0.3230 IoU) \emph{despite appearing in 99\% of
+          images}, so this is a \textbf{resolution failure, not data scarcity}. A stride-8
+          feature map upsampled bilinearly cannot represent a structure a few pixels wide.
+    \item \textbf{Upright surfaces, 24.0\%.} Building $\leftrightarrow$ vegetation, 1.16M and
+          1.13M pixels, \emph{nearly symmetric}, which is the signature of a boundary error rather than a
+          bias. Wall and fence add a taxonomy problem: low barriers separated from building by
+          convention, not appearance.
+    \item \textbf{Ground surfaces, 14.6\%.} The road/sidewalk kerb is a few pixels high and often
+          occluded by parked cars. Grows to 20.3\% for the frozen arm.
+    \item \textbf{Traffic participants, 6.5\%, and the one place a model differs in \emph{kind}.}
+          12.5\% for the U-Net, nearly double. It scores \textbf{0.0205 on rider} against
+          DeepLabV3's 0.4316. Rider and person differ only in what the person sits on, which
+          requires recognising the vehicle beneath. \textbf{This is where pretrained features
+          help most.}
+\end{itemize}
+
+\begin{block}{What would improve it}
+Five of six groups are dominated by \emph{boundary} pixels $\Rightarrow$ the lever is
+\textbf{resolution}, not the objective. Train and evaluate at native $1024 \times 2048$; add a
+full-resolution decoder path. \textbf{Not} a reweighted loss: the ablation measures that
+directly, and it makes things worse.
+\end{block}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Ablation: Cross-Entropy vs.\ Dice Loss}
+\small
+\textbf{Hypothesis (pre-registered):} Dice raises IoU on train, bus and truck, which are
+rare but large when present, because it weights classes rather than pixels.
+
+\begin{table}
+\centering
+\scriptsize
+\caption{The ablation, on validation IoU.}
+\begin{tabular}{lccrr}
+\toprule
+\textbf{Class} & \textbf{Cross-entropy} & \textbf{Dice} & \textbf{Change} & \textbf{P(absent)} \\
+\midrule
+train        & $0.6007 \pm 0.0383$ & $\mathbf{0.0000 \pm 0.0000}$ & $-0.6007$ & 85.1\% \\
+bus          & $0.4154 \pm 0.0923$ & $0.1944 \pm 0.1696$ & $-0.2211$ & 70.0\% \\
+truck        & $0.3797 \pm 0.0398$ & $0.1952 \pm 0.0233$ & $-0.1845$ & 69.3\% \\
+motorcycle   & $0.4661 \pm 0.0064$ & $0.2775 \pm 0.0313$ & $-0.1886$ & 60.2\% \\
+\midrule
+traffic sign & $0.5518 \pm 0.0036$ & $0.4692 \pm 0.0068$ & $-0.0826$ &  0.6\% \\
+pole         & $0.3277 \pm 0.0085$ & $0.3048 \pm 0.0072$ & $-0.0229$ &  0.0\% \\
+road         & $0.9722 \pm 0.0004$ & $0.9502 \pm 0.0016$ & $-0.0220$ &  0.0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{-0.1cm}
+\begin{alertblock}{Refuted, and in the opposite direction}
+Dice is worse on \emph{all nineteen} classes. Correlation between P(absent) and the damage Dice
+does: $\mathbf{r = -0.809}$.
+\end{alertblock}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Why Dice Fails Here}
+\small
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+\begin{block}{The mechanism}
+For a class with \emph{no} positive pixels in the batch:
+\begin{itemize}
+    \item \textbf{Cross-entropy} gives it no term of its own; it is only a competitor in the
+          softmax denominator.
+    \item \textbf{Dice} gives it a full term
+          $\dfrac{0 + \varepsilon}{\sum_\Omega p_{cij} + 0 + \varepsilon}$,
+          maximised by driving that class's probability to \textbf{zero everywhere}.
+\end{itemize}
+Dice \textbf{actively suppresses} every class missing from the current eight crops.
+\end{block}
+\end{column}
+\begin{column}{0.46\textwidth}
+\begin{block}{Measured}
+\footnotesize
+$10.43$ of 19 classes appear in a given $512^2$ crop; $15.92$ in a batch of 8.
+
+So \textbf{16.2\%} of Dice terms in a typical step are suppression terms.
+
+For \emph{train}, present in 2\% of crops: roughly \textbf{85\% of the 301 steps per epoch push
+its logit down}, about 45 push it up.
+
+$\Rightarrow$ the only exact zero in this report: under Dice the model never predicts a single
+train pixel, on any seed, on either split.
+\end{block}
+\end{column}
+\end{columns}
+
+\vspace{-0.1cm}
+\footnotesize
+\textbf{It also explains the curve:} peaked at epoch 4 on all three seeds, train-to-validation gap
+$-0.002$. Not overfitting, not underfitting: the suppression terms balance the overlap terms and
+the objective stops producing useful gradient.
+
+\textbf{What this does \emph{not} establish:} that class balancing is useless here. Accumulating
+Dice over an epoch, or masking absent classes out of the mean, avoids this exact mechanism. Neither
+was run.
 \end{frame}

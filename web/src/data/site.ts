@@ -41,7 +41,7 @@ export const group: Group = {
 export const courseAiDisclosure: AiDisclosure = {
   noAiUsed: false,
   summary:
-    "This only disclouses shared site. Assignment-specific use is disclosed on each assignment page.",
+    "This page discloses shared site and tooling work only. Assignment-specific use is disclosed on each assignment page.",
   entries: [
     {
       tool: "Claude Opus 5",

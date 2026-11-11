@@ -218,6 +218,42 @@ Copy the template into the section for the assignment you are working on and fil
 - **Responsible member:** Lê Phạm Tiến Long
 - **Sources used for verification:** `assignments/assignment-2/EXPERIMENTS.md`, `configs/base.yaml`, the model definitions; the assignment handbook, sections 3 and 20
 
+### Implementing the qualitative example selection and the comparison outputs
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 3 final
+- **Prompt summary:** Asked for per-image scoring over a whole split, selection of correct, difficult and failure cases spanning the range, and the comparison tables and figures issue #73 requires
+- **AI contribution:** Drafted `predict`, `select_examples` and `export_overlays`; lifted the task-agnostic plotting and aggregation out of Assignment 1 into `shared/figures.py` so all three assignments reuse it; added peak-memory measurement covering CUDA, MPS and CPU
+- **Student verification:** Found and corrected two faults in the drafted code before adopting it. The selected examples were discarded by a stray `del` before any overlay was written, so the figures could never have been produced; and scoring kept only the first six images of the split, so the reported failure case was the worst of an arbitrary six rather than of the split. Re-ran the evaluation after each correction and confirmed the per-image mIoU range widened from 0.58–0.42 to 0.77–0.29
+- **Affected files/sections:** `assignments/assignment-2/src/evaluate.py`, `src/figures.py`, `assignments/shared/figures.py`, `assignments/shared/device.py`; report Quantitative and Qualitative results
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The regenerated evaluation reports and overlays; `tests/test_evaluate.py`
+
+### Building the experiment runner and checking that the arms are comparable
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 3 final
+- **Prompt summary:** Asked for a resumable runner for the thirteen queued runs, and whether every arm resolves to the same configuration apart from the factor it varies
+- **AI contribution:** Drafted `scripts/experiments.sh`; verified against the resolved configurations that E2, E3 and E4 each differ from the baseline in exactly one key and that the E1 arms differ only in keys under `model`; reported that two earlier draft runs used ten epochs, so their cosine schedule differs from a forty-epoch run at every step and they cannot be pooled
+- **Student verification:** Deleted the two draft runs rather than reporting them, smoke-tested every arm before committing the machine for 24 hours, and confirmed from each run's written `config.yaml` that the protocol values match the shared protocol. A claim that the frozen arm would train only the classifier was checked against the model and found wrong: 8,053,011 of 11,024,963 parameters remain trainable, which the report now states
+- **Affected files/sections:** `assignments/assignment-2/scripts/experiments.sh`; report Baseline and main methods, Comparison and discussion
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The resolved `config.yaml` written into each run directory; `torch` parameter counts read from the constructed models
+
+### Drafting the report, the slides and the assignment page from the finished runs
+
+- **Tool:** Claude Opus 5
+- **Used by:** Lê Phạm Tiến Long
+- **Stage:** Assignment 2, Milestone 3 final
+- **Prompt summary:** Asked to write the three report parts, the slide deck and the assignment page from the committed runs and evaluation reports, following the structure the handbook requires
+- **AI contribution:** Drafted the three report parts, the deck and the page; computed the aggregates across seeds from the run directories; and identified the mechanism behind the Dice ablation result by correlating each class's batch-absence rate with the IoU the loss cost it, giving r = −0.809
+- **Student verification:** Checked every figure in the drafted text against the evaluation report it comes from; recomputed the per-class standard deviations rather than accepting two that had been written from memory and were wrong; confirmed both LaTeX documents compile with no unresolved cross-reference, that the page builds with no pending section, and that every table and figure is referenced in the text
+- **Affected files/sections:** `assignments/assignment-2/report/`, `presentation/`, `scripts/analysis.py`, `scripts/class_presence.py`, `scripts/pipeline_figure.py`, `web/src/content/assignments/assignment-2.mdx`
+- **Responsible member:** Lê Phạm Tiến Long
+- **Sources used for verification:** The thirteen run directories and twenty-six evaluation reports under `assignments/assignment-2/results/`; the assignment handbook, sections 3, 20, 21 and 22
+
 ## Assignment 3
 
 No entries yet.

@@ -32,6 +32,26 @@ def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
+def reset_peak_memory(device: torch.device) -> None:
+    """Start a fresh peak-memory measurement, where the device can report one."""
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats()
+
+
+def peak_memory(device: torch.device) -> int:
+    """Bytes at the high-water mark of device memory, for the compute-cost table.
+
+    CUDA tracks a true peak. MPS exposes no peak counter, so this reports the driver pool,
+    which only grows and so is a peak over the process rather than since the last reset. CPU
+    has no device pool and reports the resident set size instead.
+    """
+    if device.type == "cuda":
+        return int(torch.cuda.max_memory_allocated())
+    if device.type == "mps":
+        return int(torch.mps.driver_allocated_memory())
+    return int(psutil.Process().memory_info().rss)
+
+
 def describe_hardware() -> str:
     """Accelerator, host processor, and memory; times only compare across runs on one machine."""
     device = select_device()
