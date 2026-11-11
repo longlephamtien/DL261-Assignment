@@ -46,7 +46,7 @@ references:
     href: https://arxiv.org/abs/1912.01703
 aiDisclosure:
   noAiUsed: false
-  summary: "Claude was used to check the candidate datasets against the handbook thresholds, to draft the experiment plan, to check the compute plan for the training runs, to review the data loader for leakage, to implement the evaluation and figure code, to build the experiment runner, and to draft the report, the slides and this page."
+  summary: "Claude was used to check the candidate datasets against the handbook thresholds, to design the experiment plan and the fine-tuning procedure, to check the compute plan for the training runs, to review the data loader for leakage, to implement the evaluation and figure code, to build the experiment runner, and to draft the report, the slides and this page."
   entries:
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
@@ -68,6 +68,18 @@ aiDisclosure:
       affectedSections:
         - EXPERIMENTS.md
         - Experimental setup
+      responsibleMember: Hồ Minh Nhật
+    - tool: Claude Opus 5.5
+      usedBy: Hồ Minh Nhật
+      task: Specifying the fine-tuning procedure
+      promptSummary: "Asked what the fine-tuning procedure still required against the existing code, then asked to complete it."
+      promptLog: null
+      aiContribution: "Compared the acceptance criteria with the configuration and the training code, recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration with a fallback for runs recorded before the setting existed, and added tests that hold the committed values."
+      studentVerification: "Ran the test suite on the branch and checked the procedure against the base configuration and the proposal before merging."
+      affectedSections:
+        - configs/base.yaml
+        - src/data.py
+        - Methodology
       responsibleMember: Hồ Minh Nhật
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long

@@ -6,9 +6,9 @@
 % verification. State explicitly if no AI tool was used (section 5.4).
 
 Claude was used to check the candidate datasets against the handbook thresholds, to design the
-experiment plan, to review the data loader for leakage, to implement the evaluation and figure
-code, to build the experiment runner, and to draft this report, the slides and the assignment
-page. No prompt logs were retained, so each entry carries a prompt summary in their place. No
+experiment plan and the fine-tuning procedure, to check the compute plan, to review the data
+loader for leakage, to implement the evaluation and figure code, to build the experiment runner,
+and to draft this report, the slides and the assignment page. No prompt logs were retained, so each entry carries a prompt summary in their place. No
 number, figure or claim in this report was accepted from a tool without the verification recorded
 below, and every reported metric was recomputed from the committed run directories by
 \texttt{src/evaluate.py} and \texttt{src/figures.py} rather than transcribed.
@@ -48,6 +48,38 @@ below, and every reported metric was recomputed from the committed run directori
 \noindent\begin{minipage}{\textwidth}
 \begin{tabularx}{\textwidth}{lX}
 \hline
+\textbf{Tool} & Claude Opus 5.5 \\
+\textbf{Used by} & Ho Minh Nhat \\
+\textbf{Stage} & Fine-tuning procedure (A2-M2) \\
+\textbf{Task} & Specifying the fine-tuning procedure \\
+\textbf{Prompt summary} & Asked what the fine-tuning procedure still required against the existing code, then asked to complete it. \\
+\textbf{AI contribution} & Compared the acceptance criteria with the configuration and the training code, recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration with a fallback for runs recorded before the setting existed, and added tests that hold the committed values. \\
+\textbf{Student verification} & Ran the test suite on the branch and checked the procedure described in Section~\ref{subsec:methodology-2} against the base configuration and the proposal before merging. \\
+\textbf{Affected files/sections} & \texttt{configs/base.yaml}, \texttt{src/data.py}, \texttt{tests/test\_configs.py}, Section~\ref{subsec:methodology-2} \\
+\textbf{Responsible member} & Ho Minh Nhat \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Stage} & Compute planning (A2-M2) \\
+\textbf{Task} & Checking the compute plan for the training runs \\
+\textbf{Prompt summary} & Asked how many epochs each model could be trained for within the time remaining, and whether the planned budget was realistic. \\
+\textbf{AI contribution} & Compared the per-epoch estimates against the rate the running job was achieving, found the U-Net running 1.22 times slower than estimated, rescaled the DeepLabV3 estimate by the same factor, and tabulated the finishing time and remaining margin at 10, 20, 30 and 40 epochs. \\
+\textbf{Student verification} & Checked the projected finishing time against the per-epoch timings recorded as the runs progressed, and confirmed the chosen budget left enough margin for evaluation and the remaining deliverables. \\
+\textbf{Affected files/sections} & Section~\ref{subsec:methodology-3} \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
 \textbf{Tool} & Claude Opus 5 \\
 \textbf{Used by} & Le Pham Tien Long \\
 \textbf{Stage} & Data pipeline (A2-M2) \\
@@ -56,6 +88,22 @@ below, and every reported metric was recomputed from the committed run directori
 \textbf{AI contribution} & Traced the three routes by which leakage could enter and reported on each: the split indices are committed rather than regenerated, normalization statistics come from the training split alone, and the test partition is read once after model selection concludes. Noted that masks must resize by nearest neighbour, since interpolating label ids produces classes present in neither neighbour. \\
 \textbf{Student verification} & Ran the loaders against the real archives and confirmed 2,406, 569 and 500 images with no unusable annotations, that no city appears in more than one partition, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against \texttt{cityscapesscripts} rather than accepted, since a slip there would corrupt every later metric without failing. \\
 \textbf{Affected files/sections} & \texttt{src/data.py}, \texttt{tests/test\_data.py}, Section~\ref{subsec:problem-and-data-4} \\
+\textbf{Responsible member} & Le Pham Tien Long \\
+\hline
+\end{tabularx}
+\end{minipage}
+
+\noindent\begin{minipage}{\textwidth}
+\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Tool} & Claude Opus 5 \\
+\textbf{Used by} & Le Pham Tien Long \\
+\textbf{Stage} & Drafting the assignment page (A2-M2) \\
+\textbf{Task} & Rewriting the assignment page in academic English \\
+\textbf{Prompt summary} & Asked to express the methodology and experimental setup in concise academic English, following the structure the handbook requires. \\
+\textbf{AI contribution} & Drafted the Methodology and Experimental setup sections of the assignment page from the experiment plan, the committed configurations and the implemented code, and flagged where a claim needed a number rather than an adjective. \\
+\textbf{Student verification} & Checked every figure in the drafted text against its source, the parameter counts against the models themselves, and the protocol values against the base configuration; confirmed the page builds with no unresolved cross-reference. \\
+\textbf{Affected files/sections} & Assignment page, Methodology and Experimental setup \\
 \textbf{Responsible member} & Le Pham Tien Long \\
 \hline
 \end{tabularx}
