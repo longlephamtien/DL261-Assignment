@@ -3,6 +3,7 @@
   "runs": [
     {
       "run_id": "deeplabv3-seed0-20261109-230158",
+      "name": "DeepLabV3-MobileNetV3",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
@@ -28,6 +29,7 @@
     },
     {
       "run_id": "deeplabv3-seed0-20261110-121645",
+      "name": "DeepLabV3-MobileNetV3, frozen backbone",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
@@ -53,6 +55,7 @@
     },
     {
       "run_id": "deeplabv3-seed0-20261110-144803",
+      "name": "DeepLabV3-MobileNetV3, Dice loss",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
@@ -78,6 +81,7 @@
     },
     {
       "run_id": "deeplabv3-seed0-20261110-161840",
+      "name": "DeepLabV3-ResNet50",
       "model": "deeplabv3",
       "backbone": "resnet50",
       "variant": "backbone=resnet50,freeze_backbone=False,loss=cross_entropy",
@@ -103,6 +107,7 @@
     },
     {
       "run_id": "deeplabv3-seed1-20261110-003107",
+      "name": "DeepLabV3-MobileNetV3",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
@@ -128,6 +133,7 @@
     },
     {
       "run_id": "deeplabv3-seed1-20261110-125324",
+      "name": "DeepLabV3-MobileNetV3, frozen backbone",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
@@ -153,6 +159,7 @@
     },
     {
       "run_id": "deeplabv3-seed1-20261110-151818",
+      "name": "DeepLabV3-MobileNetV3, Dice loss",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
@@ -178,6 +185,7 @@
     },
     {
       "run_id": "deeplabv3-seed2-20261110-020225",
+      "name": "DeepLabV3-MobileNetV3",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=cross_entropy",
@@ -203,6 +211,7 @@
     },
     {
       "run_id": "deeplabv3-seed2-20261110-134416",
+      "name": "DeepLabV3-MobileNetV3, frozen backbone",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=True,loss=cross_entropy",
@@ -228,6 +237,7 @@
     },
     {
       "run_id": "deeplabv3-seed2-20261110-154830",
+      "name": "DeepLabV3-MobileNetV3, Dice loss",
       "model": "deeplabv3",
       "backbone": "mobilenet_v3_large",
       "variant": "backbone=mobilenet_v3_large,freeze_backbone=False,loss=dice",
@@ -253,6 +263,7 @@
     },
     {
       "run_id": "unet-seed0-20261110-033604",
+      "name": "U-Net",
       "model": "unet",
       "backbone": "",
       "variant": "",
@@ -278,6 +289,7 @@
     },
     {
       "run_id": "unet-seed1-20261110-062947",
+      "name": "U-Net",
       "model": "unet",
       "backbone": "",
       "variant": "",
@@ -303,6 +315,7 @@
     },
     {
       "run_id": "unet-seed2-20261110-092324",
+      "name": "U-Net",
       "model": "unet",
       "backbone": "",
       "variant": "",
@@ -338,6 +351,7 @@
         2
       ],
       "parameters": 11024963,
+      "name": "DeepLabV3-MobileNetV3",
       "miou_mean": 0.6179746127629413,
       "miou_sd": 0.004914756275698393,
       "dice_mean": 0.7440613656436322,
@@ -357,6 +371,7 @@
         2
       ],
       "parameters": 8053011,
+      "name": "DeepLabV3-MobileNetV3, frozen backbone",
       "miou_mean": 0.5002779223473585,
       "miou_sd": 0.008765618694464683,
       "dice_mean": 0.633643271114663,
@@ -376,6 +391,7 @@
         2
       ],
       "parameters": 11024963,
+      "name": "DeepLabV3-MobileNetV3, Dice loss",
       "miou_mean": 0.498250554191338,
       "miou_sd": 0.012306012162310559,
       "dice_mean": 0.6225376671475946,
@@ -393,6 +409,7 @@
         0
       ],
       "parameters": 39638355,
+      "name": "DeepLabV3-ResNet50",
       "miou_mean": 0.7076258407784015,
       "miou_sd": 0.0,
       "dice_mean": 0.8181164031157181,
@@ -412,6 +429,7 @@
         2
       ],
       "parameters": 7763635,
+      "name": "U-Net",
       "miou_mean": 0.4701807066099376,
       "miou_sd": 0.007088239988079346,
       "dice_mean": 0.5709955360595327,
@@ -613,5 +631,67 @@
         "peak_memory_bytes": 7059488768
       }
     ]
+  },
+  "errors": {
+    "DeepLabV3-MobileNetV3": {
+      "error_rate": 0.06706804451378978,
+      "error_pixels": 15374279.0,
+      "groups": {
+        "thin structures": 0.2465393011275522,
+        "ground surfaces": 0.14644977280994229,
+        "upright surfaces": 0.239884094727304,
+        "traffic participants": 0.06472260151733512,
+        "participant vs. background": 0.17522226570754953,
+        "other": 0.127181964110317
+      }
+    },
+    "DeepLabV3-MobileNetV3, frozen backbone": {
+      "error_rate": 0.10409114496139649,
+      "error_pixels": 23861234.0,
+      "groups": {
+        "thin structures": 0.1961139422490331,
+        "ground surfaces": 0.20293872200127336,
+        "upright surfaces": 0.24198332184608168,
+        "traffic participants": 0.06314797745442112,
+        "participant vs. background": 0.164845707476822,
+        "other": 0.1309703289723686
+      }
+    },
+    "DeepLabV3-MobileNetV3, Dice loss": {
+      "error_rate": 0.10180710375552728,
+      "error_pixels": 23337654.0,
+      "groups": {
+        "thin structures": 0.21865918199547096,
+        "ground surfaces": 0.17390832571831485,
+        "upright surfaces": 0.23963072723590811,
+        "traffic participants": 0.0643401860358372,
+        "participant vs. background": 0.1765472513504,
+        "other": 0.12691432766406882
+      }
+    },
+    "DeepLabV3-ResNet50": {
+      "error_rate": 0.04911333784746797,
+      "error_pixels": 11258449.0,
+      "groups": {
+        "thin structures": 0.2295365018751695,
+        "ground surfaces": 0.14779575765720482,
+        "upright surfaces": 0.2653308639582593,
+        "traffic participants": 0.06815885562922566,
+        "participant vs. background": 0.15652733338313296,
+        "other": 0.1326506874970078
+      }
+    },
+    "U-Net": {
+      "error_rate": 0.07983522325259516,
+      "error_pixels": 18300951.0,
+      "groups": {
+        "thin structures": 0.1872422913978624,
+        "ground surfaces": 0.17109238385116343,
+        "upright surfaces": 0.23443881868944044,
+        "traffic participants": 0.1247168703600886,
+        "participant vs. background": 0.15813628118742748,
+        "other": 0.12437335451401768
+      }
+    }
   }
 }

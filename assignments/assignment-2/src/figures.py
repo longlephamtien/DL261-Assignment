@@ -1,6 +1,7 @@
 """Plots and tables derived from finished runs.
 
     python -m src.figures <run_id> [...] [--name baselines] [--split val]
+    python -m src.figures --pipeline
 
 Writes one directory per comparison under `results/figures/`. Metrics come from the evaluation
 reports, not from `history.json`. The averaging, styling, confusion plot and decision rule live
@@ -16,11 +17,12 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 from shared import io as shared_io
 from shared.figures import (
     COLOURS, default_name, load_run as _load_run, plot_confusion,
-    plot_curves as _plot_curves, save, summarize, variants,
+    plot_curves as _plot_curves, save, separated, summarize, variants,
 )
 
 from .interfaces import CLASS_NAMES, EVALUATION_SPLITS, EpochRecord, EvaluationReport, RunSummary, Split
@@ -74,19 +76,29 @@ def plot_curves(runs: dict[str, list[list[EpochRecord]]], path: Path) -> None:
     _plot_curves(runs, path, PANELS)
 
 
-def plot_per_class(reports: dict[str, EvaluationReport], path: Path) -> None:
-    """Per-class IoU per configuration, ordered by the hardest class.
+def per_class_means(reports: list[EvaluationReport]) -> dict[str, float | None]:
+    """Mean IoU of each class over the seeds of one configuration, None where it is absent."""
+    means: dict[str, float | None] = {}
+    for name in CLASS_NAMES:
+        scores = [r["per_class_iou"][name] for r in reports if r["per_class_iou"].get(name) is not None]
+        means[name] = sum(scores) / len(scores) if scores else None
+    return means
+
+
+def plot_per_class(grouped: dict[str, list[EvaluationReport]], path: Path) -> None:
+    """Per-class IoU per configuration, averaged over seeds, ordered by the hardest class.
 
     This is where mIoU and pixel accuracy disagree: a model can score well overall and still
     leave a class at exactly zero, which a single mean hides.
     """
-    order = sorted(CLASS_NAMES, key=lambda name: max(r["per_class_iou"].get(name) or 0.0 for r in reports.values()))
+    averaged = {name: per_class_means(reports) for name, reports in grouped.items()}
+    order = sorted(CLASS_NAMES, key=lambda name: max(m.get(name) or 0.0 for m in averaged.values()))
     positions = np.arange(len(order))
-    width = 0.8 / max(len(reports), 1)
+    width = 0.8 / max(len(averaged), 1)
 
     fig, ax = plt.subplots(figsize=(max(9.0, 0.6 * len(order)), 4.6))
-    for index, ((name, report), colour) in enumerate(zip(reports.items(), cycle(COLOURS))):
-        values = [report["per_class_iou"].get(klass) for klass in order]
+    for index, ((name, means), colour) in enumerate(zip(averaged.items(), cycle(COLOURS))):
+        values = [means[klass] for klass in order]
         offsets = positions + index * width
         ax.bar(offsets, [value or 0.0 for value in values], width=width, color=colour, label=name)
 
@@ -100,7 +112,7 @@ def plot_per_class(reports: dict[str, EvaluationReport], path: Path) -> None:
     ax.set_ylim(0, 1)
     ax.grid(axis="y", alpha=0.3)
     ax.legend(fontsize=8)
-    fig.suptitle("Per-class IoU, classes ordered from hardest to easiest")
+    fig.suptitle("Per-class IoU, averaged over seeds, hardest class first")
     save(fig, path)
 
 
@@ -109,6 +121,7 @@ def describe(summary: RunSummary, history: list[EpochRecord], report: Evaluation
     """One table row, unrounded so `summarize` does not take a deviation of rounded numbers."""
     return {
         "run_id": summary["run_id"],
+        "name": configuration(summary, variant),
         "model": summary["model"],
         "backbone": summary["backbone"],
         "variant": variant,
@@ -131,13 +144,182 @@ def describe(summary: RunSummary, history: list[EpochRecord], report: Evaluation
     }
 
 
+BLUE, DARK, RUST, GREEN, GREY = "#1488D8", "#030391", "#C1440E", "#2E7D32", "#55606B"
+
+# (x, y, width, height, title, detail, colour)
+BOXES = [
+    (0.4, 6.1, 2.5, 1.0, "Raw data", "Cityscapes fine\n5,000 frames, 1024x2048", GREY),
+    (3.5, 6.1, 2.5, 1.0, "Preprocessing", "resize 512x1024, label\nremap to 19 + ignore", GREY),
+    (6.6, 6.1, 2.5, 1.0, "Data loader", "random 512 crop, flip,\nImageNet normalization", GREY),
+    (9.7, 6.1, 2.5, 1.0, "Model", "U-Net  |  DeepLabV3\n3x512x512 -> 19x512x512", BLUE),
+    (9.7, 4.3, 2.5, 1.0, "Loss", "cross-entropy or Dice\nignore_index=255", RUST),
+    (6.6, 4.3, 2.5, 1.0, "Optimization", "AdamW 3e-4, cosine\nover 40 epochs", RUST),
+    (3.5, 4.3, 2.5, 1.0, "Prediction", "argmax over classes\nper pixel", BLUE),
+    (0.4, 4.3, 2.5, 1.0, "Post-processing", "none: logits are already\nat input resolution", GREY),
+    (0.4, 2.3, 2.5, 1.0, "Evaluation", "mIoU, Dice, per-class IoU\nlatency, peak memory", GREEN),
+    (3.5, 2.3, 2.5, 1.0, "Checkpoint", "highest validation mIoU,\npatience 8", GREEN),
+    (6.6, 2.3, 5.6, 1.0, "Reporting", "3 seeds per arm, mean +/- 1 sd, decision rule;\ntest split read once after selection", DARK),
+]
+
+# (from, to, label); indices into BOXES
+ARROWS = [(0, 1, ""), (1, 2, ""), (2, 3, ""), (3, 4, ""), (4, 5, ""),
+          (5, 6, ""), (6, 7, ""), (7, 8, ""), (8, 9, ""), (9, 10, "")]
+
+
+def _box(ax, x, y, w, h, title, detail, colour):
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.06,rounding_size=0.12",
+                                linewidth=1.4, edgecolor=colour, facecolor=colour + "14"))
+    ax.text(x + w / 2, y + h - 0.3, title, ha="center", va="center",
+            fontsize=10, fontweight="bold", color=colour)
+    ax.text(x + w / 2, y + 0.28, detail, ha="center", va="center", fontsize=7.2, color="#333333")
+
+
+def _edge(index):
+    x, y, w, h = BOXES[index][:4]
+    return {"left": (x, y + h / 2), "right": (x + w, y + h / 2),
+            "top": (x + w / 2, y + h), "bottom": (x + w / 2, y)}
+
+
+def _arrow(ax, start, end):
+    """Route along the row, or down between rows, so no arrow crosses a box."""
+    a, b = _edge(start), _edge(end)
+    ay, by = BOXES[start][1], BOXES[end][1]
+    if ay == by:
+        tail, head = (a["right"], b["left"]) if BOXES[start][0] < BOXES[end][0] else (a["left"], b["right"])
+        style = "arc3,rad=0"
+    else:
+        tail, head = a["bottom"], b["top"]
+        style = "arc3,rad=0" if abs(tail[0] - head[0]) < 0.05 else "angle,angleA=-90,angleB=90,rad=8"
+    ax.add_patch(FancyArrowPatch(tail, head, connectionstyle=style, arrowstyle="-|>",
+                                 mutation_scale=11, linewidth=1.2, color="#55606B"))
+
+
+def plot_pipeline(path: Path) -> None:
+    """The pipeline diagram of the report, which depends on no run."""
+    fig, ax = plt.subplots(figsize=(12.6, 4.9))
+    for box in BOXES:
+        _box(ax, *box)
+    for start, end, _ in ARROWS:
+        _arrow(ax, start, end)
+
+    ax.text(12.4, 6.6, "train", fontsize=8, style="italic", color=BLUE, ha="left", va="center")
+    ax.text(12.4, 4.8, "per batch", fontsize=8, style="italic", color=RUST, ha="left", va="center")
+    ax.text(0.4, 1.95, "per epoch, on validation", fontsize=8, style="italic", color=GREEN,
+            ha="left", va="top")
+
+    ax.set_xlim(0, 13.4)
+    ax.set_ylim(1.75, 7.35)
+    ax.axis("off")
+    return fig
+
+# Error groups, applied in this order so every error pixel falls in exactly one. The split is by
+# what the confusion is between, not by which class is at fault, because almost every group is
+# dominated by boundary pixels that belong to both.
+THIN = frozenset({"pole", "traffic light", "traffic sign"})
+GROUND = frozenset({"road", "sidewalk", "terrain"})
+UPRIGHT = frozenset({"building", "wall", "fence", "vegetation"})
+MOVERS = frozenset({"car", "truck", "bus", "train", "motorcycle", "bicycle", "rider", "person"})
+ERROR_GROUPS = ("thin structures", "ground surfaces", "upright surfaces", "traffic participants",
+                "participant vs. background", "other")
+
+
+def error_group(truth: str, prediction: str) -> str:
+    """The group one confusion belongs to."""
+    if truth in THIN or prediction in THIN:
+        return "thin structures"
+    if truth in GROUND and prediction in GROUND:
+        return "ground surfaces"
+    if truth in UPRIGHT and prediction in UPRIGHT:
+        return "upright surfaces"
+    if truth in MOVERS and prediction in MOVERS:
+        return "traffic participants"
+    if truth in MOVERS or prediction in MOVERS:
+        return "participant vs. background"
+    return "other"
+
+
+def _error_groups(reports: list[EvaluationReport]) -> dict:
+    """Error pixels per group, as a share of this configuration's own errors."""
+    matrix = np.mean([np.array(r["confusion_matrix"], dtype=float) for r in reports], axis=0)
+    off_diagonal = matrix - np.diag(np.diag(matrix))
+    errors = off_diagonal.sum()
+    shares = dict.fromkeys(ERROR_GROUPS, 0.0)
+    for truth in range(len(CLASS_NAMES)):
+        for prediction in range(len(CLASS_NAMES)):
+            if truth != prediction:
+                shares[error_group(CLASS_NAMES[truth], CLASS_NAMES[prediction])] += off_diagonal[truth, prediction]
+    return {
+        "error_rate": float(errors / matrix.sum()) if matrix.sum() else 0.0,
+        "error_pixels": float(errors),
+        "groups": {name: float(value / errors) if errors else 0.0 for name, value in shares.items()},
+    }
+
+
+def _abbrev(name: str, limit: int) -> str:
+    """Shorten a name for a printed column, eliding the middle.
+
+    Configuration names share a long prefix and differ at the end, so cutting the tail would
+    make several columns identical.
+    """
+    if len(name) <= limit:
+        return name
+    head = (limit - 1) // 2
+    return name[:head] + "\u2026" + name[len(name) - (limit - 1 - head):]
+
+
+def _print_verdicts(configurations: list[dict]) -> None:
+    """Every pairwise comparison under the decision rule, on the metric that selected checkpoints."""
+    print(f"\n{'comparison':<56}verdict")
+    for index, first in enumerate(configurations):
+        for second in configurations[index + 1:]:
+            pair = _abbrev(f"{first['name']} vs. {second['name']}", 54)
+            if len(first["seeds"]) < 2 or len(second["seeds"]) < 2:
+                verdict = "indicative only, one seed"
+            elif separated(first, second, "miou"):
+                high, low = sorted((first, second), key=lambda c: -c["miou_mean"])
+                verdict = f"{high['name']} better by {high['miou_mean'] - low['miou_mean']:.4f}"
+            else:
+                verdict = f"indistinguishable ({abs(first['miou_mean'] - second['miou_mean']):.4f})"
+            print(f"{pair:<56}{verdict}")
+
+
+def _print_per_class(reports: dict[str, list[EvaluationReport]]) -> None:
+    """Per-class IoU per configuration, averaged over seeds, hardest class first."""
+    averaged = {name: per_class_means(group) for name, group in reports.items()}
+    order = sorted(CLASS_NAMES, key=lambda name: max(m.get(name) or 0.0 for m in averaged.values()))
+    width = min(max(len(name) for name in averaged), 20) + 2
+    print(f"\n{'class':<15}" + "".join(f"{_abbrev(name, width - 2):>{width}}" for name in averaged))
+    for klass in order:
+        row = f"{klass:<15}"
+        for means in averaged.values():
+            row += f"{means[klass]:>{width}.4f}" if means[klass] is not None else f"{'--':>{width}}"
+        print(row)
+
+
+def _print_errors(reports: dict[str, list[EvaluationReport]]) -> None:
+    """The error taxonomy: where each configuration's mistakes fall, as a share of its own."""
+    grouped = {name: _error_groups(group) for name, group in reports.items()}
+    width = min(max(len(name) for name in grouped), 20) + 2
+    print(f"\n{'error group':<28}" + "".join(f"{_abbrev(name, width - 2):>{width}}" for name in grouped))
+    for group in ERROR_GROUPS:
+        print(f"{group:<28}" + "".join(f"{g['groups'][group]:>{width}.1%}" for g in grouped.values()))
+    print(f"{'error rate (all pixels)':<28}" + "".join(f"{g['error_rate']:>{width}.1%}" for g in grouped.values()))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export learning curves and the metrics table for finished runs.")
-    parser.add_argument("runs", nargs="+", type=resolve_run, help="run ids, or paths to the run directories")
+    parser.add_argument("runs", nargs="*", type=resolve_run, help="run ids, or paths to the run directories")
+    parser.add_argument("--pipeline", action="store_true", help="write the pipeline diagram and stop")
     parser.add_argument("--name", default=None, help="comparison directory; defaults to the models compared")
     parser.add_argument("--split", choices=EVALUATION_SPLITS, default="val", help="which reports to tabulate")
     args = parser.parse_args(argv)
     split: Split = args.split
+
+    if args.pipeline:
+        plot_pipeline(resolve_path(FIGURES) / "pipeline")
+        return 0
+    if not args.runs:
+        parser.error("give at least one run, or --pipeline")
 
     loaded = [load_run(directory) for directory in args.runs]
     summaries = [summary for _, summary, _ in loaded]
@@ -166,32 +348,37 @@ def main(argv: list[str] | None = None) -> int:
 
         key = configuration(summary, variant)
         histories.setdefault(key, []).append(history)
-        reports.setdefault(key, shared_io.read_json(report))
+        reports.setdefault(key, []).append(shared_io.read_json(report))
 
     configurations = summarize(
         rows,
         metrics=("miou", "dice", "pixel_accuracy", "seconds_per_epoch"),
         keys=("model", "backbone", "variant"),
-        carry=("parameters",),
+        carry=("parameters", "name"),
     )
 
     comparison = resolve_path(FIGURES) / (args.name or default_name(summaries))
     plot_curves(histories, comparison / "learning_curves")
     plot_per_class(reports, comparison / f"per_class_iou_{split}")
-    for name, report in reports.items():
+    for name, group in reports.items():
         plot_confusion(
-            report["confusion_matrix"], CLASS_NAMES,
+            np.mean([np.array(r["confusion_matrix"], dtype=float) for r in group], axis=0).tolist(),
+            CLASS_NAMES,
             comparison / f"confusion_{re.sub(r'\W+', '_', name).strip('_').lower()}_{split}",
-            f"{name} on the {report['split']} split, row-normalised to percent",
+            f"{name} on the {split} split, row-normalised to percent",
         )
 
     shared_io.write_json(
         comparison / f"metrics_{split}.json",
-        {"split": split, "runs": rows, "configurations": configurations, "cost": _cost(rows)},
+        {"split": split, "runs": rows, "configurations": configurations,
+         "cost": _cost(rows), "errors": {name: _error_groups(group) for name, group in reports.items()}},
     )
 
     _print_runs(rows)
     _print_configurations(rows, configurations)
+    _print_verdicts(configurations)
+    _print_per_class(reports)
+    _print_errors(reports)
 
     devices = {row["hardware"] for row in rows}
     if len(devices) > 1:

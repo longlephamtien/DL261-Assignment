@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from shared import env, io as shared_io
 
-from .interfaces import IGNORE_INDEX, SplitFile
+from .interfaces import IGNORE_INDEX, NUM_CLASSES, SplitFile
 from .utils import load_config, resolve_path
 
 LOGIN_URL = "https://www.cityscapes-dataset.com/login"
@@ -342,14 +342,52 @@ def measure_throughput(loader: DataLoader, batches: int = 20) -> dict[str, float
     }
 
 
+
+def class_presence(config: dict, batches: int = 12) -> dict:
+    """How many of the 19 classes a training crop and a training batch actually contain.
+
+    A per-class loss averages over every class whether or not the batch holds one, so the share
+    of classes absent from a batch is what decides how much of that objective is contributed by
+    classes with no positive pixel.
+    """
+    loaders = build_dataloaders({**config, "loader": {**config["loader"], "num_workers": 0}})
+    iterator = iter(loaders["train"])
+    per_crop: list[int] = []
+    per_batch: list[int] = []
+    for _ in range(batches):
+        _, targets = next(iterator)
+        for index in range(targets.shape[0]):
+            per_crop.append(int((targets[index].unique() != IGNORE_INDEX).sum()))
+        per_batch.append(int((targets.unique() != IGNORE_INDEX).sum()))
+
+    crop = sum(per_crop) / len(per_crop)
+    batch = sum(per_batch) / len(per_batch)
+    return {
+        "crops": len(per_crop),
+        "batches": len(per_batch),
+        "classes_per_crop": crop,
+        "classes_per_batch": batch,
+        "absent_share_per_batch": 1 - batch / NUM_CLASSES,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Download Cityscapes, then write the city-level split.")
     parser.add_argument("--config", type=Path, default=Path("configs/base.yaml"))
     parser.add_argument("--download-only", action="store_true", help="fetch the archives and stop")
+    parser.add_argument("--class-presence", type=int, metavar="BATCHES", default=0,
+                        help="measure how many classes a crop and a batch hold, then stop")
     args = parser.parse_args(argv)
 
     config = load_config(resolve_path(args.config))
     dataset = config["dataset"]
+    if args.class_presence:
+        measured = class_presence(config, args.class_presence)
+        print(f"{measured['crops']} crops in {measured['batches']} batches")
+        print(f"classes per crop  {measured['classes_per_crop']:.2f} of {NUM_CLASSES}")
+        print(f"classes per batch {measured['classes_per_batch']:.2f} of {NUM_CLASSES}")
+        print(f"absent from a batch {measured['absent_share_per_batch']:.1%} on average")
+        return 0
     root = prepare_dataset(config)
     print(root)
     if args.download_only:

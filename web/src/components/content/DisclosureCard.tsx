@@ -54,6 +54,7 @@ function Entry({ entry }: { entry: AiToolUse }) {
           <Tags items={entry.affectedSections} />
         </Row>
         <Row label="Responsible member">{entry.responsibleMember}</Row>
+        {entry.sourcesUsed && <Row label="Sources used for verification">{entry.sourcesUsed}</Row>}
       </dl>
     </div>
   );

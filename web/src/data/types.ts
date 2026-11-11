@@ -13,6 +13,7 @@ export interface AiToolUse {
   studentVerification: string;
   affectedSections: string[];
   responsibleMember: string;
+  sourcesUsed: string | null;
 }
 
 export interface AiDisclosure {

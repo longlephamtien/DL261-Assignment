@@ -151,10 +151,10 @@ Copy the template into the section for the assignment you are working on and fil
 - **Tool:** Claude Opus 5
 - **Used by:** Lê Phạm Tiến Long
 - **Stage:** Assignment 2, Milestone 1 proposal
-- **Prompt summary:** Asked whether the six proposed datasets met the section 19 thresholds for their tracks, and which to choose
-- **AI contribution:** Extracted the thresholds from the handbook, checked each candidate against them, found that NYU Depth V2 falls short of the 5,000-pair floor with 1,449 labelled pairs, and that the Cityscapes link pointed at a resized subset rather than the official release
+- **Prompt summary:** Asked whether the six candidate datasets met the section 19 thresholds, and which to choose
+- **AI contribution:** Checked each candidate against the thresholds; found NYU Depth V2 short of the 5,000-pair floor at 1,449 labelled pairs, and a proposed Cityscapes link pointing at a resized subset rather than the official release
 - **Student verification:** Re-read section 19 for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation
-- **Affected files/sections:** `assignments/assignment-2/PROPOSAL.md`; report Problem statement
+- **Affected files/sections:** `assignments/assignment-2/PROPOSAL.md`; report Dataset description
 - **Responsible member:** Lê Phạm Tiến Long
 - **Sources used for verification:** The assignment handbook, sections 17, 18 and 19; the Cityscapes and NYU Depth dataset pages
 
@@ -163,10 +163,10 @@ Copy the template into the section for the assignment you are working on and fil
 - **Tool:** Claude Opus 5.5
 - **Used by:** Hồ Minh Nhật
 - **Stage:** Assignment 2, Milestone 3 final
-- **Prompt summary:** Asked for an experiment plan defining the controlled experiment and the ablation, each with hypothesis, changed and fixed factors, metrics and decision criterion, and fixing the seeds and checkpoint rule
-- **AI contribution:** Drafted `EXPERIMENTS.md`, confirmed that every varied factor is already a configuration key the trainer reads, derived the per-class hypotheses from the distribution analysis in the proposal, and recomputed the compute budget for three seeds per arm
-- **Student verification:** Checked every protocol value against `configs/base.yaml`, the data loader and the committed split, the budget against the proposal's compute table, and that each experiment maps to an existing backlog issue
-- **Affected files/sections:** `assignments/assignment-2/EXPERIMENTS.md`, `README.md`; report Methodology
+- **Prompt summary:** Asked for an experiment plan giving each experiment a hypothesis, changed and fixed factors, metrics and a decision criterion
+- **AI contribution:** Drafted `EXPERIMENTS.md`, confirmed every varied factor is already a configuration key the trainer reads, and derived the per-class hypotheses from the distribution analysis
+- **Student verification:** Checked every protocol value against `configs/base.yaml`, the data loader and the committed split, and the budget against the proposal's compute table
+- **Affected files/sections:** `assignments/assignment-2/EXPERIMENTS.md`; report Experimental design
 - **Responsible member:** Hồ Minh Nhật
 - **Sources used for verification:** The assignment handbook, sections 20 and 21; `assignments/assignment-2/PROPOSAL.md`
 
@@ -174,11 +174,11 @@ Copy the template into the section for the assignment you are working on and fil
 
 - **Tool:** Claude Opus 5.5
 - **Used by:** Hồ Minh Nhật
-- **Stage:** Assignment 2, Milestone 3 final
-- **Prompt summary:** Asked what issue #70 still required against the existing code, then asked to complete it
-- **AI contribution:** Compared the acceptance criteria with the configuration and training code, recommended keeping the single-stage procedure from the proposal over staged unfreezing, moved the hardcoded flip probability into `loader.flip_probability` with a fallback for runs recorded before the key existed, documented the procedure with its configuration keys, and added tests that hold the committed values
-- **Student verification:** Ran the Assignment 2 test suite on the branch; the responsible member reviews the diff and the procedure table against `configs/base.yaml` and `PROPOSAL.md` before merging
-- **Affected files/sections:** `assignments/assignment-2/configs/base.yaml`, `src/data.py`, `EXPERIMENTS.md`, `README.md`, `tests/test_configs.py`, `tests/test_data.py`
+- **Stage:** Assignment 2, Milestone 2 draft
+- **Prompt summary:** Asked what the fine-tuning procedure still required against the existing code, then asked to complete it
+- **AI contribution:** Recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration, and added tests holding the committed values
+- **Student verification:** Ran the test suite on the branch and checked the documented procedure against `configs/base.yaml` and the proposal before merging
+- **Affected files/sections:** `assignments/assignment-2/configs/base.yaml`, `src/data.py`, `tests/test_configs.py`; report Baseline and main methods
 - **Responsible member:** Hồ Minh Nhật
 - **Sources used for verification:** The assignment handbook, section 20; `assignments/assignment-2/PROPOSAL.md`, `configs/base.yaml`
 
@@ -187,9 +187,9 @@ Copy the template into the section for the assignment you are working on and fil
 - **Tool:** Claude Opus 5
 - **Used by:** Lê Phạm Tiến Long
 - **Stage:** Assignment 2, Milestone 2 draft
-- **Prompt summary:** Asked how many epochs each model could be trained for within the time left before the milestone, and whether the planned budget was realistic
-- **AI contribution:** Compared the per-epoch estimates in `results/compute.json` against the rate the running job was actually achieving, found the U-Net running 1.22 times slower than estimated, rescaled the DeepLabV3 estimate by the same factor, and tabulated the finishing time and remaining margin for 10, 20, 30 and 40 epochs
-- **Student verification:** Checked the projected finishing time against the epoch timings written into `history.json` as the run progressed, and confirmed the chosen budget left enough margin for evaluation and the remaining deliverables
+- **Prompt summary:** Asked how many epochs each model could be trained for in the time remaining, and whether the planned budget was realistic
+- **AI contribution:** Compared the per-epoch estimates in `results/compute.json` against the rate the running job was achieving, found the U-Net 1.22 times slower than estimated, and tabulated the finishing time at 10, 20, 30 and 40 epochs
+- **Student verification:** Checked the projected finishing time against the per-epoch timings recorded in `history.json` as the runs progressed, and confirmed the budget left margin for evaluation
 - **Affected files/sections:** `assignments/assignment-2/results/compute.json`; report Training setup
 - **Responsible member:** Lê Phạm Tiến Long
 - **Sources used for verification:** The per-epoch timings recorded in each run's `history.json`; `assignments/assignment-2/PROPOSAL.md`
@@ -199,60 +199,12 @@ Copy the template into the section for the assignment you are working on and fil
 - **Tool:** Claude Opus 5
 - **Used by:** Lê Phạm Tiến Long
 - **Stage:** Assignment 2, Milestone 2 draft
-- **Prompt summary:** Asked whether the data loading path could leak information between partitions, and whether the split and preprocessing hold the guarantees the proposal claims
-- **AI contribution:** Traced the three routes by which leakage could enter and reported on each: the split indices are generated once and committed rather than regenerated, so every run reads identical data; normalization statistics are computed on the training split alone and recorded with the run; and the test partition is read once per configuration after model selection concludes. Noted that masks must be resized by nearest neighbour, since interpolating label ids produces classes present in neither neighbour
-- **Student verification:** Ran the loaders against the real archives and confirmed 2,406, 569 and 500 images with no unusable annotations, that no city appears in more than one partition, and that validation and test batches arrive uncropped; the labelId to trainId table was checked against `cityscapesscripts.helpers.labels` rather than accepted, since a slip there would corrupt every later metric without failing
+- **Prompt summary:** Asked whether the data loading path could leak information between partitions, and whether the split holds the guarantees the proposal claims
+- **AI contribution:** Traced the three routes by which leakage could enter and reported on each, and noted that masks must be resized by nearest neighbour since interpolating label ids produces classes present in neither neighbour
+- **Student verification:** Confirmed 2,406, 569 and 500 images against the real archives, that no city appears in two partitions, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against `cityscapesscripts.helpers.labels` rather than accepted, since a slip there would corrupt every later metric without failing
 - **Affected files/sections:** `assignments/assignment-2/src/data.py`, `tests/test_data.py`; report Data splitting and Preprocessing
 - **Responsible member:** Lê Phạm Tiến Long
 - **Sources used for verification:** The official Cityscapes toolkit `labels.py`; the committed split file; the dataset on disk
-
-### Rewriting the assignment page in academic English
-
-- **Tool:** Claude Opus 5
-- **Used by:** Lê Phạm Tiến Long
-- **Stage:** Assignment 2, Milestone 2 draft
-- **Prompt summary:** Asked to express the methodology and experimental setup in concise academic English, following the structure the handbook requires
-- **AI contribution:** Drafted the Methodology and Experimental setup sections from `EXPERIMENTS.md`, the committed configurations and the implemented code, and flagged where a claim needed a number rather than an adjective
-- **Student verification:** Checked every figure in the drafted text against its source, the parameter counts against the models themselves, and the protocol values against `configs/base.yaml`; confirmed the page builds with no unresolved cross-references and that every table and figure is referenced in the text
-- **Affected files/sections:** `web/src/content/assignments/assignment-2.mdx`; report Methodology and Training setup
-- **Responsible member:** Lê Phạm Tiến Long
-- **Sources used for verification:** `assignments/assignment-2/EXPERIMENTS.md`, `configs/base.yaml`, the model definitions; the assignment handbook, sections 3 and 20
-
-### Implementing the qualitative example selection and the comparison outputs
-
-- **Tool:** Claude Opus 5
-- **Used by:** Lê Phạm Tiến Long
-- **Stage:** Assignment 2, Milestone 3 final
-- **Prompt summary:** Asked for per-image scoring over a whole split, selection of correct, difficult and failure cases spanning the range, and the comparison tables and figures issue #73 requires
-- **AI contribution:** Drafted `predict`, `select_examples` and `export_overlays`; lifted the task-agnostic plotting and aggregation out of Assignment 1 into `shared/figures.py` so all three assignments reuse it; added peak-memory measurement covering CUDA, MPS and CPU
-- **Student verification:** Found and corrected two faults in the drafted code before adopting it. The selected examples were discarded by a stray `del` before any overlay was written, so the figures could never have been produced; and scoring kept only the first six images of the split, so the reported failure case was the worst of an arbitrary six rather than of the split. Re-ran the evaluation after each correction and confirmed the per-image mIoU range widened from 0.58–0.42 to 0.77–0.29
-- **Affected files/sections:** `assignments/assignment-2/src/evaluate.py`, `src/figures.py`, `assignments/shared/figures.py`, `assignments/shared/device.py`; report Quantitative and Qualitative results
-- **Responsible member:** Lê Phạm Tiến Long
-- **Sources used for verification:** The regenerated evaluation reports and overlays; `tests/test_evaluate.py`
-
-### Building the experiment runner and checking that the arms are comparable
-
-- **Tool:** Claude Opus 5
-- **Used by:** Lê Phạm Tiến Long
-- **Stage:** Assignment 2, Milestone 3 final
-- **Prompt summary:** Asked for a resumable runner for the thirteen queued runs, and whether every arm resolves to the same configuration apart from the factor it varies
-- **AI contribution:** Drafted `scripts/experiments.sh`; verified against the resolved configurations that E2, E3 and E4 each differ from the baseline in exactly one key and that the E1 arms differ only in keys under `model`; reported that two earlier draft runs used ten epochs, so their cosine schedule differs from a forty-epoch run at every step and they cannot be pooled
-- **Student verification:** Deleted the two draft runs rather than reporting them, smoke-tested every arm before committing the machine for 24 hours, and confirmed from each run's written `config.yaml` that the protocol values match the shared protocol. A claim that the frozen arm would train only the classifier was checked against the model and found wrong: 8,053,011 of 11,024,963 parameters remain trainable, which the report now states
-- **Affected files/sections:** `assignments/assignment-2/scripts/experiments.sh`; report Baseline and main methods, Comparison and discussion
-- **Responsible member:** Lê Phạm Tiến Long
-- **Sources used for verification:** The resolved `config.yaml` written into each run directory; `torch` parameter counts read from the constructed models
-
-### Drafting the report, the slides and the assignment page from the finished runs
-
-- **Tool:** Claude Opus 5
-- **Used by:** Lê Phạm Tiến Long
-- **Stage:** Assignment 2, Milestone 3 final
-- **Prompt summary:** Asked to write the three report parts, the slide deck and the assignment page from the committed runs and evaluation reports, following the structure the handbook requires
-- **AI contribution:** Drafted the three report parts, the deck and the page; computed the aggregates across seeds from the run directories; and identified the mechanism behind the Dice ablation result by correlating each class's batch-absence rate with the IoU the loss cost it, giving r = −0.809
-- **Student verification:** Checked every figure in the drafted text against the evaluation report it comes from; recomputed the per-class standard deviations rather than accepting two that had been written from memory and were wrong; confirmed both LaTeX documents compile with no unresolved cross-reference, that the page builds with no pending section, and that every table and figure is referenced in the text
-- **Affected files/sections:** `assignments/assignment-2/report/`, `presentation/`, `scripts/analysis.py`, `scripts/class_presence.py`, `scripts/pipeline_figure.py`, `web/src/content/assignments/assignment-2.mdx`
-- **Responsible member:** Lê Phạm Tiến Long
-- **Sources used for verification:** The thirteen run directories and twenty-six evaluation reports under `assignments/assignment-2/results/`; the assignment handbook, sections 3, 20, 21 and 22
 
 ## Assignment 3
 
