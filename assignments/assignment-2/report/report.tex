@@ -298,7 +298,7 @@
 
 \captionsetup[table]{labelfont={small,bf},textfont={small,it},belowskip=-2pt,aboveskip=5pt}
 
-\usepackage[backend=biber,style=ieee]{biblatex}
+\usepackage[backend=bibtex,style=ieee]{biblatex}
 \addbibresource{references.bib}
 
 \setlength{\floatsep}{5pt plus 2pt minus 2pt}
@@ -390,13 +390,50 @@ HO CHI MINH CITY, 2026
 
 \section*{Code Availability}
 \addcontentsline{toc}{section}{Code Availability}
-The implementation, configurations and committed splits are available at
-\url{https://github.com/longlephamtien/DL261-Assignment}, and the assignment page at
-\url{https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-2/}.
+Every deliverable for this assignment is linked from the assignment page,
+\url{https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-2/}, and reachable
+directly below. Each reported number traces to a run directory holding its resolved
+configuration, its environment record and the commit it was produced at, as
+Table~\ref{tab:traceability} sets out.
 
-% Keeps biber working before the first real \cite appears; remove once the
-% content cites its references directly.
-\nocite{paszke2019pytorch}
+\noindent\begin{tabularx}{\textwidth}{lX}
+\hline
+\textbf{Source code} & \url{https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-2} \\
+\textbf{Dataset proposal} & \url{https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-2/PROPOSAL.md} \\
+\textbf{Experiment plan} & \url{https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-2/EXPERIMENTS.md} \\
+\textbf{Checkpoints} & \url{https://huggingface.co/longlephamtien/DL261-Assignment/tree/main/assignment-2/runs} \\
+\textbf{Slides} & \url{https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-2/presentation/presentation.pdf} \\
+\textbf{Presentation video} & Recorded for submission; the link is published on the assignment page \\
+\hline
+\end{tabularx}
+
+
+\begin{table}[H]
+\centering
+\caption{Traceability of every reported run.}
+\label{tab:traceability}
+\scriptsize
+\begin{tabular}{llllr}
+\hline
+\textbf{Configuration} & \textbf{Seed} & \textbf{Run ID} & \textbf{Best epoch} & \textbf{Commit} \\
+\hline
+DeepLabV3-MobileNetV3 & 0 & \texttt{deeplabv3-seed0-20261109-230158} & 30 & \texttt{567bab03} \\
+DeepLabV3-MobileNetV3 & 1 & \texttt{deeplabv3-seed1-20261110-003107} & 31 & \texttt{277d6794} \\
+DeepLabV3-MobileNetV3 & 2 & \texttt{deeplabv3-seed2-20261110-020225} & 35 & \texttt{277d6794} \\
+\quad frozen backbone & 0 & \texttt{deeplabv3-seed0-20261110-121645} & 15 & \texttt{277d6794} \\
+\quad frozen backbone & 1 & \texttt{deeplabv3-seed1-20261110-125324} & 24 & \texttt{277d6794} \\
+\quad frozen backbone & 2 & \texttt{deeplabv3-seed2-20261110-134416} & 36 & \texttt{277d6794} \\
+\quad Dice loss       & 0 & \texttt{deeplabv3-seed0-20261110-144803} &  4 & \texttt{277d6794} \\
+\quad Dice loss       & 1 & \texttt{deeplabv3-seed1-20261110-151818} &  4 & \texttt{277d6794} \\
+\quad Dice loss       & 2 & \texttt{deeplabv3-seed2-20261110-154830} &  4 & \texttt{277d6794} \\
+DeepLabV3-ResNet50    & 0 & \texttt{deeplabv3-seed0-20261110-161840} & 37 & \texttt{277d6794} \\
+U-Net                 & 0 & \texttt{unet-seed0-20261110-033604}      & 38 & \texttt{277d6794} \\
+U-Net                 & 1 & \texttt{unet-seed1-20261110-062947}      & 40 & \texttt{277d6794} \\
+U-Net                 & 2 & \texttt{unet-seed2-20261110-092324}      & 39 & \texttt{277d6794} \\
+\hline
+\end{tabular}
+\end{table}
+
 \printbibliography
 \addcontentsline{toc}{section}{References}
 
