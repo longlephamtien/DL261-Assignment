@@ -3,5 +3,81 @@
 
 \section{Experimental Setup}
 
-\begin{frame}{Experimental Setup}
+%----------------------------------------------------------
+\begin{frame}{One Protocol for Every Arm}
+\small
+\begin{columns}[T]
+\begin{column}{0.56\textwidth}
+\begin{table}
+\centering
+\scriptsize
+\caption{Shared training protocol.}
+\label{tab:protocol}
+\begin{tabular}{ll}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Input       & resize $512\times1024$, random $512^2$ crop \\
+Optimizer   & AdamW~\cite{loshchilov2019adamw}, $3\times10^{-4}$, wd $0.05$ \\
+Batch size  & 8 (301 steps/epoch) \\
+Epochs      & 40 max, cosine over 40 \\
+Early stop  & patience 8 on validation mIoU \\
+Checkpoint  & highest validation mIoU \\
+Seeds       & 0, 1, 2 per configuration \\
+Hardware    & Apple M4 Pro, 14 cores, 48\,GB, MPS \\
+Software    & Python 3.12.0, PyTorch 2.14.0 \\
+Precision   & full \texttt{float32}, no AMP \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{column}
+\begin{column}{0.42\textwidth}
+\begin{block}{Search effort is zero, and equal}
+\footnotesize
+No hyperparameter search was run. Every arm uses the same settings, fixed before training, and
+changes \textbf{exactly one} of them.
+
+Every score is therefore a score \emph{under a common protocol at an untuned configuration}, not
+the best that configuration could reach.
+\end{block}
+
+\begin{alertblock}{Reproducibility limit, reported not hidden}
+\footnotesize
+The Apple GPU backend has no deterministic kernel for the scatter-add DeepLabV3 reaches when it
+interpolates logits back to full resolution. U-Net reproduces bit-exactly; DeepLabV3 diverges by
+${\sim}4\times10^{-7}$ per step.
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Four Experiments, Each Varying One Key}
+\small
+\begin{table}
+\centering
+\scriptsize
+\caption{The experiment matrix.}
+\label{tab:experiments}
+\begin{tabular}{lll r}
+\toprule
+\textbf{Role} & \textbf{Factor varied} & \textbf{Hypothesis} & \textbf{Seeds} \\
+\midrule
+Main comparison & U-Net from scratch vs.\ pretrained DeepLabV3 & pretrained wins at equal capacity & $3{+}3$ \\
+\textbf{Controlled experiment} & backbone frozen vs.\ fully fine-tuned & full fine-tune wins; widest on thin classes & 3 \\
+\textbf{Ablation} & cross-entropy vs.\ Dice loss & Dice lifts train, bus, truck & 3 \\
+Extension & MobileNetV3 vs.\ ResNet50 backbone & ResNet50 wins at $3.6\times$ params & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{-0.1cm}
+\begin{block}{Decision rule, fixed before any result was seen}
+$A$ beats $B$ \emph{only} when its mean validation mIoU is higher \textbf{and} the two intervals
+of mean $\pm$ one standard deviation across three seeds \textbf{do not overlap}.
+
+Overlapping intervals $\Rightarrow$ \textbf{indistinguishable}, which is itself a result and is
+\emph{not} resolved by picking the higher mean. A claim about one class applies the same rule to
+that class's IoU. One seed supports no claim of superiority.
+\end{block}
 \end{frame}

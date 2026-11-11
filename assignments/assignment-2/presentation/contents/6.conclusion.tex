@@ -3,5 +3,78 @@
 
 \section{Conclusion}
 
-\begin{frame}{Conclusion}
+%----------------------------------------------------------
+\begin{frame}{Answering the Research Question}
+\footnotesize
+\textbf{How much of the gap between a from-scratch model and a pretrained one comes from
+pretrained features rather than architecture, loss or capacity?}
+
+\begin{block}{A sharp answer}
+Fully fine-tuned pretrained features are worth
+\begin{itemize}
+    \item $\mathbf{0.1301}$ validation mIoU over the from-scratch U-Net,
+    \item $\mathbf{0.1175}$ over the \emph{same weights} with the backbone frozen,
+    \item $\mathbf{0.1178}$ over the \emph{same model} trained with a class-balanced objective,
+\end{itemize}
+and those three alternatives are \textbf{mutually indistinguishable}, within 0.0126 of one
+another. One factor accounts for essentially the whole spread.
+\end{block}
+
+\begin{alertblock}{An unexpected qualification}
+The advantage is \textbf{not uniform}. The from-scratch U-Net is better, with separated intervals,
+on \textbf{pole, sky and vegetation}, because a full-resolution decoder localises thin structures
+that a stride-8 backbone cannot. Five of six error groups are boundary-dominated.
+
+\textbf{Pretraining supplies recognition rather than resolution.}
+\end{alertblock}
+
+\vspace{0.1cm}
+Carried forward: \textbf{DeepLabV3-MobileNetV3, fully fine-tuned}, at
+$\mathbf{0.6180 \pm 0.0049}$ test mIoU and $0.7441 \pm 0.0048$ test Dice, 140\,s/epoch,
+15.2\,ms/image.
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{Limitations}
+\small
+\begin{itemize}
+    \item \textbf{The U-Net is undertrained.} Validation mIoU still rising at epoch 40 on all
+          three seeds, so $0.4836$ is a floor and the margin over it an \emph{upper bound}.
+    \item \textbf{The model comparison confounds two factors.} Its arms differ in architecture \emph{and} in
+          pretraining; no run here separates them. A DeepLabV3 trained from scratch would.
+    \item \textbf{The backbone extension is one seed} and supports no claim of superiority.
+    \item \textbf{Three seeds estimate a standard deviation from three observations.}
+          ``Indistinguishable'' means \emph{not separated at this sample size}, not equal.
+    \item \textbf{The data is narrow}: daylight, fair weather, European cities, one camera,
+          and images were resized to a quarter of their pixels for compute, itself a ceiling on
+          the thin classes that dominate the errors.
+    \item \textbf{Reproducibility has a hardware limit.} The Apple GPU backend has no deterministic kernel for the
+          interpolation DeepLabV3 uses, so rerunning a DeepLabV3 seed will not reproduce its
+          number exactly. The reported spread includes that nondeterminism.
+\end{itemize}
+\end{frame}
+
+%----------------------------------------------------------
+\begin{frame}{What Comes Next}
+\small
+In the order the evidence supports them:
+
+\begin{enumerate}
+    \item \textbf{Resolution.} Train and evaluate at the native $1024 \times 2048$, or add a
+          full-resolution decoder path (DeepLabV3+). This attacks the thin-structure and boundary
+          groups, which are most of the error, and the $512 \times 1024$ resize was a choice made
+          for compute rather than accuracy.
+    \item \textbf{The clean version of the model comparison.} A DeepLabV3 trained from scratch separates pretraining
+          from architecture in a single run.
+    \item \textbf{The class-balancing question the ablation \emph{reopened}.} Dice accumulated over
+          an epoch, or masking absent classes out of its mean, avoids the suppression mechanism
+          measured here.
+\end{enumerate}
+
+\vspace{0.3cm}
+\begin{block}{Two practices that changed the conclusions}
+Reporting per-class numbers beside the mean, and fixing the decision rule before seeing results.
+The per-class table located the one setting in which the \emph{weaker} model wins, and the rule
+turned three apparently different outcomes into a single tie.
+\end{block}
 \end{frame}
