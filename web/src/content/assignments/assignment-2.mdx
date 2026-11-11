@@ -18,7 +18,7 @@ resources:
   - label: Experiment plan
     href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-2/EXPERIMENTS.md
   - label: YouTube video
-    href: null
+    href: https://youtu.be/BBk91a9ARaM
 references:
   - id: cordts2016cityscapes
     text: "M. Cordts et al., The Cityscapes Dataset for Semantic Urban Scene Understanding, CVPR 2016."
@@ -46,113 +46,71 @@ references:
     href: https://arxiv.org/abs/1912.01703
 aiDisclosure:
   noAiUsed: false
-  summary: "Claude was used to check the candidate datasets against the handbook thresholds, to design the experiment plan and the fine-tuning procedure, to check the compute plan for the training runs, to review the data loader for leakage, to implement the evaluation and figure code, to build the experiment runner, and to draft the report, the slides and this page."
+  summary: "Claude was used to check the candidate datasets against the handbook thresholds, to design the experiment plan and the fine-tuning procedure, to check the compute plan for the training runs, and to review the data loader for leakage."
   entries:
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
       task: Checking the candidate datasets against the handbook thresholds
-      promptSummary: "Asked whether the six proposed datasets met the section 19 thresholds for their tracks, and which to choose."
+      promptSummary: "Asked whether the six candidate datasets met the section 19 thresholds, and which to choose."
       promptLog: null
-      aiContribution: "Checked each candidate against the thresholds, and found that one depth dataset falls short of the 5,000-pair floor and that a proposed Cityscapes link pointed at a resized subset rather than the official release."
-      studentVerification: "Re-read the requirements for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation."
+      aiContribution: "Checked each candidate against the thresholds; found NYU Depth V2 short of the 5,000-pair floor at 1,449 labelled pairs, and a proposed Cityscapes link pointing at a resized subset rather than the official release."
+      studentVerification: "Re-read section 19 for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation."
       affectedSections:
-        - Problem statement
+        - PROPOSAL.md
+        - Dataset and EDA
       responsibleMember: Lê Phạm Tiến Long
+      sourcesUsed: "The assignment handbook, sections 17, 18 and 19; the Cityscapes and NYU Depth dataset pages"
     - tool: Claude Opus 5.5
       usedBy: Hồ Minh Nhật
       task: Designing the controlled experiment and ablation
-      promptSummary: "Asked for an experiment plan defining the controlled experiment and the ablation, each with hypothesis, changed and fixed factors, metrics and decision criterion, and fixing the seeds and checkpoint rule."
+      promptSummary: "Asked for an experiment plan giving each experiment a hypothesis, changed and fixed factors, metrics and a decision criterion."
       promptLog: null
-      aiContribution: "Drafted the plan, confirmed that every varied factor is already a configuration key the trainer reads, derived the per-class hypotheses from the distribution analysis, and recomputed the compute budget for three seeds per arm."
-      studentVerification: "Checked every protocol value against the base configuration, the data loader and the committed split, the budget against the proposal's compute table, and that each experiment maps to an existing backlog issue."
+      aiContribution: "Drafted EXPERIMENTS.md, confirmed every varied factor is already a configuration key the trainer reads, and derived the per-class hypotheses from the distribution analysis."
+      studentVerification: "Checked every protocol value against configs/base.yaml, the data loader and the committed split, and the budget against the proposal's compute table."
       affectedSections:
         - EXPERIMENTS.md
         - Experimental setup
       responsibleMember: Hồ Minh Nhật
+      sourcesUsed: "The assignment handbook, sections 20 and 21; assignments/assignment-2/PROPOSAL.md"
     - tool: Claude Opus 5.5
       usedBy: Hồ Minh Nhật
       task: Specifying the fine-tuning procedure
       promptSummary: "Asked what the fine-tuning procedure still required against the existing code, then asked to complete it."
       promptLog: null
-      aiContribution: "Compared the acceptance criteria with the configuration and the training code, recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration with a fallback for runs recorded before the setting existed, and added tests that hold the committed values."
-      studentVerification: "Ran the test suite on the branch and checked the procedure against the base configuration and the proposal before merging."
+      aiContribution: "Recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration, and added tests holding the committed values."
+      studentVerification: "Ran the test suite on the branch and checked the documented procedure against configs/base.yaml and the proposal before merging."
       affectedSections:
         - configs/base.yaml
         - src/data.py
         - Methodology
       responsibleMember: Hồ Minh Nhật
+      sourcesUsed: "The assignment handbook, section 20; assignments/assignment-2/PROPOSAL.md, configs/base.yaml"
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
       task: Checking the compute plan for the training runs
-      promptSummary: "Asked how many epochs each model could be trained for within the time left before the milestone, and whether the planned budget was realistic."
+      promptSummary: "Asked how many epochs each model could be trained for in the time remaining, and whether the planned budget was realistic."
       promptLog: null
-      aiContribution: "Compared the per-epoch estimates in results/compute.json against the rate the running job was achieving, found the U-Net running 1.22 times slower than estimated, rescaled the DeepLabV3 estimate by the same factor, and tabulated the finishing time and remaining margin for 10, 20, 30 and 40 epochs."
-      studentVerification: "Checked the projected finishing time against the epoch timings written into history.json as the run progressed, and confirmed the chosen budget left enough margin for evaluation and the remaining deliverables."
+      aiContribution: "Compared the per-epoch estimates in results/compute.json against the rate the running job was achieving, found the U-Net 1.22 times slower than estimated, and tabulated the finishing time at 10, 20, 30 and 40 epochs."
+      studentVerification: "Checked the projected finishing time against the per-epoch timings recorded in history.json as the runs progressed, and confirmed the budget left margin for evaluation."
       affectedSections:
         - results/compute.json
         - Experimental setup
       responsibleMember: Lê Phạm Tiến Long
+      sourcesUsed: "The per-epoch timings recorded in each run's history.json; assignments/assignment-2/PROPOSAL.md"
     - tool: Claude Opus 5
       usedBy: Lê Phạm Tiến Long
       task: Reviewing the data loader for leakage
-      promptSummary: "Asked whether the data loading path could leak information between partitions, and whether the split and preprocessing hold the guarantees the proposal claims."
+      promptSummary: "Asked whether the data loading path could leak information between partitions, and whether the split holds the guarantees the proposal claims."
       promptLog: null
-      aiContribution: "Traced the three routes by which leakage could enter and reported on each: the split indices are committed rather than regenerated, normalization statistics come from the training split alone, and the test partition is read once after model selection concludes. Noted that masks must resize by nearest neighbour, since interpolating label ids produces classes present in neither neighbour."
-      studentVerification: "Ran the loaders against the real archives and confirmed 2,406, 569 and 500 images with no unusable annotations, that no city appears in more than one partition, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against cityscapesscripts rather than accepted, since a slip there would corrupt every later metric without failing."
+      aiContribution: "Traced the three routes by which leakage could enter and reported on each, and noted that masks must be resized by nearest neighbour since interpolating label ids produces classes present in neither neighbour."
+      studentVerification: "Confirmed 2,406, 569 and 500 images against the real archives, that no city appears in two partitions, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against cityscapesscripts rather than accepted, since a slip there would corrupt every later metric without failing."
       affectedSections:
         - src/data.py
         - tests/test_data.py
         - Dataset and EDA
       responsibleMember: Lê Phạm Tiến Long
-    - tool: Claude Opus 5
-      usedBy: Lê Phạm Tiến Long
-      task: Implementing the qualitative example selection and the comparison outputs
-      promptSummary: "Asked for per-image scoring over a whole split, selection of correct, difficult and failure cases spanning the range, and the comparison tables and figures the milestone requires."
-      promptLog: null
-      aiContribution: "Drafted predict, select_examples and export_overlays, lifted the task-agnostic plotting and aggregation into shared/figures.py so all three assignments reuse it, and added peak-memory measurement for CUDA, MPS and CPU."
-      studentVerification: "Found and corrected two faults in the drafted code before adopting it: the selected examples were discarded before any overlay was written, and scoring kept only the first six images of the split, so the reported failure case was the worst of an arbitrary six rather than of the split. Re-ran the evaluation after each correction and checked the per-image mIoU range widened from 0.58-0.42 to 0.77-0.29 as expected."
-      affectedSections:
-        - src/evaluate.py
-        - src/figures.py
-        - Results
-        - Qualitative results
-      responsibleMember: Lê Phạm Tiến Long
-    - tool: Claude Opus 5
-      usedBy: Lê Phạm Tiến Long
-      task: Building the experiment runner and checking that the arms are comparable
-      promptSummary: "Asked for a resumable runner for the thirteen queued runs, and whether every arm resolves to the same configuration apart from the factor it varies."
-      promptLog: null
-      aiContribution: "Drafted scripts/experiments.sh, and verified against the resolved configurations that the controlled experiment, the ablation and the backbone extension each differ from the baseline in exactly one setting, and that the two arms of the model comparison differ only in the model. Reported that two earlier draft runs used ten epochs, so their cosine schedule differs entirely and they cannot be pooled with the forty-epoch runs."
-      studentVerification: "Deleted the two draft runs rather than reporting them, smoke-tested every arm before committing the machine, and confirmed from each run's written config.yaml that the protocol values match the shared protocol. A claim that the frozen arm would train only the classifier was checked against the model and found wrong: 73% of parameters remain trainable, which the discussion now reports."
-      affectedSections:
-        - scripts/experiments.sh
-        - Experimental setup
-      responsibleMember: Lê Phạm Tiến Long
-    - tool: Claude Opus 5
-      usedBy: Lê Phạm Tiến Long
-      task: Drafting the report, the slides and this page from the finished runs
-      promptSummary: "Asked to write the three report parts, the slide deck and this page from the committed runs and evaluation reports, following the structure the handbook requires."
-      promptLog: null
-      aiContribution: "Drafted the three report parts, the deck and this page, computed the aggregates across seeds from the run directories, and identified the mechanism behind the Dice ablation result by correlating each class's batch-absence rate with the damage the loss did to it."
-      studentVerification: "Checked every figure in the drafted text against the evaluation report it comes from, recomputed the per-class standard deviations rather than accepting the two that had been written from memory, and confirmed both documents compile with no unresolved cross-reference and every table and figure referenced in the text."
-      affectedSections:
-        - report/
-        - presentation/
-        - Results
-        - Comparison and discussion
-        - Error analysis
-      responsibleMember: Lê Phạm Tiến Long
-    - tool: Claude Opus 5
-      usedBy: Lê Phạm Tiến Long
-      task: Rewriting the assignment page in academic English
-      promptSummary: "Asked to express the methodology and experimental setup in concise academic English, following the structure the handbook requires."
-      promptLog: null
-      aiContribution: "Drafted the Methodology and Experimental setup sections from EXPERIMENTS.md, the committed configurations and the implemented code, and flagged where a claim needed a number rather than an adjective."
-      studentVerification: "Checked every figure in the drafted text against its source, the parameter counts against the models themselves, and the protocol values against configs/base.yaml; confirmed the page builds with no unresolved cross-references and that every table and figure is referenced in the text."
-      affectedSections:
-        - Methodology
-        - Experimental setup
-      responsibleMember: Lê Phạm Tiến Long
+      sourcesUsed: "The official Cityscapes toolkit labels.py; the committed split file; the dataset on disk"
+
 ---
 
 ## Problem statement
@@ -191,7 +149,13 @@ The class distribution decides which metric is meaningful. Road, building and ve
 Pixel share and frequency per class. The upper axis is logarithmic because the classes span almost three orders of magnitude.
 :::
 
-Scarcity takes two forms that fail for different reasons. Poles occupy $1.17\%$ of pixels yet appear in $99\%$ of images and traffic signs $0.56\%$ in $94\%$: thin structures lost to boundary imprecision, not to a shortage of examples. Trains occupy $0.21\%$ in $4\%$ of images and buses $0.22\%$ in $9\%$, yet cover $0.91\%$ and $0.66\%$ of a frame when visible: large but rarely seen. A per-class table is reported alongside the mean, which alone cannot distinguish the two.
+Scarcity takes two forms, and they fail for different reasons.
+
+The first is thin structures. Poles account for $1.17\%$ of evaluated pixels but appear in $99\%$ of images, and traffic signs for $0.56\%$ of pixels in $94\%$ of images. Examples are therefore abundant; what is scarce is pixel coverage, so the errors these classes produce are boundary errors rather than the result of too few training instances.
+
+The second is large objects that are seldom photographed. Trains occupy $0.21\%$ of pixels in $4\%$ of images, and buses $0.22\%$ in $9\%$. When one is present, however, it covers $0.91\%$ and $0.66\%$ of the frame, three to four times its average share.
+
+A single frequency count conflates the two, so a per-class table is reported alongside the mean.
 
 Training on random crops sharpens the second form. A $512 \times 512$ window covers an eighth of the frame, so trains fall to $2\%$ of crops and buses to $4\%$. Sky is the clearest case, present in $90\%$ of images but $25\%$ of crops, because it occupies a band at the top. Cropping reshapes the class prior spatially, not only by area.
 
@@ -318,11 +282,13 @@ Per-class IoU on the test split, classes ordered from hardest to easiest.
 
 This partly refutes the pre-registered hypothesis, which predicted the gap would be widest on *thin* classes. It is right for traffic sign and traffic light, second and third largest, but the single widest gap is truck, a rare-but-large class, and pole, the thin class named explicitly, sits mid-table at $0.128$. The correct statement is narrower: freezing costs most on classes that are rare in the training distribution, whether rare because thin in area or because seldom photographed.
 
-**Pretraining is not uniformly better, which the aggregate hides.** The from-scratch U-Net beats the pretrained DeepLabV3, with non-overlapping intervals, on three classes: pole ($0.4126$ against $0.3277$), sky ($0.9332$ against $0.9211$) and vegetation ($0.8823$ against $0.8740$). Pole is the interesting one, a $26\%$ relative margin for the weaker model. The cause is architectural rather than about features: DeepLabV3 never resolves below a stride of $8$ and returns its logits to full resolution by one bilinear interpolation, which cannot reconstruct a structure a few pixels wide, whereas the U-Net's skip connections carry full-resolution detail into the decoder. The from-scratch baseline is better at localisation and far worse at recognition, and mIoU averages the two into a number that reflects only the second.
+**Pretraining is not uniformly better, which the aggregate hides.** The from-scratch U-Net beats the pretrained DeepLabV3, with non-overlapping intervals, on three classes: pole ($0.4126$ against $0.3277$), sky ($0.9332$ against $0.9211$) and vegetation ($0.8823$ against $0.8740$). Pole is the interesting one, a $26\%$ relative margin for the weaker model. The cause is architectural rather than a matter of features. DeepLabV3 never resolves below a stride of $8$, and returns its logits to full resolution by a single bilinear interpolation, which cannot reconstruct a structure a few pixels wide. The U-Net's skip connections instead carry full-resolution detail into the decoder, which is what a pole needs.
+
+The from-scratch baseline is therefore stronger at localisation and considerably weaker at semantic recognition. Intersection over union measures both, since a misplaced boundary and a misnamed region both enter as false positives and false negatives. What the aggregate hides is not localisation but the balance between the two: the recognition deficit applies to most of the nineteen classes, while the localisation advantage appears in three, so the mean is dominated by the former.
 
 **Compute cost.** The best accuracy-per-cost model is also the most accurate of the three-seed arms. The U-Net is dominated on every axis at once: $30\%$ *fewer* parameters than DeepLabV3 yet $1.9\times$ the seconds per epoch, $1.5\times$ the latency at batch 1, $2.7\times$ at batch 8, $1.9\times$ the peak memory, and $0.130$ lower mIoU. Parameter count is not a proxy for cost here, because the U-Net's convolutions run at full resolution and its decoder holds every encoder map alive for the skip connections. The frozen arm is the one genuine trade: $0.84$ hours against $1.52$, a $45\%$ saving, for $0.118$ mIoU. That is smaller than "freezing the backbone" suggests, since $73\%$ of parameters remain trainable, and it is a saving in *training* only, as inference runs the same forward pass either way ($14.7$ against $15.2$ ms).
 
-**Scaling the backbone works, and is expensive.** ResNet50 reaches $0.6665$ validation and $0.7076$ test mIoU. At one seed this supports no claim of superiority, and it is reported as indicative; what can be said is that the $0.0529$ validation margin is ten times the seed-to-seed standard deviation measured for the same architecture under the same protocol, so it is unlikely to be seed noise alone. The cost is $5.3\times$ the seconds per epoch, $4.8\times$ the single-image latency and $3.6\times$ the parameters for roughly a $9\%$ relative gain. One ResNet50 run costs more than the nine MobileNetV3 runs combined.
+**Scaling the backbone works, and is expensive.** ResNet50 reaches $0.6665$ validation and $0.7076$ test mIoU. At one seed this supports no claim of superiority under the decision rule, and it is reported as indicative. The margin is nonetheless large relative to the noise: $0.0529$ on validation, against a seed-to-seed standard deviation of $0.0051$ measured for the same architecture under the same protocol. A tenfold ratio makes seed noise an implausible sole explanation. The cost is $5.3\times$ the seconds per epoch, $4.8\times$ the single-image latency and $3.6\times$ the parameters for roughly a $9\%$ relative gain. One ResNet50 run costs more than the nine MobileNetV3 runs combined.
 
 **What does not follow.** The U-Net's $0.4836$ is a floor, so "pretraining beats from-scratch by $0.130$" is an upper bound on that margin rather than an estimate of it. The model comparison's arms differ in architecture as well as in pretraining, and no run here separates a DeepLabV3 trained from scratch from a pretrained one. And every number is a score at an untuned configuration under one shared protocol, so none is the best the corresponding method could reach.
 
@@ -366,7 +332,7 @@ DeepLabV3 mislabels $15.37$M of the $229.2$M labelled test pixels, an error rate
 Each cell is the share of that model's own error pixels.
 :::
 
-**The structure of the errors is a property of the task, not of the model.** The five configurations differ by more than a factor of two in error rate, from $4.9\%$ to $10.4\%$, yet their error *composition* is nearly identical: thin structures take between $19$ and $25\%$ for all five, upright surfaces between $23$ and $27\%$, ground surfaces between $15$ and $20\%$. Improving the model lowers the total and leaves the proportions where they were. There is one exception, the fourth group below.
+**The structure of the errors is a property of the task, not of the model.** The five configurations differ by more than a factor of two in error rate, from $4.9\%$ to $10.4\%$. Their error *composition*, however, is nearly identical. Thin structures account for between $19$ and $25\%$ of the errors for all five, upright surfaces between $23$ and $27\%$, and ground surfaces between $15$ and $20\%$. Improving the model lowers the total and leaves the proportions where they were. There is one exception, the fourth group below.
 
 **Thin structures, $24.7\%$.** Any error with a pole, traffic light or traffic sign on either side. The largest single flows in the whole matrix sit here: pole predicted as building, $0.91$M pixels or $5.9\%$ of all errors, and pole as vegetation, $0.56$M or $3.6\%$. Pole is the hardest class of the nineteen at $0.3230$ IoU *despite appearing in $99\%$ of images*, so this is not data scarcity but a resolution failure: a stride-8 feature map upsampled bilinearly cannot represent a structure a few pixels wide. The evidence that this is architectural is that the from-scratch U-Net, with full-resolution skip connections, scores $0.4361$ on pole against DeepLabV3's $0.3230$ while losing on almost everything else.
 
@@ -378,7 +344,7 @@ Each cell is the share of that model's own error pixels.
 
 **Participant versus background, $17.5\%$, and other, $12.7\%$.** The first is a person or vehicle confused with scenery, led by person predicted as building, $0.22$M, and road as car, $0.21$M, which are object boundaries and shadow regions. The remainder is thinly spread and dominated by vegetation against terrain, $0.25$M, and building against sky, $0.22$M, again boundary pairs.
 
-**What would improve it.** Five of the six groups are dominated by boundary pixels, which points at resolution rather than at the objective or the data. In descending order of expected return: evaluating and training at the native $1024 \times 2048$ would halve the boundary length measured in pixels, and the resize to $512 \times 1024$ was a choice made for compute, not accuracy; an architecture keeping a full-resolution path, which the U-Net's advantage on pole suggests concretely, would address the largest group; and only the traffic-participant group, the smallest, would benefit from more or better data. What is *not* indicated is a reweighted loss, which the ablation measures directly.
+**What would improve it.** Five of the six groups are dominated by boundary pixels, which points at resolution rather than at the objective or the data. Three ideas follow, in descending order of expected return. Evaluating and training at the native $1024 \times 2048$ would halve the boundary length measured in pixels, and the resize to $512 \times 1024$ was a choice made for compute rather than for accuracy. An architecture that keeps a full-resolution path would address the thin-structure group, which is the largest; the U-Net's advantage on pole is concrete evidence that this helps. Only the traffic-participant group, the smallest of the six, would benefit from more or better data instead. What is *not* indicated is a reweighted loss, which the ablation measures directly.
 
 ## Ablation study
 
@@ -406,13 +372,13 @@ The cause lies in how the two objectives treat a class with no positive pixels i
 
 This also explains the training behaviour. The Dice arm peaked at epoch 4 on all three seeds and early stopping ended it at epoch 12, with a training-to-validation gap of $-0.002$. It is not overfitting and not underfitting in the usual sense: the objective reaches a state where the suppression terms balance the overlap terms and stops producing useful gradient. It is also the only arm more expensive per epoch than its cross-entropy counterpart, $150.5$ against $140.4$ seconds, and is cheapest overall only because it quits early.
 
-**What this does and does not establish.** It establishes that an unweighted multi-class soft Dice with $\varepsilon = 1$, computed per batch at batch size 8, is the wrong objective for this class distribution, and identifies the reason precisely enough to act on. It does not establish that class-balanced objectives are useless here: accumulating Dice over an epoch rather than a batch, masking absent classes out of the mean, or a class-weighted cross-entropy that adds no suppression term all avoid the specific mechanism measured above, and none of them was run.
+**What this does and does not establish.** It establishes that an unweighted multi-class soft Dice with $\varepsilon = 1$, computed per batch at batch size 8, is the wrong objective for this class distribution, and identifies the reason precisely enough to act on. It does not establish that class-balanced objectives are useless here. Three variants avoid the specific mechanism measured above: accumulating Dice over an epoch rather than a batch, masking absent classes out of the mean, and a class-weighted cross-entropy, which adds no suppression term at all. None of the three was run.
 
 ## Limitations and conclusion
 
 Six limits bound these results. **The U-Net is undertrained**, with validation mIoU still rising at epoch 40 on all three seeds, so $0.4836$ is a floor and the margin over it an upper bound. **The model comparison confounds two factors**, since its arms differ in architecture as well as in pretraining. **The backbone extension is one seed** and supports no claim of superiority. **Three seeds estimate a standard deviation from three observations**, so "indistinguishable" means not separated at this sample size, not equal. **The data is narrow**: daylight, fair weather, European cities, one camera, and the images were resized to a quarter of their pixels for compute, itself a ceiling on the thin classes that dominate the error analysis. **And reproducibility has a hardware limit**: MPS provides no deterministic kernel for the interpolation DeepLabV3 uses, so rerunning a DeepLabV3 seed will not reproduce its number exactly, and the reported spread includes that nondeterminism.
 
-The research question was how much of the gap between a from-scratch model and a pretrained one comes from pretrained features rather than from architecture, loss or capacity. The evidence gives a sharp answer and an unexpected qualification. Fully fine-tuned pretrained features are worth $0.1301$ validation mIoU over the from-scratch baseline, $0.1175$ over the same weights with the backbone frozen, and $0.1178$ over the same model trained with a class-balanced objective; and those three alternatives are mutually indistinguishable, within $0.0126$ of one another. One factor accounts for essentially the whole spread. The qualification is that the advantage is not uniform: the from-scratch U-Net is better, with separated intervals, on pole, sky and vegetation, because a full-resolution decoder localises thin structures that a stride-8 backbone cannot, and five of the six error groups are dominated by boundary pixels. **Pretraining supplies recognition rather than resolution.**
+The research question was how much of the gap between a from-scratch model and a pretrained one comes from pretrained features rather than from architecture, loss or capacity. The evidence gives a sharp answer and an unexpected qualification. Fully fine-tuned pretrained features are worth $0.1301$ validation mIoU over the from-scratch baseline, $0.1175$ over the same weights with the backbone frozen, and $0.1178$ over the same model trained with a class-balanced objective; and those three alternatives are mutually indistinguishable, within $0.0126$ of one another. One factor accounts for essentially the whole spread. The qualification is that the advantage is not uniform. The from-scratch U-Net is better, with separated intervals, on pole, sky and vegetation, because a full-resolution decoder localises thin structures that a stride-8 backbone cannot. Five of the six error groups are dominated by boundary pixels, which is where that advantage lies. **Pretraining supplies recognition rather than resolution.**
 
 DeepLabV3-MobileNetV3, fully fine-tuned, is carried forward at **0.6180 ± 0.0049** test mIoU and $0.7441 \pm 0.0048$ test Dice, at $140$ seconds per epoch and $15.2$ ms per image.
 

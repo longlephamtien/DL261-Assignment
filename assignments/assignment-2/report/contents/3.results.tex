@@ -267,10 +267,15 @@ $0.8740$). Pole is the interesting one, a $26\%$ relative margin for the weaker 
 is architectural rather than about features. DeepLabV3 never resolves below a stride of $8$ and
 returns its logits to full resolution by one bilinear interpolation, which cannot reconstruct a
 structure a few pixels wide; the U-Net's skip connections carry full-resolution detail into the
-decoder, which is exactly what a pole needs. The from-scratch baseline is better at localisation
-and far worse at recognition, and mIoU averages the two into a single number that shows only the
-second. The per-class table therefore admits no unqualified claim that the pretrained model is
-the better one.
+decoder, which is exactly what a pole needs.
+
+The from-scratch baseline is therefore stronger at localisation and considerably weaker at
+semantic recognition. Intersection over union measures both, since a misplaced boundary and a
+misnamed region both enter as false positives and false negatives. What the aggregate hides is
+not localisation but the balance between the two: the recognition deficit applies to most of the
+nineteen classes while the localisation advantage appears in three, so the mean is dominated by
+the former. The per-class table therefore admits no unqualified claim that the pretrained model
+is the better one.
 
 \textbf{Compute cost.} Table~\ref{tab:results} makes the cost comparison unusually clean, because
 the best accuracy-per-cost model is also the most accurate of the three-seed arms. The U-Net is
@@ -287,10 +292,9 @@ forward pass runs either way.
 
 \textbf{Scaling the backbone works, and is expensive.} ResNet50 reaches $0.6665$ validation and
 $0.7076$ test mIoU, against MobileNetV3's $0.6136$ and $0.6180$. At one seed this supports no
-claim of superiority under the decision rule, and it is reported as indicative. What can be said
-is weaker but not empty: the margin, $0.0529$ on validation, is ten times the seed-to-seed
-standard deviation measured for the same architecture at the same protocol, so it is unlikely to
-be seed noise alone. The cost is substantial: $5.3$ times the seconds per epoch, $4.8$ times the
+claim of superiority under the decision rule, and it is reported as indicative.The margin is nonetheless large relative to the noise: $0.0529$ on validation, against a
+seed-to-seed standard deviation of $0.0051$ measured for the same architecture under the same
+protocol. A tenfold ratio makes seed noise an implausible sole explanation. The cost is substantial: $5.3$ times the seconds per epoch, $4.8$ times the
 single-image latency, $9.4$ times at batch 8, and $3.6$ times the parameters, for roughly a
 $9\%$ relative gain in test mIoU. On this hardware a single ResNet50 run costs more than the nine
 MobileNetV3 runs of the other three experiments combined.
@@ -339,10 +343,10 @@ Other                      & $12.7\%$ & $13.3\%$ & $13.1\%$ & $12.7\%$ & $12.4\%
 \end{table}
 
 \textbf{The structure of the errors is a property of the task, not of the model.} The five
-configurations differ
-by more than a factor of two in error rate, from $4.9\%$ to $10.4\%$, yet their error
-\emph{composition} is nearly identical: thin structures take between $19$ and $25\%$ for all
-five, upright surfaces between $23$ and $27\%$, ground surfaces between $15$ and $20\%$. Improving the model lowers the total and
+configurations differ by more than a factor of two in error rate, from $4.9\%$ to $10.4\%$.
+Their error \emph{composition}, however, is nearly identical. Thin structures account for
+between $19$ and $25\%$ of the errors for all five, upright surfaces between $23$ and $27\%$,
+and ground surfaces between $15$ and $20\%$. Improving the model lowers the total and
 leaves the proportions where they were. There is one exception, treated below.
 
 \textbf{Thin structures, $24.7\%$.} Any error where a pole, traffic light or traffic sign is on
@@ -465,10 +469,10 @@ per-class sums; it is cheapest overall only because it quits early.
 \textbf{What this does and does not establish.} It establishes that an unweighted multi-class
 soft Dice with $\varepsilon = 1$, computed per batch at batch size 8, is the wrong objective for
 this class distribution, and it identifies the reason precisely enough to act on. It does not
-establish that class-balanced objectives are useless here: the natural follow-ups, accumulating
-Dice over an epoch rather than a batch, masking absent classes out of the mean, or a
-class-weighted cross-entropy that adds no suppression term, all avoid the specific mechanism
-measured above and none of them was run. The ablation revises the direction of
+establish that class-balanced objectives are useless here. Three variants avoid the specific
+mechanism measured above: accumulating Dice over an epoch rather than a batch, masking absent
+classes out of the mean, and a class-weighted cross-entropy, which adds no suppression term at
+all. None of the three was run. The ablation revises the direction of
 Section~\ref{subsec:results-5}'s recommendations rather than supporting them: the remedy for
 rare classes is not to reweight the loss as implemented here.
 

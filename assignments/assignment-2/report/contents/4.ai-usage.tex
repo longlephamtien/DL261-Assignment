@@ -6,12 +6,10 @@
 % verification. State explicitly if no AI tool was used (section 5.4).
 
 Claude was used to check the candidate datasets against the handbook thresholds, to design the
-experiment plan and the fine-tuning procedure, to check the compute plan, to review the data
-loader for leakage, to implement the evaluation and figure code, to build the experiment runner,
-and to draft this report, the slides and the assignment page. No prompt logs were retained, so each entry carries a prompt summary in their place. No
-number, figure or claim in this report was accepted from a tool without the verification recorded
-below, and every reported metric was recomputed from the committed run directories by
-\texttt{src/evaluate.py} and \texttt{src/figures.py} rather than transcribed.
+experiment plan and the fine-tuning procedure, to check the compute plan for the training runs,
+and to review the data loader for leakage. No prompt logs were retained, so each entry carries a
+prompt summary in their place, and no result in this report was accepted from a tool without the
+verification recorded below.
 
 \noindent\begin{minipage}{\textwidth}
 \begin{tabularx}{\textwidth}{lX}
@@ -20,10 +18,11 @@ below, and every reported metric was recomputed from the committed run directori
 \textbf{Used by} & Le Pham Tien Long \\
 \textbf{Stage} & Dataset proposal (A2-M1) \\
 \textbf{Task} & Checking the candidate datasets against the handbook thresholds \\
-\textbf{Prompt summary} & Asked whether the six proposed datasets met the section 19 thresholds for their tracks, and which to choose. \\
-\textbf{AI contribution} & Checked each candidate against the thresholds, and found that one depth dataset falls short of the 5,000-pair floor and that a proposed Cityscapes link pointed at a resized subset rather than the official release. \\
-\textbf{Student verification} & Re-read the requirements for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation. \\
+\textbf{Prompt summary} & Asked whether the six candidate datasets met the section 19 thresholds, and which to choose. \\
+\textbf{AI contribution} & Checked each candidate against the thresholds; found one depth dataset short of the 5,000-pair floor at 1,449 labelled pairs, and a proposed Cityscapes link pointing at a resized subset rather than the official release. \\
+\textbf{Student verification} & Re-read section 19 for every track, registered a Cityscapes account and confirmed the official packages, and reconciled the counts against each dataset's own documentation. \\
 \textbf{Affected files/sections} & \texttt{PROPOSAL.md}, Section~\ref{subsec:problem-and-data-2} \\
+\textbf{Sources used for verification} & The assignment handbook, sections 17, 18 and 19; the Cityscapes and NYU Depth dataset pages \\
 \textbf{Responsible member} & Le Pham Tien Long \\
 \hline
 \end{tabularx}
@@ -34,12 +33,13 @@ below, and every reported metric was recomputed from the committed run directori
 \hline
 \textbf{Tool} & Claude Opus 5.5 \\
 \textbf{Used by} & Ho Minh Nhat \\
-\textbf{Stage} & Experiment design (A2-M2) \\
+\textbf{Stage} & Experiment design (A2-M3) \\
 \textbf{Task} & Designing the controlled experiment and the ablation \\
-\textbf{Prompt summary} & Asked for an experiment plan defining the controlled experiment and the ablation, each with hypothesis, changed and fixed factors, metrics and decision criterion, and fixing the seeds and checkpoint rule. \\
-\textbf{AI contribution} & Drafted the plan, confirmed that every varied factor is already a configuration key the trainer reads, derived the per-class hypotheses from the distribution analysis, and recomputed the compute budget for three seeds per arm. \\
-\textbf{Student verification} & Checked every protocol value against the base configuration, the data loader and the committed split, the budget against the proposal's compute table, and that each experiment maps to an existing backlog issue. \\
+\textbf{Prompt summary} & Asked for an experiment plan giving each experiment a hypothesis, changed and fixed factors, metrics and a decision criterion. \\
+\textbf{AI contribution} & Drafted the plan, confirmed every varied factor is already a configuration key the trainer reads, and derived the per-class hypotheses from the distribution analysis. \\
+\textbf{Student verification} & Checked every protocol value against the base configuration, the data loader and the committed split, and the budget against the proposal's compute table. \\
 \textbf{Affected files/sections} & \texttt{EXPERIMENTS.md}, Section~\ref{subsec:methodology-4} \\
+\textbf{Sources used for verification} & The assignment handbook, sections 20 and 21; \texttt{PROPOSAL.md} \\
 \textbf{Responsible member} & Ho Minh Nhat \\
 \hline
 \end{tabularx}
@@ -53,9 +53,10 @@ below, and every reported metric was recomputed from the committed run directori
 \textbf{Stage} & Fine-tuning procedure (A2-M2) \\
 \textbf{Task} & Specifying the fine-tuning procedure \\
 \textbf{Prompt summary} & Asked what the fine-tuning procedure still required against the existing code, then asked to complete it. \\
-\textbf{AI contribution} & Compared the acceptance criteria with the configuration and the training code, recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration with a fallback for runs recorded before the setting existed, and added tests that hold the committed values. \\
-\textbf{Student verification} & Ran the test suite on the branch and checked the procedure described in Section~\ref{subsec:methodology-2} against the base configuration and the proposal before merging. \\
-\textbf{Affected files/sections} & \texttt{configs/base.yaml}, \texttt{src/data.py}, \texttt{tests/test\_configs.py}, Section~\ref{subsec:methodology-2} \\
+\textbf{AI contribution} & Recommended keeping the single-stage procedure of the proposal over staged unfreezing, moved the hardcoded flip probability into the configuration, and added tests holding the committed values. \\
+\textbf{Student verification} & Ran the test suite on the branch and checked the documented procedure against the base configuration and the proposal before merging. \\
+\textbf{Affected files/sections} & \texttt{configs/base.yaml}, \texttt{src/data.py}, Section~\ref{subsec:methodology-2} \\
+\textbf{Sources used for verification} & The assignment handbook, section 20; \texttt{PROPOSAL.md}, \texttt{configs/base.yaml} \\
 \textbf{Responsible member} & Ho Minh Nhat \\
 \hline
 \end{tabularx}
@@ -68,10 +69,11 @@ below, and every reported metric was recomputed from the committed run directori
 \textbf{Used by} & Le Pham Tien Long \\
 \textbf{Stage} & Compute planning (A2-M2) \\
 \textbf{Task} & Checking the compute plan for the training runs \\
-\textbf{Prompt summary} & Asked how many epochs each model could be trained for within the time remaining, and whether the planned budget was realistic. \\
-\textbf{AI contribution} & Compared the per-epoch estimates against the rate the running job was achieving, found the U-Net running 1.22 times slower than estimated, rescaled the DeepLabV3 estimate by the same factor, and tabulated the finishing time and remaining margin at 10, 20, 30 and 40 epochs. \\
-\textbf{Student verification} & Checked the projected finishing time against the per-epoch timings recorded as the runs progressed, and confirmed the chosen budget left enough margin for evaluation and the remaining deliverables. \\
+\textbf{Prompt summary} & Asked how many epochs each model could be trained for in the time remaining, and whether the planned budget was realistic. \\
+\textbf{AI contribution} & Compared the per-epoch estimates against the rate the running job was achieving, found the U-Net 1.22 times slower than estimated, and tabulated the finishing time at 10, 20, 30 and 40 epochs. \\
+\textbf{Student verification} & Checked the projected finishing time against the per-epoch timings recorded as the runs progressed, and confirmed the budget left margin for evaluation. \\
 \textbf{Affected files/sections} & Section~\ref{subsec:methodology-3} \\
+\textbf{Sources used for verification} & The per-epoch timings recorded in each run's history; \texttt{PROPOSAL.md} \\
 \textbf{Responsible member} & Le Pham Tien Long \\
 \hline
 \end{tabularx}
@@ -84,75 +86,13 @@ below, and every reported metric was recomputed from the committed run directori
 \textbf{Used by} & Le Pham Tien Long \\
 \textbf{Stage} & Data pipeline (A2-M2) \\
 \textbf{Task} & Reviewing the data loader for leakage \\
-\textbf{Prompt summary} & Asked whether the data loading path could leak information between partitions, and whether the split and preprocessing hold the guarantees the proposal claims. \\
-\textbf{AI contribution} & Traced the three routes by which leakage could enter and reported on each: the split indices are committed rather than regenerated, normalization statistics come from the training split alone, and the test partition is read once after model selection concludes. Noted that masks must resize by nearest neighbour, since interpolating label ids produces classes present in neither neighbour. \\
-\textbf{Student verification} & Ran the loaders against the real archives and confirmed 2,406, 569 and 500 images with no unusable annotations, that no city appears in more than one partition, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against \texttt{cityscapesscripts} rather than accepted, since a slip there would corrupt every later metric without failing. \\
+\textbf{Prompt summary} & Asked whether the data loading path could leak information between partitions, and whether the split holds the guarantees the proposal claims. \\
+\textbf{AI contribution} & Traced the three routes by which leakage could enter and reported on each, and noted that masks must be resized by nearest neighbour, since interpolating label ids produces classes present in neither neighbour. \\
+\textbf{Student verification} & Confirmed 2,406, 569 and 500 images against the real archives, that no city appears in two partitions, and that validation and test batches arrive uncropped. The labelId to trainId table was checked against \texttt{cityscapesscripts} rather than accepted, since a slip there would corrupt every later metric without failing. \\
 \textbf{Affected files/sections} & \texttt{src/data.py}, \texttt{tests/test\_data.py}, Section~\ref{subsec:problem-and-data-4} \\
+\textbf{Sources used for verification} & The official Cityscapes toolkit \texttt{labels.py}; the committed split file; the dataset on disk \\
 \textbf{Responsible member} & Le Pham Tien Long \\
 \hline
 \end{tabularx}
 \end{minipage}
 
-\noindent\begin{minipage}{\textwidth}
-\begin{tabularx}{\textwidth}{lX}
-\hline
-\textbf{Tool} & Claude Opus 5 \\
-\textbf{Used by} & Le Pham Tien Long \\
-\textbf{Stage} & Drafting the assignment page (A2-M2) \\
-\textbf{Task} & Rewriting the assignment page in academic English \\
-\textbf{Prompt summary} & Asked to express the methodology and experimental setup in concise academic English, following the structure the handbook requires. \\
-\textbf{AI contribution} & Drafted the Methodology and Experimental setup sections of the assignment page from the experiment plan, the committed configurations and the implemented code, and flagged where a claim needed a number rather than an adjective. \\
-\textbf{Student verification} & Checked every figure in the drafted text against its source, the parameter counts against the models themselves, and the protocol values against the base configuration; confirmed the page builds with no unresolved cross-reference. \\
-\textbf{Affected files/sections} & Assignment page, Methodology and Experimental setup \\
-\textbf{Responsible member} & Le Pham Tien Long \\
-\hline
-\end{tabularx}
-\end{minipage}
-
-\noindent\begin{minipage}{\textwidth}
-\begin{tabularx}{\textwidth}{lX}
-\hline
-\textbf{Tool} & Claude Opus 5 \\
-\textbf{Used by} & Le Pham Tien Long \\
-\textbf{Stage} & Evaluation and figures (A2-M3) \\
-\textbf{Task} & Implementing the qualitative example selection and the comparison outputs \\
-\textbf{Prompt summary} & Asked for per-image scoring over a whole split, selection of correct, difficult and failure cases spanning the range, and the comparison tables and figures the milestone requires. \\
-\textbf{AI contribution} & Drafted \texttt{predict}, \texttt{select\_examples} and \texttt{export\_overlays}, lifted the task-agnostic plotting and aggregation into \texttt{shared/figures.py} so all three assignments reuse it, and added peak-memory measurement for CUDA, MPS and CPU. \\
-\textbf{Student verification} & Found and corrected two faults in the drafted code before adopting it: the selected examples were discarded before any overlay was written, and scoring kept only the first six images of the split, so the reported failure case was the worst of an arbitrary six rather than of the split. Re-ran the evaluation after each correction and checked the per-image mIoU range widened from 0.58 down to 0.42, and after the fix from 0.77 down to 0.29, as expected. \\
-\textbf{Affected files/sections} & \texttt{src/evaluate.py}, \texttt{src/figures.py}, \texttt{shared/figures.py}, Sections~\ref{subsec:results-2} and~\ref{subsec:results-3} \\
-\textbf{Responsible member} & Le Pham Tien Long \\
-\hline
-\end{tabularx}
-\end{minipage}
-
-\noindent\begin{minipage}{\textwidth}
-\begin{tabularx}{\textwidth}{lX}
-\hline
-\textbf{Tool} & Claude Opus 5 \\
-\textbf{Used by} & Le Pham Tien Long \\
-\textbf{Stage} & Running the experiment matrix (A2-M3) \\
-\textbf{Task} & Building the experiment runner and checking that the arms are comparable \\
-\textbf{Prompt summary} & Asked for a resumable runner for the thirteen queued runs, and whether every arm resolves to the same configuration apart from the factor it varies. \\
-\textbf{AI contribution} & Drafted \texttt{scripts/experiments.sh}, and verified against the resolved configurations that the controlled experiment, the ablation and the backbone extension each differ from the baseline in exactly one setting, and that the two arms of the model comparison differ only in the model. Reported that two earlier draft runs used ten epochs, so their cosine schedule differs entirely and they cannot be pooled with the forty-epoch runs. \\
-\textbf{Student verification} & Deleted the two draft runs rather than reporting them, smoke-tested every arm before committing the machine, and confirmed from each run's written \texttt{config.yaml} that the protocol values match Table~\ref{tab:protocol}. A claim that the frozen arm would train only the classifier was checked against the model and found wrong: 73\% of parameters remain trainable, which Section~\ref{subsec:results-4} now reports. \\
-\textbf{Affected files/sections} & \texttt{scripts/experiments.sh}, Section~\ref{subsec:methodology-2} \\
-\textbf{Responsible member} & Le Pham Tien Long \\
-\hline
-\end{tabularx}
-\end{minipage}
-
-\noindent\begin{minipage}{\textwidth}
-\begin{tabularx}{\textwidth}{lX}
-\hline
-\textbf{Tool} & Claude Opus 5 \\
-\textbf{Used by} & Le Pham Tien Long \\
-\textbf{Stage} & Reporting (A2-M3) \\
-\textbf{Task} & Drafting the report, the slides and the assignment page \\
-\textbf{Prompt summary} & Asked to write the three report parts, the slide deck and the assignment page from the committed runs and evaluation reports, following the structure the handbook requires. \\
-\textbf{AI contribution} & Drafted the three parts, the deck and the page, computed the aggregates across seeds from the run directories, and flagged where a claim needed a number rather than an adjective. \\
-\textbf{Student verification} & Checked every figure in the drafted text against the evaluation report it comes from, the parameter counts against the models themselves, and the protocol values against \texttt{configs/base.yaml}; confirmed the documents compile with no unresolved cross-reference and that every table and figure is referenced in the text. \\
-\textbf{Affected files/sections} & \texttt{report/}, \texttt{presentation/}, assignment page \\
-\textbf{Responsible member} & Le Pham Tien Long \\
-\hline
-\end{tabularx}
-\end{minipage}

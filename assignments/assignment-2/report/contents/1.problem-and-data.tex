@@ -137,12 +137,16 @@ fence      &  0.92\% & 43\% &  0.81\% & 19\% &               &        &      &  
 
 \textbf{Region size, and the two forms of scarcity.} Comparing the \emph{pixels} and
 \emph{images} columns of Table~\ref{tab:class-distribution} separates two failure modes that a
-single frequency count conflates. Poles occupy $1.17\%$ of pixels but appear in $99\%$ of
-images, and traffic signs $0.56\%$ in $94\%$: these classes are never scarce in examples, only
-thin, and they are lost to boundary imprecision. Trains occupy $0.21\%$ of pixels in $4\%$ of
-images and buses $0.22\%$ in $9\%$, yet their median area when present is $0.91\%$ and $0.66\%$
-of a frame, four and three times their average share: these are large objects that are rarely
-seen. A reweighted loss addresses the second form and not the first, which is what makes the loss
+single frequency count conflates.
+
+The first is thin structures. Poles account for $1.17\%$ of evaluated pixels but appear in
+$99\%$ of images, and traffic signs for $0.56\%$ of pixels in $94\%$ of images. Examples are
+therefore abundant; what is scarce is pixel coverage, so the errors these classes produce are
+boundary errors rather than the result of too few training instances.
+
+The second is large objects that are seldom photographed. Trains occupy $0.21\%$ of pixels in
+$4\%$ of images and buses $0.22\%$ in $9\%$. When one is present, however, its median area is
+$0.91\%$ and $0.66\%$ of the frame, four and three times its average share. A reweighted loss addresses the second form and not the first, which is what makes the loss
 ablation of Section~\ref{subsec:results-6} worth running.
 
 \textbf{What cropping does to the prior.} The last column of

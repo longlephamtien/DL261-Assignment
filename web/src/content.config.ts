@@ -41,6 +41,7 @@ const assignments = defineCollection({
               studentVerification: z.string(),
               affectedSections: z.array(z.string()).min(1),
               responsibleMember: z.string(),
+              sourcesUsed: z.string().nullable().default(null),
             })
           )
           .default([]),
