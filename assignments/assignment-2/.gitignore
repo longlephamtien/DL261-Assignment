@@ -6,3 +6,4 @@ results/.completed/
 *.svg
 *.pdf
 results/evaluate.log
+results/publish.log
