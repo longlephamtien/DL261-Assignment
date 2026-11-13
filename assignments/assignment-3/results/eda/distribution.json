@@ -1,0 +1,132 @@
+{
+  "objects": 50000,
+  "images": 19994,
+  "expressions": 142210,
+  "expressions_per_object": 2.8442,
+  "missing": {
+    "expression": 0,
+    "image": 0,
+    "mask": 0
+  },
+  "split": {
+    "train": {
+      "objects": 42404,
+      "images": 16994,
+      "expressions": 120624
+    },
+    "val": {
+      "objects": 3811,
+      "images": 1500,
+      "expressions": 10834
+    },
+    "testA": {
+      "objects": 1975,
+      "images": 750,
+      "expressions": 5657
+    },
+    "testB": {
+      "objects": 1810,
+      "images": 750,
+      "expressions": 5095
+    }
+  },
+  "split_image_overlap": {
+    "train|val": 0,
+    "train|testA": 0,
+    "train|testB": 0,
+    "val|testA": 0,
+    "val|testB": 0,
+    "testA|testB": 0
+  },
+  "expression_tokens": {
+    "mean": 3.5000210955629,
+    "median": 3,
+    "p90": 6,
+    "min": 1,
+    "max": 39,
+    "share_at_most_two": 0.3684972927360945,
+    "vocabulary": 10341,
+    "tokens": 497738
+  },
+  "distractors": {
+    "mean": 4.90284,
+    "median": 3,
+    "max": 22,
+    "histogram": {
+      "2": 16918,
+      "3": 8708,
+      "4": 5863,
+      "5": 3703,
+      "6": 2721,
+      "7": 1873,
+      "8": 1623,
+      "9": 1386,
+      "10": 1358,
+      "11": 1279,
+      "12": 1208,
+      "13": 921,
+      "14": 2405,
+      "15": 24,
+      "16": 5,
+      "17": 2,
+      "18": 2,
+      "22": 1
+    },
+    "sole_instance": 0.0
+  },
+  "area_share": {
+    "p10": 0.041202171178110314,
+    "p25": 0.05377622365339579,
+    "median": 0.08315626373291016,
+    "p75": 0.14120888941744728,
+    "p90": 0.23032122731264637,
+    "under_one_percent": 0.0
+  },
+  "categories": {
+    "distinct": 78,
+    "top": [
+      [
+        "person",
+        24767
+      ],
+      [
+        "elephant",
+        1070
+      ],
+      [
+        "zebra",
+        1053
+      ],
+      [
+        "chair",
+        1024
+      ],
+      [
+        "giraffe",
+        1010
+      ],
+      [
+        "bowl",
+        997
+      ],
+      [
+        "pizza",
+        836
+      ],
+      [
+        "sandwich",
+        791
+      ]
+    ]
+  },
+  "licenses": {
+    "Attribution-NonCommercial-ShareAlike License": 5669,
+    "Attribution-NonCommercial-NoDerivs License": 5388,
+    "Attribution License": 3140,
+    "Attribution-NonCommercial License": 2847,
+    "Attribution-ShareAlike License": 1899,
+    "Attribution-NoDerivs License": 965,
+    "No known copyright restrictions": 86
+  },
+  "resolutions": 1052
+}

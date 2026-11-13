@@ -1,0 +1,22 @@
+seed: 0
+
+dataset:
+  name: refcoco
+  partition: unc
+  annotations: https://web.archive.org/web/20220413011718/https://bvisionweb1.cs.unc.edu/licheng/referit/data/refcoco.zip
+  annotations_sha256: 7f924bb7ed8dc4568058e4ff626281918d56e5206f4c868c5a80f088f38c8bf0
+  images: http://images.cocodataset.org/train2014
+  root: data
+  splits: [train, val, testA, testB]
+
+input:
+  size: [320, 320]
+
+loader:
+  batch_size: 8
+  num_workers: 4
+  augment: true
+  flip_probability: 0.5
+  expressions_per_object: 1   # training subset rule; evaluation always uses every expression
+
+output_dir: results/runs

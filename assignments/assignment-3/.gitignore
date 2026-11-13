@@ -3,3 +3,4 @@ results/runs/
 results/evaluation/
 *.svg
 *.pdf
+results/download.log
