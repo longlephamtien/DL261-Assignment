@@ -14,12 +14,12 @@ Evaluation output lives outside the run directory, so each assignment passes it 
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
 
 from . import env, io as shared_io
+from .io import sha256  # noqa: F401  re-exported: callers cite hub.sha256
 
 ASSIGNMENTS = ("assignment-1", "assignment-2", "assignment-3")
 
@@ -33,15 +33,6 @@ def run_path(assignment: str, run_id: str) -> str:
     if assignment not in ASSIGNMENTS:
         raise ValueError(f"unknown assignment '{assignment}'; expected one of {', '.join(ASSIGNMENTS)}")
     return f"{assignment}/runs/{run_id}"
-
-
-def sha256(path: Path) -> str:
-    """Checksum published next to every uploaded artifact."""
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def artifacts(run_dir: Path, extras: dict[str, Path] | None = None) -> dict[str, Path]:

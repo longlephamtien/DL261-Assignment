@@ -1,0 +1,9 @@
+model:
+  name: improved-fusion
+  args:
+    modalities: [image, text]
+    fusion: cross-attention
+    backbone: mobilenet_v3_large
+    encoder: distilbert-base-uncased
+    frozen_text: false
+    heads: 8

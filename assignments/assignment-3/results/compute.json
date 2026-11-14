@@ -1,0 +1,56 @@
+{
+  "hardware": "mps: Apple M4 Pro, 14 cores, 48 GB RAM",
+  "torch": "2.14.0",
+  "input_size": [
+    320,
+    320
+  ],
+  "batch_size": 8,
+  "text_model": "distilbert-base-uncased",
+  "attention": "eager",
+  "pairs_per_epoch": 42404,
+  "epochs": 20,
+  "configurations": {
+    "image only": {
+      "parameters": 11020594,
+      "trainable": 11020594,
+      "seconds_per_step": 0.10767062499871827,
+      "ms_per_pair": 4.058261718910217,
+      "peak_memory_bytes": 2398617600,
+      "steps_per_epoch": 5300,
+      "hours_per_epoch": 0.15851508680366855,
+      "hours_per_run": 3.170301736073371
+    },
+    "text only": {
+      "parameters": 67937792,
+      "trainable": 67937792,
+      "seconds_per_step": 0.04080722399885417,
+      "ms_per_pair": 0.569699859170214,
+      "peak_memory_bytes": 2399322112,
+      "steps_per_epoch": 5300,
+      "hours_per_epoch": 0.060077301998313085,
+      "hours_per_run": 1.2015460399662616
+    },
+    "simple fusion": {
+      "parameters": 4005170,
+      "trainable": 4005170,
+      "seconds_per_step": 0.10054515625233762,
+      "ms_per_pair": 3.406466797059693,
+      "peak_memory_bytes": 2407792640,
+      "steps_per_epoch": 5300,
+      "hours_per_epoch": 0.14802481337149706,
+      "hours_per_run": 2.9604962674299413
+    },
+    "improved fusion": {
+      "parameters": 73468466,
+      "trainable": 73468466,
+      "seconds_per_step": 0.14593386449996615,
+      "ms_per_pair": 3.7832994685231824,
+      "peak_memory_bytes": 3508715520,
+      "steps_per_epoch": 5300,
+      "hours_per_epoch": 0.21484707829161684,
+      "hours_per_run": 4.296941565832337
+    }
+  },
+  "budget_hours": 26.144161275826466
+}

@@ -1,0 +1,8 @@
+model:
+  name: simple-fusion
+  args:
+    modalities: [image, text]
+    fusion: late-concat
+    backbone: mobilenet_v3_large
+    encoder: distilbert-base-uncased
+    frozen_text: true
