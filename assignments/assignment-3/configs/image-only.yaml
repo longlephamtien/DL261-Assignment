@@ -1,0 +1,6 @@
+model:
+  name: image-only
+  args:
+    modalities: [image]
+    backbone: mobilenet_v3_large
+    pretrained: true

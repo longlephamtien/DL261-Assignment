@@ -19,4 +19,26 @@ loader:
   flip_probability: 0.5
   expressions_per_object: 1   # training subset rule; evaluation always uses every expression
 
+train:
+  epochs: 20
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 0.05
+  scheduler: cosine
+  loss: combined
+  dice_weight: 1.0
+  early_stopping_patience: 5
+  checkpoint_metric: val_miou
+  checkpoint_mode: max
+
+evaluation:
+  metrics: [miou, dice]
+  precision_threshold: 0.5
+  example_predictions: 6
+  output_dir: results/evaluation
+  inference:
+    batch_sizes: [1, 8]
+    warmup_batches: 5
+    timed_batches: 20
+
 output_dir: results/runs

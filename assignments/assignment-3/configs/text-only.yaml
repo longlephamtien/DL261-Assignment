@@ -1,0 +1,6 @@
+model:
+  name: text-only
+  args:
+    modalities: [text]
+    encoder: distilbert-base-uncased
+    frozen: false

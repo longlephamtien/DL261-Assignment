@@ -27,6 +27,16 @@ def run_dir(run: str | Path) -> Path:
     return directory
 
 
+def evaluation_dir(config: dict, run_id: str, split: str) -> Path:
+    """Where one run's reports and overlays for one split are written."""
+    return resolve_path(config["evaluation"]["output_dir"]) / run_id / split
+
+
+def report_path(config: dict, run_id: str, split: str) -> Path:
+    """The evaluation report of one run on one split."""
+    return evaluation_dir(config, run_id, split) / "report.json"
+
+
 def load_config(path: Path, overrides: dict[str, str] | None = None) -> dict:
     """Merge base and model configuration, applying dotted overrides."""
     return shared_config.load_config(resolve_path(path), overrides)
