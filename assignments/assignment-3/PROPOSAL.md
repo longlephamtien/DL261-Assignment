@@ -180,34 +180,44 @@ with the concatenation of model 3, which isolates the modality from the fusion d
 
 ## Compute estimate
 
-Scaled from a measured cost of 0.25 s per step at batch 8 for DeepLabV3-MobileNetV3 on a 512
-square, Apple M4 Pro, 14 cores, 48 GB. A 320 square carries 0.39 times the pixels, giving about
-0.10 s per step for the vision branch alone. The figures below assume **0.15 s per step**, which
-leaves half as much again for the text branch and the fusion.
+Measured by [`notebooks/compute.ipynb`](notebooks/compute.ipynb) on an Apple M4 Pro, 14 cores,
+48 GB, at a 320 square and batch size 8, and written to
+[`results/compute.json`](results/compute.json). A training step is forward, loss and backward;
+inference is forward only, without autograd.
 
-| Configuration | Samples per epoch | Steps per epoch | Estimated per epoch |
-| --- | ---: | ---: | ---: |
-| All expressions, 320 square | 120,624 | 15,078 | 0.63 h |
-| One expression per object, 320 square | 42,404 | 5,301 | 0.22 h |
+| Model | Trainable | s/step | ms/pair | Peak | Hours per run |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Image only | 11,020,594 | 0.108 | 4.1 | 2.23 GB | 3.17 |
+| Text only | 67,937,792 | 0.041 | 0.6 | 2.23 GB | 1.20 |
+| Simple fusion | 4,005,170 | 0.101 | 3.4 | 2.24 GB | 2.96 |
+| Improved fusion | 73,468,466 | 0.146 | 3.8 | 3.27 GB | 4.30 |
 
-At one expression per object and 20 epochs, one run costs about 4.4 hours and the four models at
-three seeds are out of reach on one machine. The budget below therefore runs three seeds for the
-two models the decision rule must separate and one seed for the two baselines, which the rule
-already treats as indicative.
+One run is 20 epochs over 42,404 pairs, 5,300 steps per epoch under the subset rule below.
+
+Two measurements are worth stating because they are not what the parameter counts suggest.
+Simple fusion carries the fewest trainable parameters of the four, 4.0M, because its text
+encoder is frozen, yet it costs almost as much per step as the image-only baseline: a frozen
+encoder still runs its forward pass. And the improved model's 73.5M trainable parameters cost
+only 36% more per step than the 11.0M of the image-only baseline, because expressions average
+3.50 tokens and attention over so short a sequence is cheap beside the vision branch.
 
 | Runs | Seeds | Hours |
 | --- | ---: | ---: |
-| Image only | 1 | 4.4 |
-| Text only | 1 | 1.0 |
-| Simple fusion | 3 | 13.2 |
-| Improved fusion | 3 | 13.2 |
-| **Total** | | **31.8** |
+| Image only | 1 | 3.17 |
+| Text only | 1 | 1.20 |
+| Simple fusion | 3 | 8.88 |
+| Improved fusion | 3 | 12.89 |
+| **Total** | | **26.14** |
 
-These are estimates, not measurements. They will be replaced by measured per-step timings before
-the draft milestone.
+Three seeds for the two models the decision rule must separate, one for each baseline, which the
+rule already treats as indicative. The total fits the one-week draft and final windows.
 
-Storage is 184 MB of annotations unpacked, plus the 19,994 referenced images. Fetching only those
-costs roughly 3 GB against 13.5 GB for the whole COCO 2014 training archive.
+The Apple GPU backend has no scaled-dot-product kernel that supports dropout, so attention runs
+on the eager path here while CUDA would use the fused one. Timings therefore compare with each
+other but do not transfer between backends.
+
+Storage is 184 MB of annotations unpacked, plus 3.3 GB for the 19,994 referenced images against
+13.5 GB for the whole COCO 2014 training archive.
 
 ## Subset rules
 
