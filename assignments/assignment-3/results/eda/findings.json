@@ -1,0 +1,55 @@
+{
+  "pairs": 142210,
+  "objects": 50000,
+  "images": 19994,
+  "missing_modality_rate": {
+    "expression": 0.0,
+    "image": 0.0,
+    "mask": 0.0
+  },
+  "distractors_mean": 4.90284,
+  "blind_guess_ceiling": 0.3048704214004949,
+  "side_word_agreement": 0.961997376923323,
+  "names_a_side_rate": 0.62522,
+  "names_category_rate": 0.51716,
+  "spatial_expression_rate": 0.4627663314816117,
+  "tokens_mean": 3.5000210955629,
+  "vocabulary": 10341,
+  "oov": {
+    "val": {
+      "oov_tokens": 0.019304320860037215,
+      "expressions_with_oov": 0.062119254199741555
+    },
+    "testA": {
+      "oov_tokens": 0.015886115122756343,
+      "expressions_with_oov": 0.05091037652465971
+    },
+    "testB": {
+      "oov_tokens": 0.022668253624756548,
+      "expressions_with_oov": 0.07477919528949951
+    }
+  },
+  "ambiguous_expression_rate": 0.0010547781449968356,
+  "target_area_median": 0.08315615293312176,
+  "multi_polygon_rate": 0.0935,
+  "landscape_rate": 0.77366,
+  "person_share_by_split": {
+    "train": 0.49554287331383834,
+    "val": 0.5030175806874836,
+    "testA": 0.930126582278481,
+    "testB": 0.0
+  },
+  "measured_normalization": {
+    "mean": [
+      0.4660044551480654,
+      0.4213693034102146,
+      0.372219248756299
+    ],
+    "std": [
+      0.2841884365873986,
+      0.2761412767894203,
+      0.2831974518780057
+    ]
+  },
+  "annotation_error_rate_external": 0.1414805892708237
+}
