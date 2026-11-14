@@ -9,6 +9,7 @@ import argparse
 import collections
 import json
 import pickle
+import random
 import statistics as st
 import threading
 import time
@@ -16,13 +17,26 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import numpy as np
 import requests
+import torch
+from PIL import Image
+from pycocotools import mask as mask_utils
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 from shared import io as shared_io
 
-from .interfaces import SPLITS, Ref
+from .interfaces import PAD_TOKEN, SPLITS, Batch, Pair, Ref
 from .utils import load_config, resolve_path
+
+MIRRORED = {"left": "right", "right": "left", "leftmost": "rightmost", "rightmost": "leftmost"}
+"""Words a horizontal flip inverts. 46.3% of expressions contain one, so a flip that does not
+rewrite them relabels nearly half the data."""
+
+IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+"""The statistics the pretrained vision weights were fitted under."""
 
 ANNOTATION_FILES = ("instances.json", "refs(unc).p")
 """What the archive must contain."""
@@ -274,6 +288,143 @@ def _licenses(instances: dict, refs: list[Ref]) -> dict:
         i.get("license") for i in instances["images"] if i["id"] in referenced
     )
     return {names.get(key, str(key)): value for key, value in counts.most_common()}
+
+
+def build_pairs(refs: list[Ref], instances: dict, split: str, per_object: int | None = None) -> list[Pair]:
+    """Flatten refs into the prediction unit, one row per expression.
+
+    `per_object` applies the training subset rule: keep at most that many expressions of each
+    object. Evaluation passes None so no reported number depends on the rule.
+    """
+    names = {i["id"]: i["file_name"] for i in instances["images"]}
+    pairs: list[Pair] = []
+    for ref in refs:
+        if ref["split"] != split:
+            continue
+        sentences = ref["sentences"] if per_object is None else ref["sentences"][:per_object]
+        for sentence in sentences:
+            pairs.append({
+                "ref_id": ref["ref_id"],
+                "ann_id": ref["ann_id"],
+                "image_id": ref["image_id"],
+                "file_name": names[ref["image_id"]],
+                "sentence": sentence["sent"],
+                "tokens": sentence["tokens"],
+            })
+    return pairs
+
+
+def build_vocabulary(refs: list[Ref], minimum: int = 2) -> dict[str, int]:
+    """Token to id, built from the training split alone so no test word leaks into the model."""
+    counts = collections.Counter(
+        token
+        for ref in refs if ref["split"] == "train"
+        for sentence in ref["sentences"]
+        for token in sentence["tokens"]
+    )
+    vocabulary = {"<pad>": PAD_TOKEN, "<unk>": 1}
+    for token, count in counts.most_common():
+        if count >= minimum:
+            vocabulary[token] = len(vocabulary)
+    return vocabulary
+
+
+class RefCOCOPairs(Dataset):
+    """One expression, the image holding its object, and that object's mask.
+
+    The mask is rasterised from the COCO polygon on demand; `instances.json` stores no raster.
+    """
+
+    def __init__(self, pairs: list[Pair], instances: dict, images: Path,
+                 vocabulary: dict[str, int], size: tuple[int, int], augment: bool = False,
+                 flip_probability: float = 0.5) -> None:
+        self.pairs = pairs
+        self.annotations = {a["id"]: a for a in instances["annotations"]}
+        self.shapes = {i["id"]: (i["height"], i["width"]) for i in instances["images"]}
+        self.images = images
+        self.vocabulary = vocabulary
+        self.size = size
+        self.augment = augment
+        self.flip_probability = flip_probability
+
+    def __len__(self) -> int:
+        return len(self.pairs)
+
+    def encode(self, tokens: list[str]) -> list[int]:
+        """Token ids, with anything below the vocabulary threshold mapped to <unk>."""
+        return [self.vocabulary.get(token, 1) for token in tokens]
+
+    def mask(self, pair: Pair) -> np.ndarray:
+        """Rasterise the referred object's polygon at the image's own resolution."""
+        height, width = self.shapes[pair["image_id"]]
+        rles = mask_utils.frPyObjects(self.annotations[pair["ann_id"]]["segmentation"], height, width)
+        return mask_utils.decode(mask_utils.merge(rles))
+
+    def __getitem__(self, index: int) -> dict:
+        pair = self.pairs[index]
+        image = Image.open(self.images / pair["file_name"]).convert("RGB")
+        mask = Image.fromarray(self.mask(pair) * 255)
+        tokens = pair["tokens"]
+
+        image = image.resize(self.size[::-1], Image.BILINEAR)
+        # Nearest neighbour only: interpolating a binary mask invents values in neither class.
+        mask = mask.resize(self.size[::-1], Image.NEAREST)
+
+        if self.augment and random.random() < self.flip_probability:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+            tokens = [MIRRORED.get(token, token) for token in tokens]
+
+        tensor = torch.from_numpy(np.array(image)).permute(2, 0, 1).float().div_(255)
+        tensor = (tensor - IMAGENET_MEAN) / IMAGENET_STD
+        return {
+            "image": tensor,
+            "tokens": torch.tensor(self.encode(tokens), dtype=torch.long),
+            "mask": torch.from_numpy(np.array(mask) > 127).long(),
+            "ref_id": pair["ref_id"],
+        }
+
+
+def collate(samples: list[dict]) -> Batch:
+    """Pad the token sequences to the longest in the batch and mark the real positions."""
+    longest = max(len(s["tokens"]) for s in samples)
+    tokens = torch.full((len(samples), longest), PAD_TOKEN, dtype=torch.long)
+    attention = torch.zeros((len(samples), longest), dtype=torch.bool)
+    for row, sample in enumerate(samples):
+        length = len(sample["tokens"])
+        tokens[row, :length] = sample["tokens"]
+        attention[row, :length] = True
+    return {
+        "images": torch.stack([s["image"] for s in samples]),
+        "tokens": tokens,
+        "attention": attention,
+        "masks": torch.stack([s["mask"] for s in samples]),
+        "ref_ids": torch.tensor([s["ref_id"] for s in samples], dtype=torch.long),
+    }
+
+
+def build_dataloaders(config: dict) -> dict[str, DataLoader]:
+    """One loader per split, sharing the training vocabulary and the committed partition."""
+    folder = prepare_annotations(config)
+    refs, instances = load_refs(folder)
+    images = resolve_path(config["dataset"]["root"]) / "images"
+    vocabulary = build_vocabulary(refs)
+    loader = config["loader"]
+    size = tuple(config["input"]["size"])
+
+    loaders = {}
+    for split in SPLITS:
+        training = split == "train"
+        pairs = build_pairs(refs, instances, split,
+                            loader["expressions_per_object"] if training else None)
+        dataset = RefCOCOPairs(pairs, instances, images, vocabulary, size,
+                               augment=training and loader["augment"],
+                               flip_probability=loader["flip_probability"])
+        loaders[split] = DataLoader(
+            dataset, batch_size=loader["batch_size"], shuffle=training,
+            num_workers=loader["num_workers"], collate_fn=collate, drop_last=training,
+        )
+    return loaders
 
 
 def main(argv: list[str] | None = None) -> int:
