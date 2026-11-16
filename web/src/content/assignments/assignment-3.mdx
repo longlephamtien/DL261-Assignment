@@ -2,18 +2,36 @@
 number: 3
 title: Multimodal Deep Learning
 topic: "Multimodal Deep Learning: Representation, Fusion, and Evaluation."
-status: planned
+status: in-progress
 abstract: Joint modelling across modalities, evaluated so that agreement and conflict between modalities are separated.
 resources:
   - label: Source code
-    href: null
+    href: https://github.com/longlephamtien/DL261-Assignment/tree/main/assignments/assignment-3
+  - label: Dataset proposal
+    href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-3/PROPOSAL.md
   - label: Checkpoints
     href: null
-  - label: Report and slides
+  - label: Report
+    href: null
+  - label: Slides
+    href: null
+  - label: Experiment plan
     href: null
   - label: YouTube video
     href: null
-references: []
+references:
+  - id: kazemzadeh2014referitgame
+    text: "S. Kazemzadeh, V. Ordonez, M. Matten and T. L. Berg, ReferItGame: Referring to Objects in Photographs of Natural Scenes, EMNLP 2014."
+    href: https://aclanthology.org/D14-1086/
+  - id: yu2016modeling
+    text: "L. Yu, P. Poirson, S. Yang, A. C. Berg and T. L. Berg, Modeling Context in Referring Expressions, ECCV 2016."
+    href: https://arxiv.org/abs/1608.00272
+  - id: lin2014coco
+    text: "T.-Y. Lin et al., Microsoft COCO: Common Objects in Context, ECCV 2014."
+    href: https://arxiv.org/abs/1405.0312
+  - id: sanh2019distilbert
+    text: "V. Sanh, L. Debut, J. Chaumond and T. Wolf, DistilBERT, a distilled version of BERT, 2019."
+    href: https://arxiv.org/abs/1910.01108
 aiDisclosure:
   noAiUsed: false
   summary: null
@@ -22,7 +40,111 @@ aiDisclosure:
 
 ## Problem statement
 
+Referring-expression segmentation: given a photograph and a natural-language expression naming one
+object in it, predict the mask of that object alone. The prediction unit is one (image, expression)
+pair rather than one image, so a single photograph yields several independent predictions with
+different targets.
+
+What makes the task multimodal rather than segmentation with text attached is that neither modality
+settles it. Every referred object shares its category with other instances in the same frame, so a
+model that recognises categories but cannot read the expression has no basis for choosing among
+them. The expression on its own is equally insufficient, since it names a position relative to
+other objects without saying where either lies in pixels.
+
+Four models are compared under one split and one evaluation protocol: image only, text only, a
+simple late fusion, and an improved fusion in which visual positions attend over the tokens. The
+question is how much of the task each modality determines by itself, and whether the way the two
+are joined changes the answer.
+
 ## Dataset and EDA
+
+RefCOCO, UNC partition: $142{,}210$ referring expressions over $50{,}000$ annotated objects in
+$19{,}994$ MS COCO 2014 photographs. The expressions were collected in a two-player game where one
+player described an object and the other had to click it; expressions that failed were discarded,
+so what survives is language that succeeded at separating one instance from its neighbours.
+
+Every pair carries all three of its parts. Expression, image and mask are missing in $0$ of the
+$50{,}000$ objects, which removes the missing-modality case the handbook asks about: there is no
+policy to state because there is nothing to handle.
+
+The annotations carry no licence of their own, while the images are licensed individually under
+seven Creative Commons terms declared in the COCO metadata. $13{,}904$ of the $19{,}994$ images,
+$69.5\%$, carry a NonCommercial clause and $6{,}353$ carry NoDerivs or ShareAlike. Educational use
+is covered by all seven and redistribution is not, so the images are fetched from COCO on demand
+and kept out of version control, leaving only the split file and the measured statistics committed.
+
+:::figure{label="fig:a3-examples"}
+![Four photographs with a red mask marking one object in each: a flock of sheep with one at the bottom right marked, two views of a bookshelf with a clock on stacked books, and a field of cattle with one animal marked. Each is captioned with its referring expression and the number of same-category instances present](/DL261-Assignment/assignments/assignment-3/examples.png)
+
+The hardest pairs, chosen as those with the most same-category instances. The expressions that
+resolve them are positional rather than descriptive.
+:::
+
+**Neither modality is sufficient, and the data fixes by how much.** A referred object shares its
+category with $4.90$ other instances on average and never stands alone: not one of the $50{,}000$
+objects is the sole instance of its category in its frame. A model that recognises the right
+category but cannot read the expression therefore picks the intended instance $30.5\%$ of the time
+under uniform guessing, which is the ceiling the image-only baseline works against. That gap is
+what fusion has to close, and it is a property of the data rather than an assumption of the design.
+
+:::figure{label="fig:a3-distractors"}
+![Two panels. Left, a histogram of same-category instances per referred object, peaking at two and falling away to a maximum of twenty-two. Right, the chance of guessing the target against the instance count, a reciprocal curve crossing a dashed line at 30.5 percent](/DL261-Assignment/assignments/assignment-3/distractors.svg)
+
+Same-category instances per target, and what an image-only model can reach without the expression.
+:::
+
+**Expressions are short and largely spatial.** The mean is $3.50$ tokens and the median $3$;
+$36.8\%$ are at most two tokens and the longest is $39$. Over $497{,}738$ tokens the vocabulary is
+$10{,}341$ word types. $46.3\%$ of expressions contain a direction word, and the two most frequent
+words in the corpus name a side. Those words are reliable: they agree with the side the target
+actually occupies $96.2\%$ of the time.
+
+Two design consequences follow. A horizontal flip must rewrite the expression it flips, since
+leaving the text alone would mislabel nearly half the training data; the loader therefore maps left
+to right, leftmost to rightmost and back. And at this length the cost of attending over the tokens
+is small beside the vision branch, which is what makes the cross-attention model affordable.
+
+:::figure{label="fig:a3-expressions"}
+![Three panels: a histogram of expression length concentrated between one and six tokens, a bar chart of the most frequent words with left and right at the top, and the share of expressions containing a spatial word](/DL261-Assignment/assignments/assignment-3/expressions.svg)
+
+Expression length, the most frequent words, and the share that is spatial.
+:::
+
+**Targets are large and half of them are people.** The median target covers $8.3\%$ of its frame
+and none covers under $1\%$, so the small-object regime that dominates ordinary instance
+segmentation does not arise here. Across $78$ distinct categories, person accounts for $24{,}767$ of
+the $50{,}000$ objects.
+
+:::figure{label="fig:a3-targets"}
+![Two panels: a distribution of target area as a share of the frame, centred near eight percent, and a bar chart of the most frequent categories with person far ahead of elephant, zebra and chair](/DL261-Assignment/assignments/assignment-3/targets.svg)
+
+Target size and category frequency.
+:::
+
+**The split unit is the image.** Every expression and every object belonging to one photograph sits
+in one partition, so no frame is seen on both sides of a comparison. Measured rather than assumed:
+the image sets of all six partition pairs are disjoint, with zero overlap.
+
+:::table{label="tab:a3-splits"}
+| Partition | Images | Objects | Expressions |
+| :--- | ---: | ---: | ---: |
+| Train | 16,994 | 42,404 | 120,624 |
+| Validation | 1,500 | 3,811 | 10,834 |
+| testA | 750 | 1,975 | 5,657 |
+| testB | 750 | 1,810 | 5,095 |
+
+Split sizes under the UNC partition.
+:::
+
+The two test splits are opposites by construction: testA is $93.0\%$ people and testB contains none
+at all, against roughly half in train and validation. Pooling them would average over that
+difference and hide it, so they are reported separately throughout.
+
+:::figure{label="fig:a3-splits"}
+![Grouped bars comparing the four partitions by size and by the share of targets that are people, with testA at ninety-three percent and testB at zero](/DL261-Assignment/assignments/assignment-3/splits.svg)
+
+Partition sizes and the person share that separates testA from testB.
+:::
 
 ## Methodology
 
