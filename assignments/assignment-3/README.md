@@ -6,6 +6,7 @@ object in it, predict the mask of that object alone.
 | Deliverable | Link |
 | --- | --- |
 | Dataset proposal | [`PROPOSAL.md`](PROPOSAL.md) |
+| Experiment plan | [`EXPERIMENTS.md`](EXPERIMENTS.md) |
 | Assignment page | <https://longlephamtien.github.io/DL261-Assignment/assignments/assignment-3/> |
 | AI usage | [`AI_USAGE.md`](../../AI_USAGE.md) |
 
