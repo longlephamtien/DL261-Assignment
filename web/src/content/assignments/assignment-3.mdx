@@ -10,7 +10,7 @@ resources:
   - label: Dataset proposal
     href: https://github.com/longlephamtien/DL261-Assignment/blob/main/assignments/assignment-3/PROPOSAL.md
   - label: Checkpoints
-    href: null
+    href: https://huggingface.co/longlephamtien/DL261-Assignment/tree/main/assignment-3/runs
   - label: Report
     href: null
   - label: Slides
@@ -148,9 +148,48 @@ Partition sizes and the person share that separates testA from testB.
 
 ## Methodology
 
+The image encoder is the COCO-pretrained MobileNetV3-Large trunk of DeepLabV3, giving a $960$-channel
+map at stride $16$. The text encoder is `distilbert-base-uncased`, fed by its own tokenizer. Image
+and expression are paired through the referred object's `ann_id`.
+
+- **Image only:** DeepLabV3 re-headed for one foreground class.
+- **Text only:** a fine-tuned DistilBERT, mean-pooled, predicts a $32 \times 32$ mask that is
+  upsampled to the input.
+- **Simple fusion:** the pooled vector of a frozen DistilBERT is broadcast over the visual map,
+  concatenated, and decoded by a mask head.
+
+All models use cross-entropy plus Dice. The simple fusion also gives each modality its own head and
+loss (section 29.2):
+$\mathcal{L} = \mathcal{L}_\text{fused} + 0.5\,(\mathcal{L}_\text{image} + \mathcal{L}_\text{text})$.
+No pair lacks a modality, so missing-modality handling does not apply.
+
 ## Experimental setup
 
+The protocol is fixed in `configs/base.yaml`. Each epoch draws one expression per object. Training
+uses batch size $8$, AdamW at $3 \times 10^{-4}$, and a cosine schedule. A horizontal flip also swaps
+left and right in the text. Checkpoints are selected by validation mIoU. mIoU and Dice are averaged
+per pair.
+
 ## Results
+
+:::table{label="tab:a3-draft"}
+| Model | Trainable | Train s | Val mIoU | Val Dice | P@0.5 |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| Text only | 67,937,792 | 413.9 | 0.0000 | 0.0000 | 0.0000 |
+| Image only | 11,020,594 | 807.5 | 0.2175 | 0.3182 | 0.0828 |
+| **Simple fusion** | 5,582,516 | 836.9 | **0.3608** | **0.4683** | **0.3476** |
+
+Validation results after one epoch at seed 0.
+:::
+
+Simple fusion beats image only by $14.3$ points of mIoU, and P@0.5 rises from $8.3\%$ to $34.8\%$.
+The expression is what lets the model choose among same-category instances.
+
+Text only predicts an empty mask. Without pixels it learns only a spatial prior, which never puts a
+pixel above one half when the median target covers $8.3\%$ of the frame.
+
+These numbers come from one epoch and one seed, so they show direction, not size. The simple fusion
+has $5.58$M trainable parameters, not the proposal's $4.0$M, because of its per-modality heads.
 
 ## Comparison and discussion
 
