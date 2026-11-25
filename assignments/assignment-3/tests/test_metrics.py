@@ -40,6 +40,7 @@ def test_an_empty_pair_counts_as_resolved() -> None:
     metrics = PairMetrics()
     metrics.update(masks([[0, 0], [0, 0]]), masks([[0, 0], [0, 0]]))
     assert metrics.mean_iou() == 1.0
+    assert metrics.mean_dice() == 1.0
 
 
 def test_the_per_pair_mean_differs_from_the_pooled_value() -> None:
@@ -56,6 +57,9 @@ def test_the_per_pair_mean_differs_from_the_pooled_value() -> None:
     # Per pair: 1.0 and 0.0, so the mean is 0.5. Pooled: 16 shared pixels over a union of 18.
     assert metrics.mean_iou() == pytest.approx(0.5)
     assert metrics.pooled_iou() == pytest.approx(16 / 18)
+    # Dice the same way: per pair 1.0 and 0.0; pooled 2*16 over 17 target plus 17 predicted pixels.
+    assert metrics.mean_dice() == pytest.approx(0.5)
+    assert metrics.pooled_dice() == pytest.approx(32 / 34)
 
 
 def test_precision_at_counts_pairs_over_the_threshold() -> None:

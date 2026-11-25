@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from src.interfaces import NUM_CLASSES
-from src.train import CombinedLoss, DiceLoss, build_criterion, build_optimizer, run_epoch
+from src.train import CombinedLoss, DiceLoss, OverallLoss, build_criterion, build_optimizer, run_epoch
 
 
 class Stub(nn.Module):
@@ -33,10 +33,40 @@ def batches(count: int = 2, size: int = 8, length: int = 3) -> DataLoader:
     return DataLoader(samples, batch_size=None, collate_fn=lambda x: x)
 
 
-def test_a_validation_pass_reports_loss_and_both_metrics() -> None:
+def test_a_validation_pass_reports_loss_and_the_metrics() -> None:
     result = run_epoch(Stub(), batches(), CombinedLoss(), torch.device("cpu"))
-    assert set(result) == {"loss", "miou", "dice"}
+    assert set(result) == {"loss", "miou", "dice", "precision_at_50", "pooled_iou"}
     assert all(isinstance(v, float) for v in result.values())
+
+
+class Branched(Stub):
+    """A fused prediction plus one per modality, as a fusion model with branch heads returns."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.image = nn.Conv2d(3, NUM_CLASSES, 1)
+
+    def forward_branches(self, images, tokens, attention):
+        return {"main": self.head(images), "image": self.image(images), "text": self.image(images) * 0}
+
+
+def test_the_overall_loss_adds_each_branch_at_its_weight() -> None:
+    criterion = nn.CrossEntropyLoss()
+    model, batch = Branched(), next(iter(batches()))
+    outputs = model.forward_branches(batch["images"], batch["tokens"], batch["attention"])
+    parts = OverallLoss(criterion, 0.5)(outputs, batch["masks"])
+    expected = parts["main"] + 0.5 * (parts["image"] + parts["text"])
+    assert torch.allclose(parts["total"], expected)
+
+
+def test_a_branched_model_reports_every_loss_and_trains_its_branches() -> None:
+    model = Branched()
+    before = model.image.weight.detach().clone()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.1)
+    result = run_epoch(model, batches(), OverallLoss(CombinedLoss(), 0.5), torch.device("cpu"), optimizer)
+    assert {"loss", "loss_main", "loss_image", "loss_text"} <= set(result)
+    assert result["loss"] > result["loss_main"]
+    assert not torch.equal(before, model.image.weight)
 
 
 def test_a_validation_pass_leaves_the_weights_alone() -> None:

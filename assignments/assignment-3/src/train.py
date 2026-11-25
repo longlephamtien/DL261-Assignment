@@ -59,6 +59,36 @@ class CombinedLoss(nn.Module):
         return self.cross_entropy(logits, targets) + self.dice_weight * self.dice(logits, targets)
 
 
+class OverallLoss(nn.Module):
+    """The fused prediction's loss plus a weighted loss on each modality's own prediction.
+
+    Section 29.2 asks for per-modality losses beside the overall one. A model that exposes
+    `forward_branches` returns its fused logits under "main" and one entry per branch; a model
+    with no branches yields "main" alone, and the overall loss is then just its loss.
+    """
+
+    def __init__(self, criterion: nn.Module, branch_weight: float = 0.0) -> None:
+        super().__init__()
+        self.criterion = criterion
+        self.branch_weight = branch_weight
+
+    def forward(self, outputs: dict[str, Tensor], targets: Tensor) -> dict[str, Tensor]:
+        parts = {name: self.criterion(logits, targets) for name, logits in outputs.items()}
+        total = parts["main"]
+        for name, loss in parts.items():
+            if name != "main":
+                total = total + self.branch_weight * loss
+        parts["total"] = total
+        return parts
+
+
+def forward_outputs(model: nn.Module, images: Tensor, tokens: Tensor, attention: Tensor) -> dict[str, Tensor]:
+    """Every prediction a model makes for one batch, the fused one under "main"."""
+    if hasattr(model, "forward_branches"):
+        return model.forward_branches(images, tokens, attention)
+    return {"main": model(images, tokens, attention)}
+
+
 def build_criterion(config: dict) -> nn.Module:
     """Selected by `train.loss`."""
     name = config.get("train", {}).get("loss", "combined").lower()
@@ -78,15 +108,20 @@ def run_epoch(
     device: torch.device,
     optimizer: torch.optim.Optimizer | None = None,
 ) -> dict[str, float]:
-    """Mean loss, mIoU and Dice over one pass; passing an optimizer trains.
+    """Loss, per-pair mIoU and Dice, precision at 0.5 IoU and pooled IoU over one pass.
+
+    Passing an optimizer trains.
 
     One function serves both passes, so training and validation numbers cannot drift apart
-    through a change applied to only one of them.
+    through a change applied to only one of them. `loss` is the overall loss; a model with
+    per-modality branches also reports `loss_main` and one `loss_<branch>` each. The metrics
+    always score the fused prediction, the one a run is selected on.
     """
     training = optimizer is not None
     model.train(training)
+    overall = criterion if isinstance(criterion, OverallLoss) else OverallLoss(criterion)
     metrics = PairMetrics()
-    total_loss = 0.0
+    totals: dict[str, float] = {}
     pairs_seen = 0
 
     with torch.set_grad_enabled(training):
@@ -96,22 +131,28 @@ def run_epoch(
             attention = batch["attention"].to(device)
             targets = batch["masks"].to(device)
 
-            logits = model(images, tokens, attention)
-            loss = criterion(logits, targets)
+            outputs = forward_outputs(model, images, tokens, attention)
+            parts = overall(outputs, targets)
             if optimizer is not None:
                 optimizer.zero_grad()
-                loss.backward()
+                parts["total"].backward()
                 optimizer.step()
 
-            total_loss += loss.item() * images.shape[0]
+            for name, value in parts.items():
+                totals[name] = totals.get(name, 0.0) + value.item() * images.shape[0]
             pairs_seen += images.shape[0]
-            metrics.update(targets.cpu(), logits.argmax(dim=1).cpu())
+            metrics.update(targets.cpu(), outputs["main"].argmax(dim=1).cpu())
 
-    return {
-        "loss": total_loss / pairs_seen,
+    result = {"loss": totals.pop("total") / pairs_seen}
+    if len(totals) > 1:
+        result.update({f"loss_{name}": value / pairs_seen for name, value in totals.items()})
+    result.update({
         "miou": metrics.mean_iou(),
         "dice": metrics.mean_dice(),
-    }
+        "precision_at_50": metrics.precision_at(0.5),
+        "pooled_iou": metrics.pooled_iou(),   # a diagnostic only: large targets dominate it
+    })
+    return result
 
 
 def build_optimizer(config: dict, model: nn.Module) -> torch.optim.Optimizer:
@@ -151,7 +192,7 @@ def fit(config: dict) -> Path:
 
     trainer = Trainer(
         model=model,
-        criterion=build_criterion(config),
+        criterion=OverallLoss(build_criterion(config), float(settings.get("branch_weight", 0.0))),
         optimizer=optimizer,
         device=device,
         run_dir=run_dir,

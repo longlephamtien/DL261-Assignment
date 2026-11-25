@@ -110,15 +110,23 @@ class SplitFile(TypedDict):
 
 
 class EpochRecord(TypedDict):
-    """One entry of `history.json`, appended after every epoch."""
+    """One entry of `history.json`, appended after every epoch.
+
+    `*_loss` is the overall loss. A model with per-modality branches also records
+    `*_loss_main`, `*_loss_image` and `*_loss_text`; the metrics always score the fused prediction.
+    """
 
     epoch: int
     train_loss: float
     train_miou: float
     train_dice: float
+    train_precision_at_50: float
+    train_pooled_iou: float
     val_loss: float
     val_miou: float
     val_dice: float
+    val_precision_at_50: float
+    val_pooled_iou: float
     seconds: float
     learning_rate: float
 

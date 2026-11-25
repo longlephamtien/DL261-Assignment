@@ -11,6 +11,8 @@ dataset:
 
 input:
   size: [320, 320]
+  # Expressions are encoded by the text encoder's own tokenizer, so the ids index its embedding.
+  tokenizer: distilbert-base-uncased
 
 loader:
   batch_size: 8
@@ -27,6 +29,7 @@ train:
   scheduler: cosine
   loss: combined
   dice_weight: 1.0
+  branch_weight: 0.5   # per-modality losses beside the fused one; read only by models with branches
   early_stopping_patience: 5
   checkpoint_metric: val_miou
   checkpoint_mode: max
