@@ -77,7 +77,13 @@ Every model takes `(images, tokens, attention)` and returns per-pixel logits `(N
 unimodal baseline ignores the argument it does not read, so one training pass serves all four and
 the two baselines cannot drift apart from the fusion models through a change applied to only one.
 
-Tests cover the split guarantee, the subset rule, the vocabulary source and the batch contract:
+Expressions are encoded by the text encoder's own tokenizer (`input.tokenizer`), so token ids
+index the pretrained embedding. The fusion models also carry one prediction head per modality;
+each is supervised by its own loss, added to the fused loss at `train.branch_weight`, as section
+29.2 requires.
+
+Tests cover the split guarantee, the subset rule, the tokenizer, the batch contract, the metrics,
+the per-modality losses and every model's output contract:
 
 ```sh
 python -m pytest tests/ -q

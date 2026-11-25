@@ -21,6 +21,7 @@ class PairMetrics:
         self.predicted = 0
         self.target = 0
         self.scores: list[float] = []
+        self.dice_scores: list[float] = []
 
     def update(self, targets: Tensor, predictions: Tensor) -> None:
         """Accumulate one batch of (N, H, W) masks holding 0 for background and 1 for the target."""
@@ -46,6 +47,12 @@ class PairMetrics:
                              per_pair_hit.double() / per_pair_either.clamp(min=1))
         self.scores.extend(scores.tolist())
 
+        # Dice per pair as 2|A∩B| / (|A| + |B|); the denominator is empty exactly when the union is.
+        sizes = (targets == 1).sum(dim=axes) + (predictions == 1).sum(dim=axes)
+        dice = torch.where(empty, torch.ones_like(per_pair_hit, dtype=torch.float64),
+                           2 * per_pair_hit.double() / sizes.clamp(min=1))
+        self.dice_scores.extend(dice.tolist())
+
     def mean_iou(self) -> float:
         """Mean of the per-pair IoU, the metric a referring expression is judged by."""
         return sum(self.scores) / len(self.scores) if self.scores else 0.0
@@ -55,7 +62,11 @@ class PairMetrics:
         return self.intersection / self.union if self.union else 0.0
 
     def mean_dice(self) -> float:
-        """Dice over all pixels of the split."""
+        """Mean of the per-pair Dice, averaged like mIoU, as the proposal declares."""
+        return sum(self.dice_scores) / len(self.dice_scores) if self.dice_scores else 0.0
+
+    def pooled_dice(self) -> float:
+        """Dice over all pixels of the split, which large targets dominate."""
         total = self.predicted + self.target
         return 2 * self.intersection / total if total else 0.0
 

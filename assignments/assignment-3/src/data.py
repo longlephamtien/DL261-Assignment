@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import pickle
 import random
 import statistics as st
@@ -29,6 +30,9 @@ from shared import io as shared_io
 
 from .interfaces import PAD_TOKEN, SPLITS, Batch, Pair, Ref
 from .utils import load_config, resolve_path
+
+# The loader workers each call the tokenizer; its own thread pool, forked into them, deadlocks.
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 MIRRORED = {"left": "right", "right": "left", "leftmost": "rightmost", "rightmost": "leftmost"}
 """Words a horizontal flip inverts. 46.3% of expressions contain one, so a flip that does not
@@ -315,7 +319,12 @@ def build_pairs(refs: list[Ref], instances: dict, split: str, per_object: int | 
 
 
 def build_vocabulary(refs: list[Ref], minimum: int = 2) -> dict[str, int]:
-    """Token to id, built from the training split alone so no test word leaks into the model."""
+    """Token to id, built from the training split alone so no test word leaks into the model.
+
+    Kept for the EDA, which uses it to measure how much of each split a vocabulary fitted on
+    train would miss. That measurement is why the loader encodes with the pretrained tokenizer
+    instead, see `load_tokenizer`.
+    """
     counts = collections.Counter(
         token
         for ref in refs if ref["split"] == "train"
@@ -329,30 +338,55 @@ def build_vocabulary(refs: list[Ref], minimum: int = 2) -> dict[str, int]:
     return vocabulary
 
 
+def group_by_object(pairs: list[Pair]) -> list[list[Pair]]:
+    """The expressions of each referred object, in the order the objects first appear."""
+    groups: dict[int, list[Pair]] = {}
+    for pair in pairs:
+        groups.setdefault(pair["ref_id"], []).append(pair)
+    return list(groups.values())
+
+
+def load_tokenizer(name: str):
+    """The text encoder's own tokenizer: its ids are what the pretrained embedding is indexed by.
+
+    The collate function pads with PAD_TOKEN, so a tokenizer padding with any other id would turn
+    padding into a real word.
+    """
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(name)
+    if tokenizer.pad_token_id != PAD_TOKEN:
+        raise ValueError(f"{name} pads with id {tokenizer.pad_token_id}, the batch contract with {PAD_TOKEN}")
+    return tokenizer
+
+
 class RefCOCOPairs(Dataset):
     """One expression, the image holding its object, and that object's mask.
 
     The mask is rasterised from the COCO polygon on demand; `instances.json` stores no raster.
+    With `sample_per_object`, an item is an object rather than an expression, and each epoch
+    draws one of its expressions uniformly: the training subset rule, under which every
+    expression is still seen across epochs.
     """
 
-    def __init__(self, pairs: list[Pair], instances: dict, images: Path,
-                 vocabulary: dict[str, int], size: tuple[int, int], augment: bool = False,
-                 flip_probability: float = 0.5) -> None:
-        self.pairs = pairs
+    def __init__(self, pairs: list[Pair], instances: dict, images: Path, tokenizer,
+                 size: tuple[int, int], augment: bool = False, flip_probability: float = 0.5,
+                 sample_per_object: bool = False) -> None:
+        self.groups = group_by_object(pairs) if sample_per_object else [[pair] for pair in pairs]
         self.annotations = {a["id"]: a for a in instances["annotations"]}
         self.shapes = {i["id"]: (i["height"], i["width"]) for i in instances["images"]}
         self.images = images
-        self.vocabulary = vocabulary
+        self.tokenizer = tokenizer
         self.size = size
         self.augment = augment
         self.flip_probability = flip_probability
 
     def __len__(self) -> int:
-        return len(self.pairs)
+        return len(self.groups)
 
     def encode(self, tokens: list[str]) -> list[int]:
-        """Token ids, with anything below the vocabulary threshold mapped to <unk>."""
-        return [self.vocabulary.get(token, 1) for token in tokens]
+        """Tokenizer ids for the expression's words, with the encoder's [CLS] and [SEP] around them."""
+        return self.tokenizer(" ".join(tokens), truncation=True)["input_ids"]
 
     def mask(self, pair: Pair) -> np.ndarray:
         """Rasterise the referred object's polygon at the image's own resolution."""
@@ -361,7 +395,9 @@ class RefCOCOPairs(Dataset):
         return mask_utils.decode(mask_utils.merge(rles))
 
     def __getitem__(self, index: int) -> dict:
-        pair = self.pairs[index]
+        group = self.groups[index]
+        # DataLoader seeds `random` in every worker from the run's seed, so the draw is reproducible.
+        pair = group[0] if len(group) == 1 else random.choice(group)
         image = Image.open(self.images / pair["file_name"]).convert("RGB")
         mask = Image.fromarray(self.mask(pair) * 255)
         tokens = pair["tokens"]
@@ -404,22 +440,31 @@ def collate(samples: list[dict]) -> Batch:
 
 
 def build_dataloaders(config: dict) -> dict[str, DataLoader]:
-    """One loader per split, sharing the training vocabulary and the committed partition."""
+    """One loader per split, sharing the text encoder's tokenizer and the committed partition."""
     folder = prepare_annotations(config)
     refs, instances = load_refs(folder)
+    # Every run reads the partition committed to the repository: a ref whose image is not in its
+    # split's committed list, or an image listed twice, stops the run before it trains.
+    committed = resolve_path("splits/refcoco-unc.json")
+    if not committed.is_file():
+        raise FileNotFoundError(f"{committed} is missing; run python -m src.data --split")
+    verify_split(shared_io.read_json(committed), refs)
     images = resolve_path(config["dataset"]["root"]) / "images"
-    vocabulary = build_vocabulary(refs)
+    tokenizer = load_tokenizer(config["input"].get("tokenizer", "distilbert-base-uncased"))
     loader = config["loader"]
     size = tuple(config["input"]["size"])
+    per_object = loader["expressions_per_object"]
+    if per_object not in (1, None):
+        raise ValueError(f"expressions_per_object must be 1 or null, got {per_object}")
 
     loaders = {}
     for split in SPLITS:
         training = split == "train"
-        pairs = build_pairs(refs, instances, split,
-                            loader["expressions_per_object"] if training else None)
-        dataset = RefCOCOPairs(pairs, instances, images, vocabulary, size,
+        pairs = build_pairs(refs, instances, split)
+        dataset = RefCOCOPairs(pairs, instances, images, tokenizer, size,
                                augment=training and loader["augment"],
-                               flip_probability=loader["flip_probability"])
+                               flip_probability=loader["flip_probability"],
+                               sample_per_object=training and per_object == 1)
         loaders[split] = DataLoader(
             dataset, batch_size=loader["batch_size"], shuffle=training,
             num_workers=loader["num_workers"], collate_fn=collate, drop_last=training,

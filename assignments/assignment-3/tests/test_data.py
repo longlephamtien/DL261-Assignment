@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 import torch
 
-from src.data import MIRRORED, build_pairs, build_vocabulary, collate, verify_split
+from src.data import (
+    MIRRORED, RefCOCOPairs, build_pairs, build_vocabulary, collate, group_by_object, load_tokenizer,
+    verify_split,
+)
 from src.interfaces import PAD_TOKEN, SPLITS
 from src.utils import resolve_path
 
@@ -50,8 +54,27 @@ def test_build_pairs_applies_the_subset_rule() -> None:
     assert len(build_pairs(refs, instances, "train", per_object=None)) == 2
 
 
-def test_vocabulary_is_built_from_the_training_split_alone() -> None:
-    """A word seen only at test time must arrive as <unk>, not as a known id."""
+class WordTokenizer:
+    """Stands in for the Hugging Face tokenizer: one id per word, between [CLS] and [SEP]."""
+
+    ids = {"[CLS]": 101, "[SEP]": 102, "man": 5, "left": 6, "right": 7}
+
+    def __call__(self, text: str, truncation: bool = True) -> dict:
+        return {"input_ids": [101, *(self.ids[word] for word in text.split()), 102]}
+
+
+def two_objects() -> tuple[list[dict], dict]:
+    refs = [
+        {"ref_id": 1, "ann_id": 1, "image_id": 1, "split": "train", "category_id": 1,
+         "sentences": [{"sent": "a", "tokens": ["man", "left"]}, {"sent": "b", "tokens": ["man", "right"]}]},
+        {"ref_id": 2, "ann_id": 2, "image_id": 1, "split": "train", "category_id": 1,
+         "sentences": [{"sent": "c", "tokens": ["man"]}]},
+    ]
+    return refs, {"images": [{"id": 1, "file_name": "x.jpg", "height": 4, "width": 4}], "annotations": []}
+
+
+def test_the_eda_vocabulary_is_built_from_the_training_split_alone() -> None:
+    """The EDA's out-of-vocabulary measurement must not count a test word as known."""
     refs = [
         {"split": "train", "sentences": [{"tokens": ["dog", "dog"]}]},
         {"split": "val", "sentences": [{"tokens": ["zebra", "zebra"]}]},
@@ -59,6 +82,34 @@ def test_vocabulary_is_built_from_the_training_split_alone() -> None:
     vocabulary = build_vocabulary(refs, minimum=2)
     assert "dog" in vocabulary
     assert "zebra" not in vocabulary
+
+
+def test_training_draws_one_expression_per_object_each_epoch() -> None:
+    """The subset rule samples per epoch, so the second expression of an object is still seen."""
+    refs, instances = two_objects()
+    pairs = build_pairs(refs, instances, "train")
+    assert [len(group) for group in group_by_object(pairs)] == [2, 1]
+
+    training = RefCOCOPairs(pairs, instances, Path("."), WordTokenizer(), (4, 4), sample_per_object=True)
+    evaluation = RefCOCOPairs(pairs, instances, Path("."), WordTokenizer(), (4, 4))
+    assert len(training) == 2
+    assert len(evaluation) == 3
+
+
+def test_expressions_are_encoded_by_the_encoders_tokenizer() -> None:
+    """The ids must index the pretrained embedding, with its own special tokens around them."""
+    refs, instances = two_objects()
+    dataset = RefCOCOPairs(build_pairs(refs, instances, "train"), instances, Path("."),
+                           WordTokenizer(), (4, 4))
+    assert dataset.encode(["man", "left"]) == [101, 5, 6, 102]
+
+
+def test_the_tokenizer_pads_with_the_batch_contracts_id() -> None:
+    """DistilBERT pads with 0, the id the collate function fills; a mismatch is refused."""
+    path = Path.home() / ".cache/huggingface/hub/models--distilbert-base-uncased"
+    if not path.is_dir():
+        pytest.skip("distilbert-base-uncased is not cached")
+    assert load_tokenizer("distilbert-base-uncased").pad_token_id == PAD_TOKEN
 
 
 def test_collate_pads_to_the_longest_and_marks_real_tokens() -> None:

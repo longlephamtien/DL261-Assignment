@@ -1,4 +1,4 @@
-"""The simple fusion model, checked with a stand-in text encoder so it does not wait on #99."""
+"""The simple fusion model, checked with a stand-in text encoder so no checkpoint is downloaded."""
 
 from __future__ import annotations
 
@@ -102,3 +102,24 @@ def test_a_trainable_text_encoder_follows_the_training_mode() -> None:
 def test_the_builder_rejects_a_config_that_is_not_simple_fusion(arguments) -> None:
     with pytest.raises(ValueError):
         build_simple_fusion(pretrained=False, **arguments)
+
+
+def test_the_branch_heads_give_each_modality_its_own_prediction() -> None:
+    vision = VisionEncoder(pretrained=False)
+    late = LateConcatFusion(VisionEncoder.out_channels, TEXT_WIDTH, width=32)
+    model = FusionSegmenter(vision, StubText(), late, width=32,
+                            branch_widths=(VisionEncoder.out_channels, TEXT_WIDTH)).eval()
+    images, tokens, attention = inputs()
+    with torch.no_grad():
+        outputs = model.forward_branches(images, tokens, attention)
+        fused = model(images, tokens, attention)
+    assert set(outputs) == {"main", "image", "text"}
+    assert all(logits.shape == (2, NUM_CLASSES, 64, 64) for logits in outputs.values())
+    assert torch.equal(outputs["main"], fused)
+
+
+def test_without_branch_heads_only_the_fused_prediction_is_returned(model) -> None:
+    images, tokens, attention = inputs()
+    model.eval()
+    with torch.no_grad():
+        assert set(model.forward_branches(images, tokens, attention)) == {"main"}
